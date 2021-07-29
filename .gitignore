@@ -1,0 +1,23 @@
+# This .gitignore file specified the files to exclude from the git project.
+#
+
+# Pycharm Files
+.idea
+
+# VS Code Files
+.vscode
+
+# Python Files
+*.pyc
+*.pyo
+
+# Pyinstaller Files
+/build
+/dist
+
+# Packing files
+/sqlite_dissect.egg-info
+
+# Other
+/output
+/log
