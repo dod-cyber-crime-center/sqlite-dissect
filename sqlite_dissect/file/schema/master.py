@@ -1167,13 +1167,13 @@ class OrdinaryTableRow(TableRow):
 
             """
 
-            if character is "-":
+            if character == "-":
 
                 # Check to make sure the full comment indicator was found for "--"
                 if definitions[character_index + 1] == "-":
                     character_index = definitions.index("\n", character_index)
 
-            elif character is "/":
+            elif character == "/":
 
                 # Check to make sure the full comment indicator was found for "/*"
                 if definitions[character_index + 1] != "*":
