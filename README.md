@@ -2,7 +2,7 @@
 
 #### Version 0.0.6
 
-usage:<br>
+### Usage:
 
     sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
                    [-e EXPORT_TYPE] [-n | -w WAL | -j ROLLBACK_JOURNAL] [-r | EXEMPTED_TABLES]
@@ -18,116 +18,36 @@ they are not in the same directory as the specified file, they will not be found
 and their location will need to be specified in the command.  SQLite carving
 will not be done by default.  Please see the options below to enable carving.
 
-#### positional arguments:
+#### Positional Arguments:
 
 SQLITE_FILE
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
 The SQLite database file
 <br><br>
 
-#### optional arguments:
+#### Optional Arguments:
 
--h, --help
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-show this help message and exit
-<br>
-
--v, --version
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-display the version of SQLite Dissect
-<br>
-
--d OUTPUT_DIRECTORY, --directory OUTPUT_DIRECTORY
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-directory to write output to (must be specified for outputs other than console text)
-<br>
-
--p FILE_PREFIX, --file-prefix FILE_PREFIX
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-the file prefix to use on output files, default is the name of the SQLite file
-(the directory for output must be specified)
-<br>
-
--e EXPORT_TYPE, --export EXPORT_TYPE
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-the format to export to {text, csv, sqlite, xlsx}
-(text written to console if -d is not specified)
-<br>
-
--n, --no-journal
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-turn off automatic detection of journal files
-<br>
-
--w WAL, --wal WAL
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-the WAL file to use instead of searching the SQLite file directory by default
-<br>
-
--j ROLLBACK_JOURNAL, --rollback-journal ROLLBACK_JOURNAL
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-the rollback journal file to use instead of searching the SQLite file directory by default
-(under development, currently only outputs to csv, output directory needs to be specified)
-<br>
-
--r EXEMPTED_TABLES, --exempted-tables EXEMPTED_TABLES
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-comma-delimited string of tables \[table1,table2,table3\] to exempt 
-(only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3
-<br>
-
--s, --schema
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-output the schema to console, the initial schema found in the main database file
-<br>
-
--t, --schema-history
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-output the schema history to console, prints the --schema information and write-head log changes
-<br>
-
--g, --signatures
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-output the signatures generated to console
-<br>
-
--c, --carve
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-carves and recovers table data
-<br>
-
--f, --carve-freelists
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-carves freelist pages (carving must be enabled, under development)
-<br>
-
--b TABLES, --tables TABLES
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-specified comma-delimited string of tables \[table1,table2,table3\] to carve
-ex.) table1,table2,table3
-<br>
-
--k, --disable-strict-format-checking
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-disable strict format checks for SQLite databases
-(this may result in improperly parsed SQLite files)
-<br>
-
--l LOG_LEVEL, --log-level LOG_LEVEL
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-level to log messages at {critical, error, warning, info, debug, off}
-<br>
-
--i LOG_FILE, --log-file LOG_FILE
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-log file to write too, default is to write to console, ignored 
-if log level set to off (appends if file already exists)
-<br>
-
---warnings
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-enable runtime warnings
-<br><br>
+| Argument                         | Flag         | Description                              |
+| ---------------------------------|--------------|------------------------------------------|
+| --help                           | -h           | show this help message and exit          |
+| --version                        | -v           | display the version of SQLite Dissect    |
+| --directory DIRECTORY            | -d DIRECTORY | directory to write output to (must be specified for outputs other than console text) |
+| --file-prefix PREFIX             | -p PREFIX    | the file prefix to use on output files, default is the name of the SQLite file (the directory for output must be specified) |
+| --export FORMAT                  | -e FORMAT    | the format to export to {text, csv, sqlite, xlsx} (text written to console if -d is not specified) |
+| --no-journal                     | -n           | turn off automatic detection of journal files |
+| --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
+| --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
+| --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3 |
+| --schema                         | -s           | output the schema to console, the initial schema found in the main database file |
+| --schema-history                 | -t           | output the schema history to console, prints the --schema information and write-head log changes |
+| --signatures                     | -g           | output the signatures generated to console |
+| --carve                          | -c           | carves and recovers table data |
+| --carve-freelists                | -f           | carves freelist pages (carving must be enabled, under development) |
+| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex.) table1,table2,table3 |
+| --disable-strict-format-checking | -k           | disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files) |
+| --log-level LEVEL                | -l LEVEL     | level to log messages at {critical, error, warning, info, debug, off} |
+| --log-file FILE                  | -i FILE      | log file to write too, default is to write to console, ignored if log level set to off (appends if file already exists) |
+| --warnings                       |              | enable runtime warnings |
 
 ### Example Usage:
 
