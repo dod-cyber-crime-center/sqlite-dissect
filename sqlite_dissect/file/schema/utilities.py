@@ -76,18 +76,18 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
 
         else:
 
-            if character is "(":
+            if character == "(":
 
                 embedded_parentheses += 1
 
-            elif character is ")":
+            elif character == ")":
 
                 if embedded_parentheses == 0:
                     break
                 else:
                     embedded_parentheses -= 1
 
-            elif character is "-":
+            elif character == "-":
 
                 """
 

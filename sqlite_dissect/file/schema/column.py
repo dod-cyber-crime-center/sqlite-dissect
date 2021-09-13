@@ -69,7 +69,7 @@ class ColumnDefinition(object):
             character = column_text[character_index]
 
             # Check for the "/* ... */" comment form
-            if character is "/":
+            if character == "/":
                 last_comment_character_index = column_text.index("*/", character_index) + 1
                 parsed_comment = column_text[character_index:last_comment_character_index + 1]
                 parsed_comments_total_length += len(parsed_comment)
@@ -77,7 +77,7 @@ class ColumnDefinition(object):
                 character_index = last_comment_character_index
 
             # Check for the "-- ... \n" comment form
-            elif character is "-" and column_text[character_index + 1] == "-":
+            elif character == "-" and column_text[character_index + 1] == "-":
 
                 """
 
