@@ -48,7 +48,6 @@ This script will act as the command line script to run this library as a stand-a
 
 
 def main(args):
-
     # Handle the logging and warning settings
     if not args.log_level:
         raise SqliteError("Error in setting up logging: no log level determined.")
@@ -95,7 +94,11 @@ def main(args):
     if args.carve_freelists and not args.carve:
         raise SqliteError("Freelist carving cannot be enabled (--carve-freelists) without enabling "
                           "general carving (--carve).")
-    if args.export.upper() != EXPORT_TYPES.TEXT and not args.directory:
+    # If there is an export format specified that is not "text", then an output directory is required. It is assumed
+    # that if there is more than one output format specified then at least one of them is not "text". If there is only
+    # one, then it's checked against the "text" format
+    if (len(args.export) > 1 or (len(args.export) == 1 and args.export[0].upper() != EXPORT_TYPES.TEXT)) \
+            and not args.directory:
         raise SqliteError("The directory needs to be specified (--directory) if an export type other than text "
                           "is specified (--export).")
     if args.file_prefix and not args.directory:
@@ -103,9 +106,9 @@ def main(args):
                           "specified (--file-prefix).")
 
     # Setup the export type
-    export_type = EXPORT_TYPES.TEXT
-    if args.export:
-        export_type = args.export.upper()
+    export_types = [EXPORT_TYPES.TEXT]
+    if args.export and len(export_types) > 0:
+        export_types = map(str.upper, args.export)
 
     # Setup the strict format checking
     strict_format_checking = True
@@ -129,7 +132,7 @@ def main(args):
         output_directory = args.directory
 
     logger.debug("Determined export type to be {} with file prefix: {} and output directory: {}"
-                 .format(export_type, file_prefix, output_directory))
+                 .format(', '.join(export_types), file_prefix, output_directory))
 
     # Obtain the SQLite file
     if not exists(args.sqlite_file):
@@ -231,7 +234,6 @@ def main(args):
 
     # Make sure that both of the journal files are not found
     if rollback_journal_file_name and wal_file_name:
-
         """
     
         Since the arguments have you specify the journal file in a way that you can only set the wal or rollback journal
@@ -269,14 +271,12 @@ def main(args):
 
     # Check if the master schema was asked for
     if args.schema:
-
         # print the master schema of the database
         print("\nDatabase Master Schema:\n{}".format(stringify_master_schema_version(database)))
         print("Continuing to parse...")
 
     # Check if the schema history was asked for
     if args.schema_history:
-
         # print the master schema version history
         print("\nVersion History of Master Schemas:\n{}".format(stringify_master_schema_versions(version_history)))
         print("Continuing to parse...")
@@ -366,28 +366,32 @@ def main(args):
     """
 
     # Export to text
-    if export_type == EXPORT_TYPES.TEXT:
-        print_text(output_directory, file_prefix, export_type, carve, carve_freelists,
+    if EXPORT_TYPES.TEXT in export_types:
+        print("Exporting to text format")
+        print_text(output_directory, file_prefix, export_types, carve, carve_freelists,
                    specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to csv
-    elif export_type == EXPORT_TYPES.CSV:
-        print_csv(output_directory, file_prefix, export_type, carve, carve_freelists,
+    elif EXPORT_TYPES.CSV in export_types:
+        print("Exporting to CSV format")
+        print_csv(output_directory, file_prefix, export_types, carve, carve_freelists,
                   specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to sqlite
-    elif export_type == EXPORT_TYPES.SQLITE:
-        print_sqlite(output_directory, file_prefix, export_type, carve, carve_freelists,
+    elif EXPORT_TYPES.SQLITE in export_types:
+        print("Exporting to SQLite format")
+        print_sqlite(output_directory, file_prefix, export_types, carve, carve_freelists,
                      specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to xlsx
-    elif export_type == EXPORT_TYPES.XLSX:
-        print_xlsx(output_directory, file_prefix, export_type, carve, carve_freelists,
+    elif EXPORT_TYPES.XLSX in export_types:
+        print("Exporting to Excel format")
+        print_xlsx(output_directory, file_prefix, export_types, carve, carve_freelists,
                    specified_tables_to_carve, version_history, signatures, logger)
 
     # The export type was not found (this should not occur due to the checking of argparse)
     else:
-        raise SqliteError("Invalid option for export type: {}.".format(export_type))
+        raise SqliteError("Invalid option for export type: {}.".format(', '.join(export_types)))
 
     # Carve the rollback journal if found and carving is not specified
     if rollback_journal_file and not carve:
@@ -417,7 +421,6 @@ def main(args):
 
 def print_text(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
-
     if output_directory:
 
         file_postfix = ".txt"
@@ -430,7 +433,7 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
 
         with CommitTextExporter(output_directory, text_file_name) as commit_text_exporter:
 
-            for master_schema_entry in version_history.versions[BASE_VERSION_NUMBER]\
+            for master_schema_entry in version_history.versions[BASE_VERSION_NUMBER] \
                     .master_schema.master_schema_entries:
 
                 # Only account for the specified tables
@@ -441,7 +444,7 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
 
                     signature = None
                     if carve:
-                        signature = signatures[master_schema_entry.name] if master_schema_entry.name in signatures\
+                        signature = signatures[master_schema_entry.name] if master_schema_entry.name in signatures \
                             else None
 
                         if not signature and master_schema_entry.row_type is MASTER_SCHEMA_ROW_TYPE.TABLE \
@@ -504,7 +507,6 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
 
 def print_csv(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
               version_history, signatures, logger):
-
     # Export all index and table histories to csv files while supplying signature to carve with
     print("\nExporting history as {} to {}...".format(export_type, output_directory))
     logger.debug("Exporting history to {} as {}.".format(output_directory, export_type))
@@ -543,7 +545,6 @@ def print_csv(output_directory, file_prefix, export_type, carve, carve_freelists
 
 def print_sqlite(output_directory, file_prefix, export_type, carve, carve_freelists,
                  specified_tables_to_carve, version_history, signatures, logger):
-
     file_postfix = "-sqlite-dissect.db3"
     sqlite_file_name = file_prefix + file_postfix
 
@@ -584,7 +585,6 @@ def print_sqlite(output_directory, file_prefix, export_type, carve, carve_freeli
 
 def print_xlsx(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
-
     file_postfix = ".xlsx"
     xlsx_file_name = file_prefix + file_postfix
 
@@ -627,7 +627,6 @@ def print_xlsx(output_directory, file_prefix, export_type, carve, carve_freelist
 def carve_rollback_journal(output_directory, rollback_journal_file, rollback_journal_file_name,
                            specified_tables_to_carve, rollback_journal_exempted_tables,
                            version_history, signatures, logger):
-
     """
 
     Carve the Rollback Journal file (Under Development)
@@ -689,7 +688,6 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
 
 
 if __name__ == "__main__":
-
     description = "SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases " \
                   "and their accompanying journal files. If no options are set other than the file " \
                   "name, the default behaviour will be to check for any journal files and print to " \
@@ -711,7 +709,10 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--file-prefix", default="", metavar="FILE_PREFIX",
                         help="the file prefix to use on output files, default is the name of the SQLite "
                              "file (the directory for output must be specified)")
-    parser.add_argument("-e", "--export", choices=["text", "csv", "sqlite", "xlsx"], default="text",
+    parser.add_argument("-e", "--export",
+                        nargs="*",
+                        choices=["text", "csv", "sqlite", "xlsx"],
+                        default="text",
                         metavar="EXPORT_TYPE",
                         help="the format to export to {text, csv, sqlite, xlsx} (text written to console if -d "
                              "is not specified)")
