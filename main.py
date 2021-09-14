@@ -366,31 +366,32 @@ def main(args):
     """
 
     # Export to text
+    exported = False
     if EXPORT_TYPES.TEXT in export_types:
-        print("Exporting to text format")
-        print_text(output_directory, file_prefix, export_types, carve, carve_freelists,
+        exported = True
+        print_text(output_directory, file_prefix, carve, carve_freelists,
                    specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to csv
-    elif EXPORT_TYPES.CSV in export_types:
-        print("Exporting to CSV format")
-        print_csv(output_directory, file_prefix, export_types, carve, carve_freelists,
+    if EXPORT_TYPES.CSV in export_types:
+        exported = True
+        print_csv(output_directory, file_prefix, carve, carve_freelists,
                   specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to sqlite
-    elif EXPORT_TYPES.SQLITE in export_types:
-        print("Exporting to SQLite format")
-        print_sqlite(output_directory, file_prefix, export_types, carve, carve_freelists,
+    if EXPORT_TYPES.SQLITE in export_types:
+        exported = True
+        print_sqlite(output_directory, file_prefix, carve, carve_freelists,
                      specified_tables_to_carve, version_history, signatures, logger)
 
     # Export to xlsx
-    elif EXPORT_TYPES.XLSX in export_types:
-        print("Exporting to Excel format")
-        print_xlsx(output_directory, file_prefix, export_types, carve, carve_freelists,
+    if EXPORT_TYPES.XLSX in export_types:
+        exported = True
+        print_xlsx(output_directory, file_prefix, carve, carve_freelists,
                    specified_tables_to_carve, version_history, signatures, logger)
 
     # The export type was not found (this should not occur due to the checking of argparse)
-    else:
+    if not exported:
         raise SqliteError("Invalid option for export type: {}.".format(', '.join(export_types)))
 
     # Carve the rollback journal if found and carving is not specified
@@ -419,7 +420,7 @@ def main(args):
     print("Finished in {} seconds.".format(round(time() - start_time, 2)))
 
 
-def print_text(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
+def print_text(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
     if output_directory:
 
@@ -427,9 +428,8 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
         text_file_name = file_prefix + file_postfix
 
         # Export all index and table histories to a text file while supplying signature to carve with
-        print("\nExporting history as {} to {}{}{}...".format(export_type, output_directory, sep, text_file_name))
-        logger.debug("Exporting history as {} to {}{}{}."
-                     .format(export_type, output_directory, sep, text_file_name))
+        print("\nExporting history as text to {}{}{}...".format(output_directory, sep, text_file_name))
+        logger.debug("Exporting history as text to {}{}{}.".format(output_directory, sep, text_file_name))
 
         with CommitTextExporter(output_directory, text_file_name) as commit_text_exporter:
 
@@ -470,7 +470,7 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
     else:
 
         # Export all index and table histories to csv files while supplying signature to carve with
-        logger.debug("Exporting history to {} as {}.".format("console", export_type))
+        logger.debug("Exporting history to {} as text.".format("console"))
 
         for master_schema_entry in version_history.versions[BASE_VERSION_NUMBER].master_schema.master_schema_entries:
 
@@ -505,11 +505,11 @@ def print_text(output_directory, file_prefix, export_type, carve, carve_freelist
                     CommitConsoleExporter.write_commit(commit)
 
 
-def print_csv(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
+def print_csv(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
               version_history, signatures, logger):
     # Export all index and table histories to csv files while supplying signature to carve with
-    print("\nExporting history as {} to {}...".format(export_type, output_directory))
-    logger.debug("Exporting history to {} as {}.".format(output_directory, export_type))
+    print("\nExporting history as CSV to {}...".format(output_directory))
+    logger.debug("Exporting history to {} as CSV.".format(output_directory))
 
     commit_csv_exporter = CommitCsvExporter(output_directory, file_prefix)
 
@@ -543,13 +543,13 @@ def print_csv(output_directory, file_prefix, export_type, carve, carve_freelists
                 commit_csv_exporter.write_commit(master_schema_entry, commit)
 
 
-def print_sqlite(output_directory, file_prefix, export_type, carve, carve_freelists,
+def print_sqlite(output_directory, file_prefix, carve, carve_freelists,
                  specified_tables_to_carve, version_history, signatures, logger):
     file_postfix = "-sqlite-dissect.db3"
     sqlite_file_name = file_prefix + file_postfix
 
-    print("\nExporting history as {} to {}{}{}...".format(export_type, output_directory, sep, sqlite_file_name))
-    logger.debug("Exporting history as {} to {}{}{}.".format(export_type, output_directory, sep, sqlite_file_name))
+    print("\nExporting history as SQLite to {}{}{}...".format(output_directory, sep, sqlite_file_name))
+    logger.debug("Exporting history as SQLite to {}{}{}.".format(output_directory, sep, sqlite_file_name))
 
     with CommitSqliteExporter(output_directory, sqlite_file_name) as commit_sqlite_exporter:
 
@@ -583,14 +583,14 @@ def print_sqlite(output_directory, file_prefix, export_type, carve, carve_freeli
                     commit_sqlite_exporter.write_commit(master_schema_entry, commit)
 
 
-def print_xlsx(output_directory, file_prefix, export_type, carve, carve_freelists, specified_tables_to_carve,
+def print_xlsx(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
     file_postfix = ".xlsx"
     xlsx_file_name = file_prefix + file_postfix
 
     # Export all index and table histories to a xlsx workbook while supplying signature to carve with
-    print("\nExporting history as {} to {}{}{}...".format(export_type, output_directory, sep, xlsx_file_name))
-    logger.debug("Exporting history as {} to {}{}{}.".format(export_type, output_directory, sep, xlsx_file_name))
+    print("\nExporting history as XLSX to {}{}{}...".format(output_directory, sep, xlsx_file_name))
+    logger.debug("Exporting history as XLSX to {}{}{}.".format(output_directory, sep, xlsx_file_name))
 
     with CommitXlsxExporter(output_directory, xlsx_file_name) as commit_xlsx_exporter:
 
