@@ -365,8 +365,11 @@ def main(args):
 
     """
 
-    # Export to text
+    # Set the flag to determine if any of the export types were successful. Since the logic was changed from elif logic
+    # to account for the simultaneous multiple export formats, it can't just cascade down.
     exported = False
+
+    # Export to text
     if EXPORT_TYPES.TEXT in export_types:
         exported = True
         print_text(output_directory, file_prefix, carve, carve_freelists,
