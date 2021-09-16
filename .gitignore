@@ -19,6 +19,7 @@
 
 # Packing files
 /sqlite_dissect.egg-info
+/sqlite_dissect/sqlite_dissect.egg-info
 
 # Other
 /output

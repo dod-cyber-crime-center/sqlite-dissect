@@ -1,3 +1,4 @@
+import os
 from setuptools import setup
 from _version import __version__
 
@@ -8,6 +9,7 @@ setup.py
 This script will be used to setup the sqlite_dissect package for use in python environments.
 
 Note:  To compile a distribution for the project run "python setup.py sdist" in the directory this file is located in.
+To also build the wheel, run "python setup.py sdist bdist_wheel".
 
 Note: openpyxl is needed for the xlsx export and will install jdcal and et-xmlfile ["openpyxl>=2.4.0b1"]
 
@@ -21,10 +23,15 @@ Note: PyInstaller is used for generation of executables but not included in this
 
 """
 
+# The text of the README file
+README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
+
 setup(name="sqlite_dissect",
-      version=__version__,
+      version=os.environ.get('TAG_VERSION', __version__),
       url="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect",
-      description="This package allows parsing and carving of sqlite files",
+      description="This package allows parsing and carving of SQLite files",
+      long_description=README,
+      long_description_content_type="text/markdown",
       author="Defense Cyber Crime Center (DC3)",
       author_email="TSD@dc3.mil",
       packages=["sqlite_dissect",
@@ -36,6 +43,12 @@ setup(name="sqlite_dissect",
                 "sqlite_dissect.file.wal_index",
                 "sqlite_dissect.carving",
                 "sqlite_dissect.export"],
-      install_requires=["openpyxl>=2.4.0b1"],
+      classifiers=[
+          "Programming Language :: Python :: 2",
+          "Programming Language :: Python :: 2.7"
+      ],
+      install_requires=[
+          "openpyxl>=2.4.0b1"
+      ],
       zip_safe=False
       )
