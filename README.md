@@ -18,12 +18,12 @@ they are not in the same directory as the specified file, they will not be found
 and their location will need to be specified in the command.  SQLite carving
 will not be done by default.  Please see the options below to enable carving.
 
-#### Positional Arguments:
+#### Required Arguments:
 
-SQLITE_FILE
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
-The SQLite database file
-<br><br>
+| Argument    | Description                                           | Example Usage                  |
+|-------------|-------------------------------------------------------|--------------------------------|
+| SQLITE_FILE | The path and filename of the SQLite file to be carved | `sqlite_dissect [SQLITE_FILE]` |  
+
 
 #### Optional Arguments:
 
@@ -33,7 +33,7 @@ The SQLite database file
 | --version                        | -v           | display the version of SQLite Dissect    |
 | --directory DIRECTORY            | -d DIRECTORY | directory to write output to (must be specified for outputs other than console text) |
 | --file-prefix PREFIX             | -p PREFIX    | the file prefix to use on output files, default is the name of the SQLite file (the directory for output must be specified) |
-| --export FORMAT                  | -e FORMAT    | the format to export to {text, csv, sqlite, xlsx} (text written to console if -d is not specified) |
+| --export FORMATS                 | -e FORMATS   | the format(s) to export to {text, csv, sqlite, xlsx} (text written to console if -d is not specified). Multiple space-delimited formats are permitted eg `-e sqlite csv xlsx`. |
 | --no-journal                     | -n           | turn off automatic detection of journal files |
 | --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
 | --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
@@ -54,28 +54,28 @@ The SQLite database file
 1. Print the version:
 
 
-    sqlite_dissect --version
+    `sqlite_dissect --version`
 
 2. Parse a SQLite database and print the outputs to the screen:
 
 
-    sqlite_dissect [SQLITE_FILE]
+    `sqlite_dissect [SQLITE_FILE]`
 
 
 3. Parse a SQLite database and print schema history to a SQLite output file:
 
 
-    sqlite_dissect [SQLITE_FILE] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite
+    `sqlite_dissect [SQLITE_FILE] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite`
 
 4. Parse a SQLite database and print the output to a SQLite file along with printing signatures and carving entries:
 
 
-    sqlite_dissect [SQLITE_FILE] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve
+    `sqlite_dissect [SQLITE_FILE] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve`
 
 5. Parse a SQLite database and print the output to a SQLite file and carving entries, including freelists, for specific tables:
 
 
-    sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]
+    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]`
 
 6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and 
    carving entries.  The schema history (schema updates throughout the WAL included if a WAL file detected) and 
@@ -83,13 +83,13 @@ The SQLite database file
    output to the specified log file.
 
 
-    sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]
+    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]`
 
 7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.  
    (CSV is the only output option currently implemented for rollback journal files.)
    
 
-    sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
+    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]`
 
 ### Description
 
