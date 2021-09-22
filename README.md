@@ -1,7 +1,5 @@
 # DC3 SQLite Dissect
 
-#### Version 0.0.6
-
 ### Usage:
 
     sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
