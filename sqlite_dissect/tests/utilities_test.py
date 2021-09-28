@@ -1,7 +1,7 @@
 import unittest
 
 from sqlite_dissect.utilities import calculate_expected_overflow
-from sqlite_dissect.constants import STORAGE_CLASS
+from sqlite_dissect.constants import STORAGE_CLASS, BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
 
 
 class TestRootUtilities(unittest.TestCase):
@@ -26,12 +26,32 @@ class TestRootUtilities(unittest.TestCase):
         self.assertEqual(3, result[1])  # last_overflow_page_content_size
       
       
+    def test_get_serial_type_signature(self):
+        # Test arguments that don't match and get overridden
+        args = [-1, 3.5, 13, 25]
+        for arg in args:
+          result = get_serial_type_signature(arg)
+          self.assertEqual(arg, result)
+          
+        # Test arguments that result in a BLOB_SIGNATURE_IDENTIFIER (even numbers >= 12)
+        args = [12, 16, 20, 100]
+        for arg in args:
+          result = get_serial_type_signature(arg)
+          self.assertEqual(BLOB_SIGNATURE_IDENTIFIER, result)
+        
+        # Test arguments that result in a TEXT_SIGNATURE_IDENTIFIER (odd numbers >= 12)
+        args = [13, 17, 21, 101]
+        for arg in args:
+          result = get_serial_type_signature(arg)
+          self.assertEqual(TEXT_SIGNATURE_IDENTIFIER, result)
+          
+      
     def test_get_storage_class(self):
         # This function is pretty straightforward, so tests are mostly spot checks to ensure there are
         # no breaking changes made, and not focusing on replicating the exact logic that already exists
         # in the function itself.
         
-        # Test invalid
+        # Test invalid arguments
         checks = [-1, 3.5, 13, 25]
         for cls in checks:
           result = get_storage_class(cls)
