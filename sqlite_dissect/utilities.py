@@ -243,6 +243,4 @@ def get_storage_class(serial_type):
 
 def has_content(byte_array):
         pattern = compile(ALL_ZEROS_REGEX)
-        if pattern.match(hexlify(byte_array)):
-            return False
-        return True
+        return pattern.match(hexlify(byte_array))
