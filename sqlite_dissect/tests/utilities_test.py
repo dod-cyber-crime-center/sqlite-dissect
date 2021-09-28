@@ -1,6 +1,6 @@
 import unittest
 
-from sqlite_dissect.utilities import calculate_expected_overflow
+from sqlite_dissect.utilities import calculate_expected_overflow, get_serial_type_signature, get_storage_class
 from sqlite_dissect.constants import STORAGE_CLASS, BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
 
 
