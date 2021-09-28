@@ -28,7 +28,7 @@ class TestRootUtilities(unittest.TestCase):
       
     def test_get_serial_type_signature(self):
         # Test arguments that don't match and get overridden
-        args = [-1, 3.5, 13, 25]
+        args = [-1, 3.5, 25]
         for arg in args:
           result = get_serial_type_signature(arg)
           self.assertEqual(arg, result)
