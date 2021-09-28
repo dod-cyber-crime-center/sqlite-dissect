@@ -1,6 +1,6 @@
 import unittest
 
-from sqlite_dissect.utilities import calculate_expected_overflow, get_serial_type_signature, get_storage_class
+from sqlite_dissect.utilities import calculate_expected_overflow, get_serial_type_signature
 from sqlite_dissect.constants import STORAGE_CLASS, BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
 
 
@@ -45,40 +45,3 @@ class TestRootUtilities(unittest.TestCase):
           result = get_serial_type_signature(arg)
           self.assertEqual(TEXT_SIGNATURE_IDENTIFIER, result)
           
-      
-    def test_get_storage_class(self):
-        # This function is pretty straightforward, so tests are mostly spot checks to ensure there are
-        # no breaking changes made, and not focusing on replicating the exact logic that already exists
-        # in the function itself.
-        
-        # Test invalid arguments
-        checks = [-1, 3.5, 13, 25]
-        for cls in checks:
-          result = get_storage_class(cls)
-          self.assertEqual(None, result)
-        
-        # Test NULL
-        result = get_storage_class(0)
-        self.assertEqual(STORAGE_CLASS.NULL, result)
-        
-        # Test REAL
-        result = get_storage_class(7)
-        self.assertEqual(STORAGE_CLASS.REAL, result)
-
-        # Test INTEGER
-        checks = [1, 2, 3, 4, 5, 6, 8, 9]
-        for cls in checks:
-          result = get_storage_class(cls)
-          self.assertEqual(STORAGE_CLASS.INTEGER, result)
-          
-        # Test BLOB
-        checks = [12, 14, 16, 100]
-        for cls in checks:
-          result = get_storage_class(cls)
-          self.assertEqual(STORAGE_CLASS.BLOB, result)  
-          
-        # Test TEXT
-        checks = [14, 16, 100]
-        for cls in checks:
-          result = get_storage_class(cls)
-          self.assertEqual(STORAGE_CLASS.TEXT, result)
