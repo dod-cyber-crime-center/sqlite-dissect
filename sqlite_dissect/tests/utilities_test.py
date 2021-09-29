@@ -28,7 +28,6 @@ class TestRootUtilities(unittest.TestCase):
         self.assertEqual(3, result[1])  # last_overflow_page_content_size
 
     def test_get_record_content(self):
-        test_string_array = list('this is a string')
         test_string_array = 'this is a string'.encode('utf-8')
         test_byte_array = struct.pack('=BHBL', 1, 2, 3, 4)
 
@@ -40,37 +39,37 @@ class TestRootUtilities(unittest.TestCase):
         # Test when serial_type is 1
         result = get_record_content(1, test_byte_array, 0)
         self.assertEqual(1, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(1, result[1])
 
         # Test when serial_type is 2
         result = get_record_content(2, test_byte_array, 0)
         self.assertEqual(2, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(258, result[1])
 
         # Test when serial_type is 3
         result = get_record_content(3, test_byte_array, 0)
         self.assertEqual(3, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(66048, result[1])
 
         # Test when serial_type is 4
         result = get_record_content(4, test_byte_array, 0)
         self.assertEqual(4, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(16908291, result[1])
 
         # Test when serial_type is 5
         result = get_record_content(5, test_byte_array, 0)
         self.assertEqual(6, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(1108101760000, result[1])
 
         # Test when serial_type is 6
         result = get_record_content(6, test_byte_array, 0)
         self.assertEqual(8, result[0])
-        # self.assertEqual(None, result[1])
+        self.assertEqual(72620556943360000, result[1])
 
         # Test when serial_type is 7
         result = get_record_content(7, test_byte_array, 0)
         self.assertEqual(8, result[0])
-        # self.assertEqual(0, result[1])
+        self.assertEqual(8.202533240714555e-304, result[1])
 
         # Test when serial_type is 8
         result = get_record_content(8, test_byte_array, 0)

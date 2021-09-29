@@ -8,7 +8,6 @@ from sqlite_dissect.constants import ALL_ZEROS_REGEX
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import STORAGE_CLASS
 from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import InvalidVarIntError
 
