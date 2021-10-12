@@ -393,6 +393,11 @@ def main(args):
         print_xlsx(output_directory, file_prefix, carve, carve_freelists,
                    specified_tables_to_carve, version_history, signatures, logger)
 
+    # Export to CASE
+    if EXPORT_TYPES.CASE in export_types:
+        exported = True
+        # TODO add hook into the new case_export class
+
     # The export type was not found (this should not occur due to the checking of argparse)
     if not exported:
         raise SqliteError("Invalid option for export type: {}.".format(', '.join(export_types)))
