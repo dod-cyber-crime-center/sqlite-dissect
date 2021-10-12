@@ -22,7 +22,7 @@ class CaseExporter(object):
 
 
     def generate_header():
-        case['@context'] = {
+        self.case['@context'] = {
             "@vocab": "http://example.org/ontology/local#",
             "case-investigation": "https://ontology.caseontology.org/case/investigation/",
             "drafting": "http://example.org/ontology/drafting#",
@@ -42,7 +42,7 @@ class CaseExporter(object):
 
 
     def generate_tool_signature():
-        case['@graph'].append({
+        self.case['@graph'].append({
             "@id": ("kb:sqlite-dissect" + str(uuid.uuid4())),
             "@type": "uco-tool:Tool",
             "uco-core:name": "SQLite Dissect",
@@ -54,4 +54,4 @@ class CaseExporter(object):
 
     def export_case_file():
         with open('case.json', 'w', encoding='utf-8') as f:
-            json.dump(case, f, ensure_ascii=False, indent=4)
+            json.dump(self.case, f, ensure_ascii=False, indent=4)
