@@ -51,9 +51,6 @@ This script will act as the command line script to run this library as a stand-a
 
 
 def main(args):
-    case = CaseExporter()
-    case.start_datetime = datetime.now()
-
     # Handle the logging and warning settings
     if not args.log_level:
         raise SqliteError("Error in setting up logging: no log level determined.")
@@ -83,6 +80,9 @@ def main(args):
     logger = getLogger(LOGGER_NAME)
     logger.debug("Setup logging using the log level: {}.".format(logging_level))
     logger.info("Using options: {}".format(args))
+
+    case = CaseExporter(logger)
+    case.start_datetime = datetime.now()
 
     if args.warnings:
 
@@ -412,6 +412,8 @@ def main(args):
 
         # End the investigation output timer
         case.end_datetime = datetime.now()
+        # Trigger the generation of the investigative action since the start and end time have now been set
+        case.generate_investigation_action()
         # Export the output to a JSON file
         case.export_case_file(path.join(args.directory, 'case.json'))
 
