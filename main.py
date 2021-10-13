@@ -24,6 +24,7 @@ from sqlite_dissect.constants import MASTER_SCHEMA_ROW_TYPE
 from sqlite_dissect.constants import ROLLBACK_JOURNAL_POSTFIX
 from sqlite_dissect.constants import WAL_FILE_POSTFIX
 from sqlite_dissect.exception import SqliteError
+from sqlite_dissect.export.case_export import CaseExporter
 from sqlite_dissect.export.csv_export import CommitCsvExporter
 from sqlite_dissect.export.sqlite_export import CommitSqliteExporter
 from sqlite_dissect.export.text_export import CommitConsoleExporter
@@ -37,6 +38,7 @@ from sqlite_dissect.output import stringify_master_schema_version
 from sqlite_dissect.output import stringify_master_schema_versions
 from sqlite_dissect.version_history import VersionHistory
 from sqlite_dissect.version_history import VersionHistoryParser
+from datetime import datetime
 
 """
 
@@ -48,6 +50,9 @@ This script will act as the command line script to run this library as a stand-a
 
 
 def main(args):
+    case = CaseExporter()
+    case.start_datetime = datetime.now()
+
     # Handle the logging and warning settings
     if not args.log_level:
         raise SqliteError("Error in setting up logging: no log level determined.")
@@ -395,8 +400,11 @@ def main(args):
 
     # Export to CASE
     if EXPORT_TYPES.CASE in export_types:
+        # TODO finish hook into the new case_export class
         exported = True
-        # TODO add hook into the new case_export class
+        case.add_observable_file(normpath(args.sqlite_file))
+        case.end_datetime = datetime.now()
+        case.export_case_file()
 
     # The export type was not found (this should not occur due to the checking of argparse)
     if not exported:
@@ -719,10 +727,10 @@ if __name__ == "__main__":
                              "file (the directory for output must be specified)")
     parser.add_argument("-e", "--export",
                         nargs="*",
-                        choices=["text", "csv", "sqlite", "xlsx"],
+                        choices=["text", "csv", "sqlite", "xlsx", "case"],
                         default="text",
                         metavar="EXPORT_TYPE",
-                        help="the format to export to {text, csv, sqlite, xlsx} (text written to console if -d "
+                        help="the format to export to {text, csv, sqlite, xlsx, case} (text written to console if -d "
                              "is not specified)")
 
     journal_group = parser.add_mutually_exclusive_group()
