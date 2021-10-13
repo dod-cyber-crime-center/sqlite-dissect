@@ -7,6 +7,7 @@ from logging import INFO
 from logging import WARNING
 from logging import basicConfig
 from logging import getLogger
+from os import path
 from os.path import basename
 from os.path import exists
 from os.path import getsize
@@ -400,11 +401,19 @@ def main(args):
 
     # Export to CASE
     if EXPORT_TYPES.CASE in export_types:
-        # TODO finish hook into the new case_export class
         exported = True
+        # Add the SQLite/DB file to the CASE output
         case.add_observable_file(normpath(args.sqlite_file))
+        # Add the WAL and journal files to the output if they exist
+        if wal_file_name:
+            case.add_observable_file(normpath(wal_file_name))
+        if rollback_journal_file_name:
+            case.add_observable_file(normpath(rollback_journal_file_name))
+
+        # End the investigation output timer
         case.end_datetime = datetime.now()
-        case.export_case_file()
+        # Export the output to a JSON file
+        case.export_case_file(path.join(args.directory, 'case.json'))
 
     # The export type was not found (this should not occur due to the checking of argparse)
     if not exported:
