@@ -1,4 +1,5 @@
 # DC3 SQLite Dissect
+[![SQLite Dissect Python](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml)
 
 #### Version 0.0.6
 
