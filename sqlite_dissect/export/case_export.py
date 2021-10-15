@@ -64,6 +64,11 @@ class CaseExporter(object):
             # Get the full path we need for reference
             filepath = path.abspath(filepath)
 
+            # Since the extension may take some additional logic checks, compute it out of the main JSON block
+            extension = path.splitext(filepath)[1]
+            if len(extension) > 0:
+                extension = extension[1:]
+
             # Parse the file and get the attributes we need
             self.case['@graph'].append({
                 "@id": ("kb:" + str(uuid.uuid4())),
@@ -75,7 +80,15 @@ class CaseExporter(object):
                             "@type": "xsd:dateTime",
                             "@value": datetime.fromtimestamp(path.getctime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
                         },
-                        "uco-observable:extension": path.splitext(filepath)[1][1:],
+                        "uco-observable:modifiedTime": {
+                            "@type": "xsd:dateTime",
+                            "@value": datetime.fromtimestamp(path.getmtime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                        },
+                        "uco-observable:accessedTime": {
+                            "@type": "xsd:dateTime",
+                            "@value": datetime.fromtimestamp(path.getatime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                        },
+                        "uco-observable:extension": extension,
                         "uco-observable:fileName": path.basename(filepath),
                         "uco-observable:filePath": filepath,
                         "uco-observable:isDirectory": 'false',
@@ -104,6 +117,28 @@ class CaseExporter(object):
                                 "uco-types:hashValue": {
                                     "@type": "xsd:hexBinary",
                                     "@value": hashlib.sha1(filepath).hexdigest()
+                                }
+                            },
+                            {
+                                "@type": "uco-types:Hash",
+                                "uco-types:hashMethod": {
+                                    "@type": "uco-vocabulary:HashNameVocab",
+                                    "@value": "SHA256"
+                                },
+                                "uco-types:hashValue": {
+                                    "@type": "xsd:hexBinary",
+                                    "@value": hashlib.sha256(filepath).hexdigest()
+                                }
+                            },
+                            {
+                                "@type": "uco-types:Hash",
+                                "uco-types:hashMethod": {
+                                    "@type": "uco-vocabulary:HashNameVocab",
+                                    "@value": "SHA512"
+                                },
+                                "uco-types:hashValue": {
+                                    "@type": "xsd:hexBinary",
+                                    "@value": hashlib.sha512(filepath).hexdigest()
                                 }
                             }
                         ]
