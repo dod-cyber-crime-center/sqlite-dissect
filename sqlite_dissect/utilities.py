@@ -32,8 +32,14 @@ has_content(byte_array)
 """
 
 
-def calculate_expected_overflow(overflow_byte_size, page_size):
+class DotDict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
+
+def calculate_expected_overflow(overflow_byte_size, page_size):
     overflow_pages = 0
     last_overflow_page_content_size = overflow_byte_size
 
@@ -47,7 +53,6 @@ def calculate_expected_overflow(overflow_byte_size, page_size):
 
 
 def decode_varint(byte_array, offset=0):
-
     unsigned_integer_value = 0
     varint_relative_offset = 0
 
@@ -76,7 +81,6 @@ def decode_varint(byte_array, offset=0):
 
 
 def encode_varint(value):
-
     max_allowed = 0x7fffffffffffffff
     min_allowed = (max_allowed + 1) - 0x10000000000000000
     if value > max_allowed or value < min_allowed:
@@ -139,7 +143,6 @@ def get_md5_hash(string):
 
 
 def get_record_content(serial_type, record_body, offset=0):
-
     # NULL
     if serial_type == 0:
         content_size = 0
@@ -242,7 +245,7 @@ def get_storage_class(serial_type):
 
 
 def has_content(byte_array):
-        pattern = compile(ALL_ZEROS_REGEX)
-        if pattern.match(hexlify(byte_array)):
-            return False
-        return True
+    pattern = compile(ALL_ZEROS_REGEX)
+    if pattern.match(hexlify(byte_array)):
+        return False
+    return True
