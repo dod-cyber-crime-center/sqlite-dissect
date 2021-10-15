@@ -73,6 +73,7 @@ class CaseExporter(object):
             self.case['@graph'].append({
                 "@id": ("kb:" + str(uuid.uuid4())),
                 "@type": "uco-observable:ObservableObject",
+                "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
                     {
                         "@type": "uco-observable:FileFacet",
@@ -91,7 +92,7 @@ class CaseExporter(object):
                         "uco-observable:extension": extension,
                         "uco-observable:fileName": path.basename(filepath),
                         "uco-observable:filePath": filepath,
-                        "uco-observable:isDirectory": 'false',
+                        "uco-observable:isDirectory": False,
                         "uco-observable:sizeInBytes": path.getsize(filepath)
                     },
                     {

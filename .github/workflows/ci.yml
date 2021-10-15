@@ -40,7 +40,11 @@ jobs:
 
       # Test the Python unit tests
       - name: Test with pytest
-        run: pytest
+        run: |
+          # Create the directory for the test output
+          mkdir output
+          # Run the test suite
+          pytest
 
       # Set the environment variable for the Git tag to pass along to the build
       # process in the next step
