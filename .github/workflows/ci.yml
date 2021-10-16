@@ -39,12 +39,27 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       # Test the Python unit tests
-      - name: Test with pytest
+      - name: PyTest
         run: |
           # Create the directory for the test output
           mkdir output
           # Run the test suite
           pytest
+
+      # Setup Python 3 for validation of the CASE output
+      - name: Validate CASE Format
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+        run: |
+          git clone https://github.com/ucoProject/UCO-Utility-Pre-0.7.0-Validator.git
+          cd UCO-Utility-Pre-0.7.0-Validator
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install --editable src
+          ./venv/bin/validate ../ci/case/case-0.4.0.pkl ../output/case.json
+          deactivate
 
       # Set the environment variable for the Git tag to pass along to the build
       # process in the next step
