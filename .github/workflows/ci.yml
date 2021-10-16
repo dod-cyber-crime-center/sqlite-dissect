@@ -47,10 +47,13 @@ jobs:
           pytest
 
       # Setup Python 3 for validation of the CASE output
-      - name: Validate CASE Format
+      - name: Setup Python 3.x CASE Format
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
+
+      # Install the validator and validate the CASE output
+      - name: CASE Export Validation
         run: |
           git clone https://github.com/ucoProject/UCO-Utility-Pre-0.7.0-Validator.git
           cd UCO-Utility-Pre-0.7.0-Validator
