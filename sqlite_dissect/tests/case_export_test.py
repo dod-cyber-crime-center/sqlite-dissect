@@ -28,8 +28,3 @@ class TestCASEExport(unittest.TestCase):
         # Ensure the case.json file exists
         self.assertTrue(os.path.exists('output/case.json'))
         self.assertTrue(os.path.isfile('output/case.json'))
-
-        # TODO add a validator for the exported case.json file based on the project at:
-        # https://github.com/ucoProject/UCO-Utility-Pre-0.7.0-Validator
-        # Once the environment is setup as specified above, the following command can be run to validate the output
-        # `validate case-0.4.0.pkl path/to/case.json`
