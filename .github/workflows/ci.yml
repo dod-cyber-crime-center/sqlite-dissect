@@ -47,7 +47,7 @@ jobs:
           pytest
 
       # Setup Python 3 for validation of the CASE output
-      - name: Setup Python 3.x CASE Format
+      - name: Setup Python 3.x for CASE Validation
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
