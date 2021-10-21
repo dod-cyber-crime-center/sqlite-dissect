@@ -44,6 +44,7 @@ class CaseExporter(object):
                 "uco-tool:toolType": "Extraction",
                 "uco-tool:creator": "Department of Defense Cyber Crime Center (DC3)",
                 "uco-tool:version": __version__,
+                "uco-tool:references": "https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect"
             }
         ]
     }
