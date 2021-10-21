@@ -53,6 +53,35 @@ class CaseExporter(object):
     def __init__(self, logger):
         self.logger = logger
 
+    def register_options(self, options):
+        """
+        Adds the command line options provided as the configuration values provided and outputting them in the schema
+        defined in the uco-tool namespace.
+
+        Ontology Source: https://github.com/ucoProject/UCO/blob/master/uco-tool/tool.ttl
+        """
+        configuration_options = []
+
+        # Loop through the list of provided options and add each configuration option to the CASE output
+        for option in vars(options):
+            configuration_options.append({
+                "@type": "uco-tool:ConfigurationSettingType",
+                "uco-tool:itemName": option,
+                "uco-tool:itemValue": getattr(options, option)
+            })
+
+        # Build the configuration wrapper which includes the facet for the configuration
+        configuration = [
+            {
+                "@type": "uco-tool:ToolConfigurationTypeFacet",
+                "uco-tool:configurationSettings": configuration_options
+            }
+        ]
+
+        # Add the configuration facet to the in progress CASE object
+        self.case['@graph'][0]['uco-core:hasFacet'] = configuration
+
+
     def add_observable_file(self, filepath):
         """
         Adds the file specified in the provided filepath as an ObservableObject in the CASE export. This method handles

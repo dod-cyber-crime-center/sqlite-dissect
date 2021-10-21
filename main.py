@@ -402,6 +402,8 @@ def main(args):
     # Export to CASE
     if EXPORT_TYPES.CASE in export_types:
         exported = True
+        # Add the runtime arguments to the CASE output
+        case.register_options(args)
         # Add the SQLite/DB file to the CASE output
         case.add_observable_file(normpath(args.sqlite_file))
         # Add the WAL and journal files to the output if they exist
