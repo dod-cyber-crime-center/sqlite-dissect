@@ -8,7 +8,6 @@ from sqlite_dissect.constants import ALL_ZEROS_REGEX
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import STORAGE_CLASS
 from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import InvalidVarIntError
 
@@ -26,14 +25,12 @@ get_class_instance(class_name)
 get_md5_hash(string)
 get_record_content(serial_type, record_body, offset=0)
 get_serial_type_signature(serial_type)
-get_storage_class(serial_type)
 has_content(byte_array)
 
 """
 
 
 def calculate_expected_overflow(overflow_byte_size, page_size):
-
     overflow_pages = 0
     last_overflow_page_content_size = overflow_byte_size
 
@@ -47,7 +44,6 @@ def calculate_expected_overflow(overflow_byte_size, page_size):
 
 
 def decode_varint(byte_array, offset=0):
-
     unsigned_integer_value = 0
     varint_relative_offset = 0
 
@@ -76,7 +72,6 @@ def decode_varint(byte_array, offset=0):
 
 
 def encode_varint(value):
-
     max_allowed = 0x7fffffffffffffff
     min_allowed = (max_allowed + 1) - 0x10000000000000000
     if value > max_allowed or value < min_allowed:
@@ -139,7 +134,6 @@ def get_md5_hash(string):
 
 
 def get_record_content(serial_type, record_body, offset=0):
-
     # NULL
     if serial_type == 0:
         content_size = 0
@@ -228,21 +222,8 @@ def get_serial_type_signature(serial_type):
     return serial_type
 
 
-def get_storage_class(serial_type):
-    if serial_type == 0:
-        return STORAGE_CLASS.NULL
-    if serial_type in [1, 2, 3, 4, 5, 6, 8, 9]:
-        return STORAGE_CLASS.INTEGER
-    if serial_type == 7:
-        return STORAGE_CLASS.REAL
-    if serial_type >= 12 and serial_type % 2 == 0:
-        return STORAGE_CLASS.BLOB
-    if serial_type >= 13 and serial_type % 2 == 0:
-        return STORAGE_CLASS.TEXT
-
-
 def has_content(byte_array):
-        pattern = compile(ALL_ZEROS_REGEX)
-        if pattern.match(hexlify(byte_array)):
-            return False
-        return True
+    pattern = compile(ALL_ZEROS_REGEX)
+    if pattern.match(hexlify(byte_array)):
+        return False
+    return True

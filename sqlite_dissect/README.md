@@ -151,7 +151,6 @@ This script holds the following object(s):
 - get_md5_hash(string)
 - get_record_content(serial_type, record_body, offset=0)
 - get_serial_type_signature(serial_type)
-- get_storage_class(serial_type)
 - has_content(byte_array)
 <br><br>
 
