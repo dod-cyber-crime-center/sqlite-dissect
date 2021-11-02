@@ -1,4 +1,6 @@
 # DC3 SQLite Dissect
+[![SQLite Dissect Python](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml)
+<a href="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases"><img src="https://img.shields.io/github/v/release/Defense-Cyber-Crime-Center/sqlite-dissect.svg"></a>
 
 ### Usage:
 
@@ -51,43 +53,50 @@ will not be done by default.  Please see the options below to enable carving.
 
 1. Print the version:
 
-
-    `sqlite_dissect --version`
+```bash
+sqlite_dissect --version
+```
 
 2. Parse a SQLite database and print the outputs to the screen:
 
-
-    `sqlite_dissect [SQLITE_FILE]`
+```bash
+sqlite_dissect [SQLITE_FILE]
+```
 
 
 3. Parse a SQLite database and print schema history to a SQLite output file:
 
-
-    `sqlite_dissect [SQLITE_FILE] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite`
+```bash
+sqlite_dissect [SQLITE_FILE] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite
+```
 
 4. Parse a SQLite database and print the output to a SQLite file along with printing signatures and carving entries:
 
-
-    `sqlite_dissect [SQLITE_FILE] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve`
+```bash
+sqlite_dissect [SQLITE_FILE] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve
+```
 
 5. Parse a SQLite database and print the output to a SQLite file and carving entries, including freelists, for specific tables:
 
-
-    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]`
+```bash
+sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]
+```
 
 6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and 
    carving entries.  The schema history (schema updates throughout the WAL included if a WAL file detected) and 
    signatures will be printed to standard output.  The log level will be set to debug and all log messages will be
    output to the specified log file.
 
-
-    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]`
+```bash
+sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]
+```
 
 7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.  
    (CSV is the only output option currently implemented for rollback journal files.)
    
-
-    `sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]`
+```bash
+sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
+```
 
 ### Description
 
