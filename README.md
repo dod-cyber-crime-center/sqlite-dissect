@@ -2,7 +2,6 @@
 [![SQLite Dissect Python](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml)
 <a href="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases"><img src="https://img.shields.io/github/v/release/Defense-Cyber-Crime-Center/sqlite-dissect.svg"></a>
 
-
 ### Usage:
 
     sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
@@ -240,9 +239,7 @@ TODO:
 - [ ] Implement append, overwrite, etc. options for the log file if specified.
 - [ ] Incorporate signature generation input and output files once implemented.
 - [ ] Incorporate "store in memory" arguments (currently set to False, more in depth operations may want it True).
-- [ ] Support for multiple export types simultaneously.
 - [ ] Implement multiple passes/depths.
-- [ ] Update string comparisons.
 - [ ] Test use cases for exempted tables with rollback journal and when combined with specified tables.  
 - [ ] Check on name vs table_name properties of the master schema entry.  
 - [ ] Test cases where the schema changes throughout the WAL file.
@@ -256,6 +253,5 @@ TODO:
 - [ ] Integrate in the SQLite Forensic Corpus into tests.
 - [ ] Look into updating terminology for versioning to timelining.
 - [ ] Update code for compatibility with Python 3.
-- [ ] Create a pip distribution.  
 - [ ] Create PyUnit tests.
 - [ ] Create a GUI.
