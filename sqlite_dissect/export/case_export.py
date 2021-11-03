@@ -36,17 +36,7 @@ class CaseExporter(object):
             "uco-vocabulary": "https://unifiedcyberontology.org/ontology/uco/vocabulary#",
             "xsd": "http://www.w3.org/2001/XMLSchema#"
         },
-        '@graph': [
-            {
-                "@id": ("kb:sqlite-dissect" + str(uuid.uuid4())),
-                "@type": "uco-tool:Tool",
-                "uco-core:name": "SQLite Dissect",
-                "uco-tool:toolType": "Extraction",
-                "uco-tool:creator": "Department of Defense Cyber Crime Center (DC3)",
-                "uco-tool:version": __version__,
-                "uco-tool:references": "https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect"
-            }
-        ]
+        '@graph': []
     }
     start_datetime = None
     end_datetime = None
@@ -82,7 +72,6 @@ class CaseExporter(object):
         # Add the configuration facet to the in progress CASE object
         self.case['@graph'][0]['uco-core:hasFacet'] = configuration
 
-
     def add_observable_file(self, filepath):
         """
         Adds the file specified in the provided filepath as an ObservableObject in the CASE export. This method handles
@@ -99,9 +88,12 @@ class CaseExporter(object):
             if len(extension) > 0:
                 extension = extension[1:]
 
+            # Generate the UUID which will be returned as a reference
+            guid = ("kb:" + str(uuid.uuid4()))
+
             # Parse the file and get the attributes we need
             self.case['@graph'].append({
-                "@id": ("kb:" + str(uuid.uuid4())),
+                "@id": guid,
                 "@type": "uco-observable:ObservableObject",
                 "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
@@ -176,8 +168,60 @@ class CaseExporter(object):
                     }
                 ]
             })
+
+            return guid
         else:
             self.logger.critical('Attempting to add invalid filepath to CASE Observable export: {}'.format(filepath))
+
+    def link_observable_relationship(self, source_guid, target_guid, relationship):
+        self.case['@graph'].append({
+            "@id": ("kb:export-artifact-relationship-" + str(uuid.uuid4())),
+            "@type": "uco-observable:ObservableRelationship",
+            "uco-core:source": {
+                "@id": source_guid
+            },
+            "uco-core:target": {
+                "@id": target_guid
+            },
+            "uco-core:kindOfRelationship": {
+                "@type": "uco-vocabulary:ObservableObjectRelationshipVocab",
+                "@value": relationship
+            },
+            "uco-core:isDirectional": True
+        })
+
+    def add_export_artifacts(self, source_guid, export_paths=None):
+        """
+        Loops through the list of provided export artifact paths and adds them as observables and links them to the
+        original observable artifact
+        """
+        if export_paths is None:
+            export_paths = []
+
+        for export_path in export_paths:
+            # Add the observable object and get the GUID for linking
+            export_guid = self.add_observable_file(export_path)
+            # Add the relationship between the two observables
+            self.link_observable_relationship(source_guid, export_guid, 'Created_By')
+
+    def generate_header(self):
+        """
+        Generates the header for the tool and returns the GUID for the ObservableRelationships
+        """
+        # Generate the UUID which will be returned as a reference
+        guid = ("kb:sqlite-dissect" + str(uuid.uuid4()))
+
+        self.case['@graph'].append({
+            "@id": guid,
+            "@type": "uco-tool:Tool",
+            "uco-core:name": "SQLite Dissect",
+            "uco-tool:toolType": "Extraction",
+            "uco-tool:creator": "Department of Defense Cyber Crime Center (DC3)",
+            "uco-tool:version": __version__,
+            "uco-tool:references": "https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect"
+        })
+
+        return guid
 
     def generate_investigation_action(self):
         """

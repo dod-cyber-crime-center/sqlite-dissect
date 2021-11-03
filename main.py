@@ -1,3 +1,4 @@
+import os.path
 import warnings
 from argparse import ArgumentParser
 from logging import CRITICAL
@@ -374,48 +375,60 @@ def main(args):
     # Set the flag to determine if any of the export types were successful. Since the logic was changed from elif logic
     # to account for the simultaneous multiple export formats, it can't just cascade down.
     exported = False
+    export_paths = []
 
     # Export to text
     if EXPORT_TYPES.TEXT in export_types:
         exported = True
-        print_text(output_directory, file_prefix, carve, carve_freelists,
-                   specified_tables_to_carve, version_history, signatures, logger)
+        export_paths += print_text(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
+                                   version_history, signatures, logger)
 
-    # Export to csv
+    # Export to CSV
     if EXPORT_TYPES.CSV in export_types:
         exported = True
-        print_csv(output_directory, file_prefix, carve, carve_freelists,
-                  specified_tables_to_carve, version_history, signatures, logger)
+        export_paths += print_csv(output_directory, file_prefix, carve, carve_freelists,
+                                  specified_tables_to_carve, version_history, signatures, logger)
 
-    # Export to sqlite
+    # Export to SQLite
     if EXPORT_TYPES.SQLITE in export_types:
         exported = True
-        print_sqlite(output_directory, file_prefix, carve, carve_freelists,
-                     specified_tables_to_carve, version_history, signatures, logger)
+        export_paths.append(print_sqlite(output_directory, file_prefix, carve, carve_freelists,
+                                         specified_tables_to_carve, version_history, signatures, logger))
 
-    # Export to xlsx
+    # Export to XLSX
     if EXPORT_TYPES.XLSX in export_types:
         exported = True
-        print_xlsx(output_directory, file_prefix, carve, carve_freelists,
-                   specified_tables_to_carve, version_history, signatures, logger)
+        export_paths.append(print_xlsx(output_directory, file_prefix, carve, carve_freelists,
+                                       specified_tables_to_carve, version_history, signatures, logger))
 
     # Export to CASE
     if EXPORT_TYPES.CASE in export_types:
         exported = True
+
+        # Add the header and get the GUID for the tool for future linking
+        tool_guid = case.generate_header()
+
         # Add the runtime arguments to the CASE output
         case.register_options(args)
+
         # Add the SQLite/DB file to the CASE output
         case.add_observable_file(normpath(args.sqlite_file))
+
         # Add the WAL and journal files to the output if they exist
         if wal_file_name:
             case.add_observable_file(normpath(wal_file_name))
         if rollback_journal_file_name:
             case.add_observable_file(normpath(rollback_journal_file_name))
 
+        # Add the export artifacts and link them to the original source file
+        case.add_export_artifacts(tool_guid, export_paths)
+
         # End the investigation output timer
         case.end_datetime = datetime.now()
+
         # Trigger the generation of the investigative action since the start and end time have now been set
         case.generate_investigation_action()
+
         # Export the output to a JSON file
         case.export_case_file(path.join(args.directory, 'case.json'))
 
@@ -451,6 +464,12 @@ def main(args):
 
 def print_text(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
+    """
+    Prints the text log to the output directory or stdout console as configured, and returns the path of any file(s)
+    that are generated as a result of the export
+    """
+    export_paths = []
+
     if output_directory:
 
         file_postfix = ".txt"
@@ -496,6 +515,10 @@ def print_text(output_directory, file_prefix, carve, carve_freelists, specified_
                     for commit in version_history_parser:
                         commit_text_exporter.write_commit(commit)
 
+        # Append the output file to the exported file list
+        logger.debug('Adding exported file to export_paths {}'.format(os.path.join(output_directory, text_file_name)))
+        export_paths.append(os.path.join(output_directory, text_file_name))
+
     else:
 
         # Export all index and table histories to csv files while supplying signature to carve with
@@ -532,6 +555,8 @@ def print_text(output_directory, file_prefix, carve, carve_freelists, specified_
 
                 for commit in version_history_parser:
                     CommitConsoleExporter.write_commit(commit)
+
+    return export_paths
 
 
 def print_csv(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
@@ -570,6 +595,9 @@ def print_csv(output_directory, file_prefix, carve, carve_freelists, specified_t
 
             for commit in version_history_parser:
                 commit_csv_exporter.write_commit(master_schema_entry, commit)
+
+    # Return the list of CSV filenames that were generated as part of the output
+    return list(commit_csv_exporter.csv_file_names.values())
 
 
 def print_sqlite(output_directory, file_prefix, carve, carve_freelists,
@@ -611,6 +639,8 @@ def print_sqlite(output_directory, file_prefix, carve, carve_freelists,
                 for commit in version_history_parser:
                     commit_sqlite_exporter.write_commit(master_schema_entry, commit)
 
+    return os.path.join(output_directory, sqlite_file_name)
+
 
 def print_xlsx(output_directory, file_prefix, carve, carve_freelists, specified_tables_to_carve,
                version_history, signatures, logger):
@@ -651,6 +681,8 @@ def print_xlsx(output_directory, file_prefix, carve, carve_freelists, specified_
 
                 for commit in version_history_parser:
                     commit_xlsx_exporter.write_commit(master_schema_entry, commit)
+
+    return os.path.join(output_directory, xlsx_file_name)
 
 
 def carve_rollback_journal(output_directory, rollback_journal_file, rollback_journal_file_name,
