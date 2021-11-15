@@ -209,7 +209,7 @@ class CaseExporter(object):
         Generates the header for the tool and returns the GUID for the ObservableRelationships
         """
         # Generate the UUID which will be returned as a reference
-        guid = ("kb:sqlite-dissect" + str(uuid.uuid4()))
+        guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
 
         self.case['@graph'].append({
             "@id": guid,
