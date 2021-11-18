@@ -406,28 +406,28 @@ def main(args):
         exported = True
 
         # Add the header and get the GUID for the tool for future linking
-        tool_guid = case.generate_header()
+        case.generate_header()
 
         # Add the runtime arguments to the CASE output
         case.register_options(args)
 
         # Add the SQLite/DB file to the CASE output
-        case.add_observable_file(normpath(args.sqlite_file))
+        source_guids = [case.add_observable_file(normpath(args.sqlite_file), 'sqlite-file')]
 
         # Add the WAL and journal files to the output if they exist
         if wal_file_name:
-            case.add_observable_file(normpath(wal_file_name))
+            source_guids.append(case.add_observable_file(normpath(wal_file_name), 'wal-file'))
         if rollback_journal_file_name:
-            case.add_observable_file(normpath(rollback_journal_file_name))
+            source_guids.append(case.add_observable_file(normpath(rollback_journal_file_name), 'journal-file'))
 
         # Add the export artifacts and link them to the original source file
-        case.add_export_artifacts(tool_guid, export_paths)
+        case.add_export_artifacts(export_paths)
 
         # End the investigation output timer
         case.end_datetime = datetime.now()
 
         # Trigger the generation of the investigative action since the start and end time have now been set
-        case.generate_investigation_action()
+        case.generate_investigation_action(source_guids)
 
         # Export the output to a JSON file
         case.export_case_file(path.join(args.directory, 'case.json'))

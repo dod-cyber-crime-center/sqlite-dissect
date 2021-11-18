@@ -16,6 +16,8 @@ class CaseExporter(object):
     # Define the formatted logger that is provided by the main.py execution path
     logger = None
 
+    result_guids = []
+
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
     # from the main.py execution path.
     case = {
@@ -72,7 +74,7 @@ class CaseExporter(object):
         # Add the configuration facet to the in progress CASE object
         self.case['@graph'][0]['uco-core:hasFacet'] = configuration
 
-    def add_observable_file(self, filepath):
+    def add_observable_file(self, filepath, filetype=None):
         """
         Adds the file specified in the provided filepath as an ObservableObject in the CASE export. This method handles
         calculation of filesize, extension, MD5 hash, SHA1 hash, and other metadata expected in the Observable TTL spec.
@@ -89,7 +91,10 @@ class CaseExporter(object):
                 extension = extension[1:]
 
             # Generate the UUID which will be returned as a reference
-            guid = ("kb:" + str(uuid.uuid4()))
+            if filetype is None:
+                guid = ("kb:" + str(uuid.uuid4()))
+            else:
+                guid = ("kb:" + filetype + "-" + str(uuid.uuid4()))
 
             # Parse the file and get the attributes we need
             self.case['@graph'].append({
@@ -190,7 +195,7 @@ class CaseExporter(object):
             "uco-core:isDirectional": True
         })
 
-    def add_export_artifacts(self, source_guid, export_paths=None):
+    def add_export_artifacts(self, export_paths=None):
         """
         Loops through the list of provided export artifact paths and adds them as observables and links them to the
         original observable artifact
@@ -200,9 +205,25 @@ class CaseExporter(object):
 
         for export_path in export_paths:
             # Add the observable object and get the GUID for linking
-            export_guid = self.add_observable_file(export_path)
-            # Add the relationship between the two observables
-            self.link_observable_relationship(source_guid, export_guid, 'Created_By')
+            export_guid = self.add_observable_file(export_path, "export-file")
+            # Add the export result GUID to the list to be extracted
+            self.result_guids.append(export_guid)
+
+    def generate_provenance_record(self, description, guids):
+        """
+        Generates a provenance record for the tool and returns the GUID for the new object
+        """
+        # Generate the UUID which will be returned as a reference
+        guid = ("kb:provenance-record-" + str(uuid.uuid4()))
+
+        record = {
+            "@id": guid,
+            "@type": "case-investigation:ProvenanceRecord",
+            "uco-core:description": description,
+            "uco-core:object": self.guid_list_to_objects(guids)
+        }
+        self.case['@graph'].append(record)
+        return guid
 
     def generate_header(self):
         """
@@ -225,16 +246,22 @@ class CaseExporter(object):
 
         return guid
 
-    def generate_investigation_action(self):
+    def generate_investigation_action(self, source_guids):
         """
         Builds the investigative action object as defined in the CASE ontology. This also takes in the start and end
         datetimes from the analysis.
 
         Ontology source: https://github.com/casework/CASE/blob/master/ontology/investigation/investigation.ttl
         """
+        source_provenance_guid = self.generate_provenance_record("SQLite source artifacts", source_guids)
+        source_guids.append(source_provenance_guid)
+        result_provenance_guid = self.generate_provenance_record("SQLite Dissect output artifacts", self.result_guids)
+        self.result_guids.append(source_provenance_guid)
+
         action = {
             "@id": ("kb:investigative-action" + str(uuid.uuid4())),
-            "@type": "case-investigation:InvestigativeAction"
+            "@type": "case-investigation:InvestigativeAction",
+            "uco-core:hasFacet": []
         }
 
         if self.start_datetime:
@@ -247,7 +274,13 @@ class CaseExporter(object):
                 "@type": "xsd:dateTime",
                 "@value": self.end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             }
-
+        # Loop through and add the results to the ActionReferencesFacet
+        action_facet = {
+            "@type": "uco-action:ActionReferencesFacet",
+            "uco-action:object": self.guid_list_to_objects(source_guids),
+            "uco-action:result": self.guid_list_to_objects(self.result_guids)
+        }
+        action["uco-core:hasFacet"].append(action_facet)
         self.case['@graph'].append(action)
 
     def export_case_file(self, export_path='output/case.json'):
@@ -259,3 +292,12 @@ class CaseExporter(object):
         with open(export_path, 'w') as f:
             json.dump(self.case, f, ensure_ascii=False, indent=4)
             self.logger.info('CASE formatted file has been exported to {}'.format(export_path))
+
+    def guid_list_to_objects(self, guids):
+        """
+        Converts a list of string GUIDs to the object notation with an ID prefix
+        """
+        if guids is None:
+            return []
+        else:
+            return list(map(lambda g: {"@id": g}, guids))
