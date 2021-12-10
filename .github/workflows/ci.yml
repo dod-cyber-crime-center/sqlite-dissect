@@ -28,7 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python setup.py install
-          pip install flake8 pytest build twine wheel
+          pip install flake8 pytest pytest-cov build twine wheel
 
       # Lint the Python code to check for syntax errors
       - name: Lint with flake8
@@ -40,7 +40,14 @@ jobs:
 
       # Test the Python unit tests
       - name: Test with pytest
-        run: pytest
+        run: pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc
+
+      # Upload the PyTest HTML coverage report for review
+      - name: Upload PyTest Coverage
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: htmlcov
 
       # Set the environment variable for the Git tag to pass along to the build
       # process in the next step

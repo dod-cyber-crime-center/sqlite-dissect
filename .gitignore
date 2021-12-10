@@ -25,3 +25,5 @@
 /output
 /log
 /.pytest_cache
+/.coverage
+/htmlcov
