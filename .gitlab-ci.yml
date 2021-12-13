@@ -4,6 +4,7 @@
 # Pre-Requisites:
 # - A GitLab runner with the `docker` executor that is tagged with `docker`.
 # - Access to the internet for installation of dependencies during the build step.
+# - If there's a proxy behind which the runner needs to be configured, set the PYPI_PROXY_URL environment variable.
 
 stages:
   - Lint
@@ -11,6 +12,14 @@ stages:
   - Build
 
 image: python:2.7
+
+before_script:
+  - >
+    if [[ ${PYPI_PROXY_URL} != "" ]]; then
+      echo "Setting PyPi proxy to be ${PYPI_PROXY_URL}"
+      export http_proxy=${PYPI_PROXY_URL}
+      export https_proxy=${PYPI_PROXY_URL}
+    fi
 
 FlakeLint:
   stage: Lint
@@ -51,10 +60,10 @@ BuildWheel:
     - python setup.py sdist bdist_wheel
     # Check the built wheel
     - twine check dist/*
-  only: tags
+  only:
+    - tags
   artifacts:
     paths:
       - dist/*
   tags:
     - docker
-
