@@ -41,11 +41,12 @@ PyTest:
   script:
     - python -m pip install --upgrade pip
     - python setup.py install
-    - pip install pytest build twine wheel
-    # stop the build if there are Python syntax errors or undefined names
-    - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-    - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - pip install pytest pytest-cov
+    # Run the test with coverage
+    - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc
+  artifacts:
+    paths:
+      - htmlcov/*
   tags:
     - docker
 
