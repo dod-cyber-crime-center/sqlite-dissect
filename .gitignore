@@ -24,4 +24,7 @@
 # Other
 /output
 /log
+/case
 /.pytest_cache
+/.coverage
+/htmlcov

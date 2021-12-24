@@ -57,11 +57,12 @@ class CaseExporter(object):
 
         # Loop through the list of provided options and add each configuration option to the CASE output
         for option in vars(options):
-            configuration_options.append({
-                "@type": "uco-tool:ConfigurationSettingType",
-                "uco-tool:itemName": option,
-                "uco-tool:itemValue": getattr(options, option)
-            })
+            if getattr(options, option) is not None and len(str(getattr(options, option))) > 0:
+                configuration_options.append({
+                    "@type": "uco-tool:ConfigurationSettingType",
+                    "uco-tool:itemName": option,
+                    "uco-tool:itemValue": str(getattr(options, option))
+                })
 
         # Build the configuration wrapper which includes the facet for the configuration
         configuration = [
