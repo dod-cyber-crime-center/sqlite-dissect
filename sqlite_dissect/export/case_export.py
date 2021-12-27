@@ -214,17 +214,22 @@ class CaseExporter(object):
         """
         Generates a provenance record for the tool and returns the GUID for the new object
         """
-        # Generate the UUID which will be returned as a reference
-        guid = ("kb:provenance-record-" + str(uuid.uuid4()))
 
-        record = {
-            "@id": guid,
-            "@type": "case-investigation:ProvenanceRecord",
-            "uco-core:description": description,
-            "uco-core:object": self.guid_list_to_objects(guids)
-        }
-        self.case['@graph'].append(record)
-        return guid
+        # Ensure there is at least one GUID else don't add anything
+        if len(guids) > 0:
+            # Generate the UUID which will be returned as a reference
+            guid = ("kb:provenance-record-" + str(uuid.uuid4()))
+
+            record = {
+                "@id": guid,
+                "@type": "case-investigation:ProvenanceRecord",
+                "uco-core:description": description,
+                "uco-core:object": self.guid_list_to_objects(guids)
+            }
+            self.case['@graph'].append(record)
+            return guid
+        else:
+            return None
 
     def generate_header(self):
         """
@@ -255,9 +260,11 @@ class CaseExporter(object):
         Ontology source: https://github.com/casework/CASE/blob/master/ontology/investigation/investigation.ttl
         """
         source_provenance_guid = self.generate_provenance_record("SQLite source artifacts", source_guids)
-        source_guids.append(source_provenance_guid)
+        if source_provenance_guid is not None:
+            source_guids.append(source_provenance_guid)
         result_provenance_guid = self.generate_provenance_record("SQLite Dissect output artifacts", self.result_guids)
-        self.result_guids.append(source_provenance_guid)
+        if result_provenance_guid is not None:
+            self.result_guids.append(result_provenance_guid)
 
         action = {
             "@id": ("kb:investigative-action" + str(uuid.uuid4())),
