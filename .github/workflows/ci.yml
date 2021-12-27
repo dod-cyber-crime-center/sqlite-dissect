@@ -46,6 +46,12 @@ jobs:
           # Run the test suite
           pytest
 
+      # Run the CASE validation job to confirm the output is valid
+      - name: CASE Export Validation
+        uses: kchason/case-validation-action
+        with:
+          case-path: ./output/case.json
+
       # Setup Python 3 for validation of the CASE output
       - name: Setup Python 3.x for CASE Validation
         uses: actions/setup-python@v2
