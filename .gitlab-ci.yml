@@ -43,8 +43,11 @@ PyTest:
     - python setup.py install
     - pip install pytest pytest-cov
     # Run the test with coverage
-    - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc
+    - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc --junitxml=report.xml
   artifacts:
+    when: always
+    reports:
+      junit: report.xml
     paths:
       - htmlcov/*
   tags:
