@@ -240,12 +240,12 @@ def is_sqlite_file(path):
 
     :param path: the string path to the file to be validated.
     :raises:
-        FileNotFoundError when the provided path does not exist in the filesystem.
+        IOError when the provided path does not exist in the filesystem.
         IOError when the file cannot be properly read for header comparison.
     """
     # Ensure the path exists
     if not exists(path):
-        raise FileNotFoundError("The specified path cannot be found: {}".format(path))
+        raise IOError("The specified path cannot be found: {}".format(path))
 
     # Attempt to open the file for reading
     try:
@@ -266,7 +266,7 @@ def get_sqlite_files(path):
 
     :param path: the string path to the file or directory in which SQLite files should be discovered.
     :raises:
-        FileNotFoundError when the provided path does not exist in the filesystem.
+        IOError when the provided path does not exist in the filesystem.
     """
     sqlite_files = []
 
@@ -288,7 +288,7 @@ def get_sqlite_files(path):
             else:
                 logging.info("File was found but is not a SQLite file: {}".format(path))
     else:
-        raise FileNotFoundError("The specified path cannot be found: {}".format(path))
+        raise IOError("The specified path cannot be found: {}".format(path))
 
     return sqlite_files
 
@@ -302,7 +302,7 @@ def create_directory(dir_path):
     if not exists(dir_path):
         try:
             makedirs(dir_path)
-        except (OSError or FileExistsError) as e:
+        except (OSError or IOError) as e:
             logging.error("Unable to create directory {} with error: {}".format(dir_path, e))
             return False
 

@@ -140,7 +140,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
             if create_directory(join(output_directory, subpath)):
                 output_directory = join(output_directory, subpath)
             else:
-                raise FileNotFoundError("Unable to create the new sub-directory: {}", join(output_directory, subpath))
+                raise IOError("Unable to create the new sub-directory: {}", join(output_directory, subpath))
 
     logger.debug("Determined export type to be {} with file prefix: {} and output directory: {}"
                  .format(', '.join(export_types), file_prefix, output_directory))
