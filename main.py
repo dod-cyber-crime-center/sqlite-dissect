@@ -136,7 +136,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         # Determine if there are sub-paths being configured for exports
         if export_sub_paths:
             # Generate unique subpath and create the directory
-            subpath = str(uuid.uuid4().hex)
+            subpath = file_prefix.replace(".", "-") + "-" + str(uuid.uuid4().hex)
             if create_directory(join(output_directory, subpath)):
                 output_directory = join(output_directory, subpath)
             else:
