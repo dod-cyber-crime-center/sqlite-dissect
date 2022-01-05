@@ -714,7 +714,8 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description=description)
 
-    parser.add_argument("sqlite_file", metavar="SQLITE_FILE", help="The SQLite database file")
+    parser.add_argument("sqlite_path", metavar="SQLITE_PATH", help="The path to the SQLite database file or directory "
+                                                                   "containing multiple files")
 
     parser.add_argument("-v", "--version", action="version", version="version {version}".format(version=__version__),
                         help="display the version of SQLite Dissect")
@@ -783,8 +784,8 @@ if __name__ == "__main__":
 
     # Determine if a directory has been passed instead of a file, in which case, find all
     args = parser.parse_args()
-    if args.sqlite_file is not None:
-        sqlite_files = get_sqlite_files(args.sqlite_file)
+    if args.sqlite_path is not None:
+        sqlite_files = get_sqlite_files(args.sqlite_path)
         # Ensure there is at least one SQLite file
         if len(sqlite_files) > 0:
             for sqlite_file in sqlite_files:
