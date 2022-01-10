@@ -28,7 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python setup.py install
-          pip install flake8 pytest build twine wheel
+          pip install flake8 pytest pytest-cov build twine wheel
 
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
@@ -44,13 +44,20 @@ jobs:
           # Create the directory for the test output
           mkdir output
           # Run the test suite
-          pytest
+          pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc
 
       # Run the CASE validation job to confirm the output is valid
       - name: CASE Export Validation
         uses: kchason/case-validation-action@v1
         with:
           case-path: ./output/case.json
+
+      # Upload the PyTest HTML coverage report for review
+      - name: Upload PyTest Coverage
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: htmlcov
 
       # Set the environment variable for the Git tag to pass along to the build
       # process in the next step
