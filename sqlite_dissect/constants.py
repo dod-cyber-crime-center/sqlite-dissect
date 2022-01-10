@@ -264,7 +264,7 @@ DATABASE_HEADER_VERSIONED_FIELDS = Enum({"FILE_CHANGE_COUNTER": "file_change_cou
 The types of output that are supported by this package.
 
 """
-EXPORT_TYPES = Enum(["TEXT", "CSV", "SQLITE", "XLSX"])
+EXPORT_TYPES = Enum(["TEXT", "CSV", "SQLITE", "XLSX", "CASE"])
 
 """
 
