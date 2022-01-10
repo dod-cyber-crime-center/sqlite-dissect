@@ -31,7 +31,7 @@ jobs:
           pip install flake8 pytest build twine wheel
 
       # Lint the Python code to check for syntax errors
-      - name: Lint with flake8
+      - name: Lint with Flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
@@ -39,8 +39,18 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       # Test the Python unit tests
-      - name: Test with pytest
-        run: pytest
+      - name: PyTest
+        run: |
+          # Create the directory for the test output
+          mkdir output
+          # Run the test suite
+          pytest
+
+      # Run the CASE validation job to confirm the output is valid
+      - name: CASE Export Validation
+        uses: kchason/case-validation-action@v1
+        with:
+          case-path: ./output/case.json
 
       # Set the environment variable for the Git tag to pass along to the build
       # process in the next step
