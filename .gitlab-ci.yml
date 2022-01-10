@@ -1,0 +1,73 @@
+# While SQLite Dissect is primarily managed in GitHub, there are some forks that are being managed in GitLab instances.
+# This runner configuration is analogous to what exists in ./.github/workflows/ci.yml but is configured for GitLab CI.
+# As the primary repository resides in GitHub, this script does not include the logic to push the built wheel to PyPi.
+# Pre-Requisites:
+# - A GitLab runner with the `docker` executor that is tagged with `docker`.
+# - Access to the internet for installation of dependencies during the build step.
+# - If there's a proxy behind which the runner needs to be configured, set the PYPI_PROXY_URL environment variable.
+
+stages:
+  - Lint
+  - Test
+  - Build
+
+image: python:2.7
+
+before_script:
+  - >
+    if [[ ${PYPI_PROXY_URL} != "" ]]; then
+      echo "Setting PyPi proxy to be ${PYPI_PROXY_URL}"
+      export http_proxy=${PYPI_PROXY_URL}
+      export https_proxy=${PYPI_PROXY_URL}
+    fi
+
+FlakeLint:
+  stage: Lint
+  allow_failure: false
+  script:
+    - python -m pip install --upgrade pip
+    - python setup.py install
+    - pip install flake8
+    # stop the build if there are Python syntax errors or undefined names
+    - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+    - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  tags:
+    - docker
+
+PyTest:
+  stage: Test
+  allow_failure: false
+  script:
+    - python -m pip install --upgrade pip
+    - python setup.py install
+    - pip install pytest pytest-cov
+    # Run the test with coverage
+    - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    paths:
+      - htmlcov/*
+  tags:
+    - docker
+
+BuildWheel:
+  stage: Build
+  allow_failure: false
+  script:
+    - python -m pip install --upgrade pip
+    - python setup.py install
+    - pip install build twine wheel
+    # Build the wheel
+    - python setup.py sdist bdist_wheel
+    # Check the built wheel
+    - twine check dist/*
+  only:
+    - tags
+  artifacts:
+    paths:
+      - dist/*
+  tags:
+    - docker
