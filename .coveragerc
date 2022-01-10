@@ -1,0 +1,2 @@
+[run]
+omit = sqlite_dissect/tests/*

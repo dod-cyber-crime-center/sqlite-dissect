@@ -33,7 +33,7 @@ will not be done by default.  Please see the options below to enable carving.
 | --version                        | -v           | display the version of SQLite Dissect    |
 | --directory DIRECTORY            | -d DIRECTORY | directory to write output to (must be specified for outputs other than console text) |
 | --file-prefix PREFIX             | -p PREFIX    | the file prefix to use on output files, default is the name of the SQLite file (the directory for output must be specified) |
-| --export FORMATS                 | -e FORMATS   | the format(s) to export to {text, csv, sqlite, xlsx} (text written to console if -d is not specified). Multiple space-delimited formats are permitted eg `-e sqlite csv xlsx`. |
+| --export FORMATS                 | -e FORMATS   | the format(s) to export to {text, csv, sqlite, xlsx, case} (text written to console if -d is not specified). Multiple space-delimited formats are permitted eg `-e sqlite csv xlsx`. |
 | --no-journal                     | -n           | turn off automatic detection of journal files |
 | --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
 | --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
