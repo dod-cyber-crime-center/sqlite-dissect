@@ -421,10 +421,10 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         case.generate_header()
 
         # Add the runtime arguments to the CASE output
-        case.register_options(args)
+        case.register_options(arguments)
 
         # Add the SQLite/DB file to the CASE output
-        source_guids = [case.add_observable_file(normpath(args.sqlite_file), 'sqlite-file')]
+        source_guids = [case.add_observable_file(normpath(arguments.sqlite_file), 'sqlite-file')]
 
         # Add the WAL and journal files to the output if they exist
         if wal_file_name:
@@ -442,7 +442,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         case.generate_investigation_action(source_guids)
 
         # Export the output to a JSON file
-        case.export_case_file(path.join(args.directory, 'case.json'))
+        case.export_case_file(path.join(arguments.directory, 'case.json'))
 
     # The export type was not found (this should not occur due to the checking of argparse)
     if not exported:
