@@ -1,3 +1,4 @@
+import os
 from csv import QUOTE_ALL
 from csv import writer
 from logging import DEBUG
@@ -460,19 +461,15 @@ class CommitCsvExporter(object):
         self._file_name_prefix = file_name_prefix
         self._csv_file_names = {}
 
+    @property
+    def csv_file_names(self):
+        return self._csv_file_names
+
     def write_commit(self, master_schema_entry, commit):
-
         """
-
-
-
         Note:  This function only writes the commit record if the commit record was updated.
-
         :param master_schema_entry:
         :param commit:
-
-        :return:
-
         """
 
         if not commit.updated:
@@ -487,7 +484,7 @@ class CommitCsvExporter(object):
         if not csv_file_name:
             mode = "wb"
             commit_name = sub(" ", "_", commit.name)
-            csv_file_name = self._export_directory + sep + self._file_name_prefix + "-" + commit_name + ".csv"
+            csv_file_name = os.path.join(self._export_directory, (self._file_name_prefix + "-" + commit_name + ".csv"))
             self._csv_file_names[commit.name] = csv_file_name
             write_headers = True
 
