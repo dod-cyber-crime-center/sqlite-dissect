@@ -406,7 +406,7 @@ def main(args):
         exported = True
 
         # Add the header and get the GUID for the tool for future linking
-        case.generate_header()
+        tool_guid = case.generate_header()
 
         # Add the runtime arguments to the CASE output
         case.register_options(args)
@@ -427,7 +427,7 @@ def main(args):
         case.end_datetime = datetime.now()
 
         # Trigger the generation of the investigative action since the start and end time have now been set
-        case.generate_investigation_action(source_guids)
+        case.generate_investigation_action(source_guids, tool_guid)
 
         # Export the output to a JSON file
         case.export_case_file(path.join(args.directory, 'case.json'))
