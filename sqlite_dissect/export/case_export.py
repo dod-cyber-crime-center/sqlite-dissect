@@ -12,6 +12,34 @@ Information about the CASE Cyber Ontology can be found at: https://caseontology.
 """
 
 
+def hash_file(file_path, hash_algo=hashlib.sha256()):
+    """
+    Generates a hash of a file by chunking it and utilizing the Python hashlib library.
+    """
+    # Ensure the file path exists
+    if not path.exists(file_path):
+        raise IOError("The file path {} is not valid, the file does not exist".format(file_path))
+
+    with open(file_path, 'rb') as f:
+        while True:
+            # Reading is buffered, so we can read smaller chunks.
+            chunk = f.read(hash_algo.block_size)
+            if not chunk:
+                break
+            hash_algo.update(chunk)
+    return hash_algo.hexdigest()
+
+
+def guid_list_to_objects(guids):
+    """
+    Converts a list of string GUIDs to the object notation with an ID prefix
+    """
+    if guids is None:
+        return []
+    else:
+        return list(map(lambda g: {"@id": g}, guids))
+
+
 class CaseExporter(object):
     # Define the formatted logger that is provided by the main.py execution path
     logger = None
@@ -134,7 +162,7 @@ class CaseExporter(object):
                                 },
                                 "uco-types:hashValue": {
                                     "@type": "xsd:hexBinary",
-                                    "@value": hashlib.md5(filepath).hexdigest()
+                                    "@value": hash_file(filepath, hashlib.md5())
                                 }
                             },
                             {
@@ -145,7 +173,7 @@ class CaseExporter(object):
                                 },
                                 "uco-types:hashValue": {
                                     "@type": "xsd:hexBinary",
-                                    "@value": hashlib.sha1(filepath).hexdigest()
+                                    "@value": hash_file(filepath, hashlib.sha1())
                                 }
                             },
                             {
@@ -156,7 +184,7 @@ class CaseExporter(object):
                                 },
                                 "uco-types:hashValue": {
                                     "@type": "xsd:hexBinary",
-                                    "@value": hashlib.sha256(filepath).hexdigest()
+                                    "@value": hash_file(filepath, hashlib.sha256())
                                 }
                             },
                             {
@@ -167,7 +195,7 @@ class CaseExporter(object):
                                 },
                                 "uco-types:hashValue": {
                                     "@type": "xsd:hexBinary",
-                                    "@value": hashlib.sha512(filepath).hexdigest()
+                                    "@value": hash_file(filepath, hashlib.sha512())
                                 }
                             }
                         ]
@@ -224,7 +252,7 @@ class CaseExporter(object):
                 "@id": guid,
                 "@type": "case-investigation:ProvenanceRecord",
                 "uco-core:description": description,
-                "uco-core:object": self.guid_list_to_objects(guids)
+                "uco-core:object": guid_list_to_objects(guids)
             }
             self.case['@graph'].append(record)
             return guid
@@ -252,7 +280,7 @@ class CaseExporter(object):
 
         return guid
 
-    def generate_investigation_action(self, source_guids):
+    def generate_investigation_action(self, source_guids, tool_guid):
         """
         Builds the investigative action object as defined in the CASE ontology. This also takes in the start and end
         datetimes from the analysis.
@@ -285,8 +313,9 @@ class CaseExporter(object):
         # Loop through and add the results to the ActionReferencesFacet
         action_facet = {
             "@type": "uco-action:ActionReferencesFacet",
-            "uco-action:object": self.guid_list_to_objects(source_guids),
-            "uco-action:result": self.guid_list_to_objects(self.result_guids)
+            "uco-action:instrument": guid_list_to_objects([tool_guid]),
+            "uco-action:object": guid_list_to_objects(source_guids),
+            "uco-action:result": guid_list_to_objects(self.result_guids)
         }
         action["uco-core:hasFacet"].append(action_facet)
         self.case['@graph'].append(action)
@@ -300,12 +329,3 @@ class CaseExporter(object):
         with open(export_path, 'w') as f:
             json.dump(self.case, f, ensure_ascii=False, indent=4)
             self.logger.info('CASE formatted file has been exported to {}'.format(export_path))
-
-    def guid_list_to_objects(self, guids):
-        """
-        Converts a list of string GUIDs to the object notation with an ID prefix
-        """
-        if guids is None:
-            return []
-        else:
-            return list(map(lambda g: {"@id": g}, guids))

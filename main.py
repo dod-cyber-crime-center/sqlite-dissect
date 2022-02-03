@@ -418,7 +418,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         exported = True
 
         # Add the header and get the GUID for the tool for future linking
-        case.generate_header()
+        tool_guid = case.generate_header()
 
         # Add the runtime arguments to the CASE output
         case.register_options(arguments)
@@ -439,7 +439,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         case.end_datetime = datetime.now()
 
         # Trigger the generation of the investigative action since the start and end time have now been set
-        case.generate_investigation_action(source_guids)
+        case.generate_investigation_action(source_guids, tool_guid)
 
         # Export the output to a JSON file
         case.export_case_file(path.join(arguments.directory, 'case.json'))
