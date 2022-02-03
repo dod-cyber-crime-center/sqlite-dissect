@@ -7,7 +7,7 @@
     sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
                    [-e EXPORT_TYPE] [-n | -w WAL | -j ROLLBACK_JOURNAL] [-r | EXEMPTED_TABLES]
                    [-s | -t] [-g] [-c] [-f] [-k] [-l LOG_LEVEL] [-i LOG_FILE] [--warnings]
-                   SQLITE_FILE`
+                   SQLITE_PATH`
 
 SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases
 and their accompanying journal files. If no options are set other than the file
@@ -20,9 +20,9 @@ will not be done by default.  Please see the options below to enable carving.
 
 #### Required Arguments:
 
-| Argument    | Description                                           | Example Usage                  |
-|-------------|-------------------------------------------------------|--------------------------------|
-| SQLITE_FILE | The path and filename of the SQLite file to be carved | `sqlite_dissect [SQLITE_FILE]` |  
+| Argument    | Description                                                                                                                                                                                                                  | Example Usage                  |
+|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| SQLITE_PATH | The path and filename of the SQLite file or directory to be carved. If a directory is provided, it will recursively search for files with the extensions: `.db`, `.sqlite`, `.sqlite3`. | `sqlite_dissect [SQLITE_PATH]` |  
 
 
 #### Optional Arguments:
@@ -53,33 +53,33 @@ will not be done by default.  Please see the options below to enable carving.
 
 1. Print the version:
 
-```bash
+```shell
 sqlite_dissect --version
 ```
 
 2. Parse a SQLite database and print the outputs to the screen:
 
-```bash
-sqlite_dissect [SQLITE_FILE]
+```shell
+sqlite_dissect [SQLITE_PATH]
 ```
 
 
 3. Parse a SQLite database and print schema history to a SQLite output file:
 
-```bash
-sqlite_dissect [SQLITE_FILE] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite
+```shell
+sqlite_dissect [SQLITE_PATH] --schema-history -d [OUTPUT_DIRECTORY] -e sqlite
 ```
 
 4. Parse a SQLite database and print the output to a SQLite file along with printing signatures and carving entries:
 
-```bash
-sqlite_dissect [SQLITE_FILE] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve
+```shell
+sqlite_dissect [SQLITE_PATH] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carve
 ```
 
 5. Parse a SQLite database and print the output to a SQLite file and carving entries, including freelists, for specific tables:
 
-```bash
-sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]
+```shell
+sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]
 ```
 
 6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and 
@@ -87,15 +87,15 @@ sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-fre
    signatures will be printed to standard output.  The log level will be set to debug and all log messages will be
    output to the specified log file.
 
-```bash
-sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]
+```shell
+sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]
 ```
 
 7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.  
    (CSV is the only output option currently implemented for rollback journal files.)
    
-```bash
-sqlite_dissect [SQLITE_FILE] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
+```shell
+sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
 ```
 
 ### Description
