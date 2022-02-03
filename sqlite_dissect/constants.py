@@ -269,7 +269,7 @@ EXPORT_TYPES = Enum(["TEXT", "CSV", "SQLITE", "XLSX", "CASE"])
 """
 Defines the list of common SQLite3 file extensions for initial identification of files to dissect for the bulk processing.
 """
-SQLITE_FILE_EXTENSIONS = [".db", ".sqlite", ".sqlite3", ".db3"]
+SQLITE_FILE_EXTENSIONS = [".db", ".db3", ".sqlite", ".sqlite3"]
 
 """
 Below we instantiate and compile a regular expression to check xml illegal characters:

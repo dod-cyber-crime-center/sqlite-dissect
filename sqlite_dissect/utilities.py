@@ -34,6 +34,10 @@ get_md5_hash(string)
 get_record_content(serial_type, record_body, offset=0)
 get_serial_type_signature(serial_type)
 has_content(byte_array)
+is_sqlite_file(path)
+get_sqlite_files(path)
+create_directory(dir_path)
+hash_file(file_path, hash_algo=hashlib.sha256())
 
 """
 
