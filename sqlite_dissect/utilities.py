@@ -9,7 +9,7 @@ from struct import unpack
 from os import walk, makedirs, path
 from os.path import exists, isdir, join
 from sqlite_dissect.constants import ALL_ZEROS_REGEX, SQLITE_DATABASE_HEADER_LENGTH, MAGIC_HEADER_STRING, \
-    MAGIC_HEADER_STRING_ENCODING
+    MAGIC_HEADER_STRING_ENCODING, SQLITE_FILE_EXTENSIONS
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
@@ -286,7 +286,7 @@ def get_sqlite_files(path):
         if isdir(path):
             for root, dirnames, filenames in walk(path):
                 for filename in filenames:
-                    if filename.endswith((".db", ".sqlite", ".sqlite3")):
+                    if filename.endswith(SQLITE_FILE_EXTENSIONS):
                         # Ensure the SQLite file is valid
                         relative_path = join(root, filename)
                         if is_sqlite_file(relative_path):
