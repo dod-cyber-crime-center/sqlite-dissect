@@ -5,29 +5,12 @@ from datetime import datetime
 from os import path
 
 from _version import __version__
+from sqlite_dissect.utilities import hash_file
 
 """
 This script holds the objects used for exporting information regarding SQLite carving process to CASE format. 
 Information about the CASE Cyber Ontology can be found at: https://caseontology.org/
 """
-
-
-def hash_file(file_path, hash_algo=hashlib.sha256()):
-    """
-    Generates a hash of a file by chunking it and utilizing the Python hashlib library.
-    """
-    # Ensure the file path exists
-    if not path.exists(file_path):
-        raise IOError("The file path {} is not valid, the file does not exist".format(file_path))
-
-    with open(file_path, 'rb') as f:
-        while True:
-            # Reading is buffered, so we can read smaller chunks.
-            chunk = f.read(hash_algo.block_size)
-            if not chunk:
-                break
-            hash_algo.update(chunk)
-    return hash_algo.hexdigest()
 
 
 def guid_list_to_objects(guids):

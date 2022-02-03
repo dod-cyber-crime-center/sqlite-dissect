@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from binascii import hexlify
 from hashlib import md5
@@ -5,7 +6,7 @@ from logging import getLogger
 from re import compile
 from struct import pack
 from struct import unpack
-from os import walk, makedirs
+from os import walk, makedirs, path
 from os.path import exists, isdir, join
 from sqlite_dissect.constants import ALL_ZEROS_REGEX, SQLITE_DATABASE_HEADER_LENGTH, MAGIC_HEADER_STRING, \
     MAGIC_HEADER_STRING_ENCODING
@@ -318,3 +319,21 @@ def create_directory(dir_path):
 
     # Ensure the directory was actually created, and it is actually a directory
     return exists(dir_path) and isdir(dir_path)
+
+
+def hash_file(file_path, hash_algo=hashlib.sha256()):
+    """
+    Generates a hash of a file by chunking it and utilizing the Python hashlib library.
+    """
+    # Ensure the file path exists
+    if not path.exists(file_path):
+        raise IOError("The file path {} is not valid, the file does not exist".format(file_path))
+
+    with open(file_path, 'rb') as f:
+        while True:
+            # Reading is buffered, so we can read smaller chunks.
+            chunk = f.read(hash_algo.block_size)
+            if not chunk:
+                break
+            hash_algo.update(chunk)
+    return hash_algo.hexdigest()
