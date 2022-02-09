@@ -10,16 +10,16 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'DC3 SQLite Dissect'
-copyright = '2022, DC3'
-author = 'DC3'
+copyright = '2022, Department of Defense Cyber Crime Center (DC3)'
+author = 'Department of Defense Cyber Crime Center (DC3)'
 
 # The full version, including alpha/beta/rc tags
 release = '0.0.6'

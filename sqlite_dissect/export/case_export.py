@@ -1,3 +1,8 @@
+"""
+This class holds the objects used for exporting information regarding SQLite carving process to CASE format.
+Information about the CASE Cyber Ontology can be found at: https://caseontology.org/
+"""
+
 import hashlib
 import json
 import uuid
@@ -5,11 +10,6 @@ from datetime import datetime
 from os import path
 
 from _version import __version__
-
-"""
-This class holds the objects used for exporting information regarding SQLite carving process to CASE format. 
-Information about the CASE Cyber Ontology can be found at: https://caseontology.org/
-"""
 
 
 class CaseExporter(object):
