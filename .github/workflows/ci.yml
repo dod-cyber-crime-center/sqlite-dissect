@@ -69,15 +69,14 @@ jobs:
       - name: Build Documentation
         run: |
           pip install sphinx
-          pip install sphinx-press-theme
-           sphinx-build -b singlehtml ./source/ ./build/
+          sphinx-build -b html ./docs/source/ ./docs/build/
 
-      # Upload the HTML documentation for distibution
+      # Upload the HTML documentation for distribution
       - name: Upload HTML Docs
         uses: actions/upload-artifact@v2
         with:
           name: html-docs
-          path: build/index.html
+          path: ./docs/build/html/
 
       # Build the binary wheel as well as the source tar
       - name: Build Objects

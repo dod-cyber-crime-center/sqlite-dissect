@@ -7,7 +7,7 @@ from os import path
 from _version import __version__
 
 """
-This script holds the objects used for exporting information regarding SQLite carving process to CASE format. 
+This class holds the objects used for exporting information regarding SQLite carving process to CASE format. 
 Information about the CASE Cyber Ontology can be found at: https://caseontology.org/
 """
 
@@ -52,6 +52,9 @@ class CaseExporter(object):
         defined in the uco-tool namespace.
 
         Ontology Source: https://github.com/ucoProject/UCO/blob/master/uco-tool/tool.ttl
+
+        :param options: the dictionary of key => value pairs of configuration options with which the tool was run
+        :type options: dict
         """
         configuration_options = []
 
