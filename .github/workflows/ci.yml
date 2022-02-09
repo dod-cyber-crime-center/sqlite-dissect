@@ -69,6 +69,7 @@ jobs:
       - name: Build Documentation
         run: |
           pip install sphinx
+          pip install sphinx-rtd-theme
           sphinx-build -b html ./docs/source/ ./docs/build/
 
       # Upload the HTML documentation for distribution
@@ -76,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: html-docs
-          path: ./docs/build/html/
+          path: ./docs/build/
 
       # Build the binary wheel as well as the source tar
       - name: Build Objects
