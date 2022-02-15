@@ -1,10 +1,15 @@
+import hashlib
+import logging
 from binascii import hexlify
 from hashlib import md5
 from logging import getLogger
 from re import compile
 from struct import pack
 from struct import unpack
-from sqlite_dissect.constants import ALL_ZEROS_REGEX
+from os import walk, makedirs, path
+from os.path import exists, isdir, join
+from sqlite_dissect.constants import ALL_ZEROS_REGEX, SQLITE_DATABASE_HEADER_LENGTH, MAGIC_HEADER_STRING, \
+    MAGIC_HEADER_STRING_ENCODING, SQLITE_FILE_EXTENSIONS
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
@@ -29,6 +34,10 @@ get_md5_hash(string)
 get_record_content(serial_type, record_body, offset=0)
 get_serial_type_signature(serial_type)
 has_content(byte_array)
+is_sqlite_file(path)
+get_sqlite_files(path)
+create_directory(dir_path)
+hash_file(file_path, hash_algo=hashlib.sha256())
 
 """
 
@@ -202,7 +211,7 @@ def get_record_content(serial_type, record_body, offset=0):
 
     # These values are not used/reserved and should not be found in sqlite files
     elif serial_type == 10 or serial_type == 11:
-        raise Exception()
+        raise ValueError("The serial type {} is not expected in SQLite files".format(serial_type))
 
     # A BLOB that is (N-12)/2 bytes in length
     elif serial_type >= 12 and serial_type % 2 == 0:
@@ -237,3 +246,98 @@ def has_content(byte_array):
     if pattern.match(hexlify(byte_array)):
         return False
     return True
+
+
+def is_sqlite_file(path):
+    """
+    Determines if the specified file contains the magic bytes to indicate it is a SQLite file. This is not meant to be a
+    full validation of the file format, and that is asserted within the class at file/database/header.py.
+
+    :param path: the string path to the file to be validated.
+    :raises:
+        IOError when the provided path does not exist in the filesystem.
+        IOError when the file cannot be properly read for header comparison.
+    """
+    # Ensure the path exists
+    if not exists(path):
+        raise IOError("The specified path cannot be found: {}".format(path))
+
+    # Attempt to open the file for reading
+    try:
+        with open(path, "rb") as sqlite:
+            header = sqlite.read(SQLITE_DATABASE_HEADER_LENGTH)
+            header_magic = header[0:16]
+            magic = MAGIC_HEADER_STRING.decode(MAGIC_HEADER_STRING_ENCODING)
+            return header_magic == magic
+    except IOError as e:
+        logging.error("Invalid SQLite file found: {}".format(e))
+
+
+def get_sqlite_files(path):
+    """
+    Parses the path, validates it exists, and returns a list of all valid file(s) at the provided path. If the provided
+    path is a file, it ensures it's a valid SQLite file and returns the path. If it's a directory, it validates all
+    files within the directory and adds valid SQLite files to the path list.
+
+    :param path: the string path to the file or directory in which SQLite files should be discovered.
+    :raises:
+        IOError when the provided path does not exist in the filesystem.
+    """
+    sqlite_files = []
+
+    if exists(path):
+        # Determine if it's a directory
+        if isdir(path):
+            for root, dirnames, filenames in walk(path):
+                for filename in filenames:
+                    if filename.endswith(SQLITE_FILE_EXTENSIONS):
+                        # Ensure the SQLite file is valid
+                        relative_path = join(root, filename)
+                        if is_sqlite_file(relative_path):
+                            sqlite_files.append(relative_path)
+                        else:
+                            logging.info("File was found but is not a SQLite file: {}".format(relative_path))
+        else:
+            if is_sqlite_file(path):
+                sqlite_files.append(path)
+            else:
+                logging.info("File was found but is not a SQLite file: {}".format(path))
+    else:
+        raise IOError("The specified path cannot be found: {}".format(path))
+
+    return sqlite_files
+
+
+def create_directory(dir_path):
+    """
+    Creates a directory if it doesn't already exist.
+    :param dir_path: The path of the directory to create
+    :return: bool whether the directory was created correctly or if it already exists
+    """
+    if not exists(dir_path):
+        try:
+            makedirs(dir_path)
+        except (OSError, IOError) as e:
+            logging.error("Unable to create directory {} with error: {}".format(dir_path, e))
+            return False
+
+    # Ensure the directory was actually created, and it is actually a directory
+    return exists(dir_path) and isdir(dir_path)
+
+
+def hash_file(file_path, hash_algo=hashlib.sha256()):
+    """
+    Generates a hash of a file by chunking it and utilizing the Python hashlib library.
+    """
+    # Ensure the file path exists
+    if not path.exists(file_path):
+        raise IOError("The file path {} is not valid, the file does not exist".format(file_path))
+
+    with open(file_path, 'rb') as f:
+        while True:
+            # Reading is buffered, so we can read smaller chunks.
+            chunk = f.read(hash_algo.block_size)
+            if not chunk:
+                break
+            hash_algo.update(chunk)
+    return hash_algo.hexdigest()
