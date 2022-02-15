@@ -15,8 +15,8 @@ Basic CLI Usage
 
     sqlite_dissect /path/to/sqlite.db
 
-All CLI Arguments
-+++++++++++++++++++
+All Optional CLI Arguments
+++++++++++++++++++++++++++
 
 .. list-table::
     :widths: 25 25 50
@@ -25,12 +25,63 @@ All CLI Arguments
     * - Argument
       - Flag
       - Description
-    * - Row 1, column 1
+    * - --help
+      - -h
+      - show this help message and exit
+    * - --version
+      - -v
+      - display the version of SQLite Dissect
+    * - --directory DIRECTORY
+      - -d DIRECTORY
+      - directory to write output to (must be specified for outputs other than console text)
+    * - --file-prefix PREFIX
+      - -p PREFIX
+      - the file prefix to use on output files, default is the name of the SQLite file (the directory for output must be specified)
+    * - --export FORMATS
+      - -e FORMATS
+      - the format(s) to export to {text, csv, sqlite, xlsx, case} (text written to console if -d is not specified). Multiple space-delimited formats are permitted eg -e sqlite csv xlsx.
+    * - --no-journal
+      - -n
+      - turn off automatic detection of journal files
+    * - --wal WAL
+      - -w WAL
+      - the WAL file to use instead of searching the SQLite file directory by default
+    * - --rollback-journal JOURNAL
+      - -j JOURNAL
+      - the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified)
+    * - --exempted-tables TABLES
+      - -r TABLES
+      - comma-delimited string of tables [table1,table2,table3] to exempt (only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3
+    * - --schema
+      - -s
+      - output the schema to console, the initial schema found in the main database file
+    * - --schema-history
+      - -t
+      - output the schema history to console, prints the --schema information and write-head log changes
+    * - --signatures
+      - -g
+      - output the signatures generated to console
+    * - --carve
+      - -c
+      - carves and recovers table data
+    * - --carve-freelists
+      - -f
+      - carves freelist pages (carving must be enabled, under development)
+    * - --tables TABLES
+      - -b TABLES
+      - specified comma-delimited string of tables [table1,table2,table3] to carve ex.) table1,table2,table3
+    * - --disable-strict-format-checking
+      - -k
+      - disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files)
+    * - --log-level LEVEL
+      - -l LEVEL
+      - level to log messages at {critical, error, warning, info, debug, off}
+    * - --log-file FILE
+      - -i FILE
+      - log file to write too, default is to write to console, ignored if log level set to off (appends if file already exists)
+    * - --warnings
       -
-      - Row 1, column 3
-    * - Row 2, column 1
-      - Row 2, column 2
-      - Row 2, column 3
+      - enable runtime warnings
 
 Example Usage
 +++++++++++++++++++

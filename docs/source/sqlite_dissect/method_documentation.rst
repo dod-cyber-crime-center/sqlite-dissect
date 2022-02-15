@@ -1,4 +1,4 @@
-Technical Documentation
+Method Documentation
 ==========================
 
 main
