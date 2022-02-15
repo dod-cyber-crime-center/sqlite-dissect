@@ -211,7 +211,7 @@ def get_record_content(serial_type, record_body, offset=0):
 
     # These values are not used/reserved and should not be found in sqlite files
     elif serial_type == 10 or serial_type == 11:
-        raise Exception()
+        raise ValueError("The serial type {} is not expected in the SQLite file".format(serial_type))
 
     # A BLOB that is (N-12)/2 bytes in length
     elif serial_type >= 12 and serial_type % 2 == 0:
@@ -317,7 +317,7 @@ def create_directory(dir_path):
     if not exists(dir_path):
         try:
             makedirs(dir_path)
-        except (OSError or IOError) as e:
+        except (OSError, IOError) as e:
             logging.error("Unable to create directory {} with error: {}".format(dir_path, e))
             return False
 
