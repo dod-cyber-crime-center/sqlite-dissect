@@ -54,6 +54,12 @@ This script will act as the command line script to run this library as a stand-a
 
 
 def main(arguments, sqlite_file_path, export_sub_paths=False):
+    """
+    The primary entrypoint for the SQLite Dissect carving utility.
+
+    :param arguments: the object of key => value arguments that have been provided as the runtime configuration in which
+        the SQLite Dissect tool should run.
+    """
     # Handle the logging and warning settings
     if not arguments.log_level:
         raise SqliteError("Error in setting up logging: no log level determined.")
@@ -705,9 +711,9 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
     Carve the Rollback Journal file (Under Development)
 
     Note: Since there is no normal parsing of the rollback journal file implemented yet, this is only done when
-          carving is specified.  Also, since we are blindly carving each page in the rollback journal currently,
-          we are not checking for pointer map pages, freelist pages, and so on.  Therefore, we do not care about the
-          carve_freelist_pages option here.  The rollback journal file is being carved as it were all unallocated space.
+    carving is specified.  Also, since we are blindly carving each page in the rollback journal currently,
+    we are not checking for pointer map pages, freelist pages, and so on.  Therefore, we do not care about the
+    carve_freelist_pages option here.  The rollback journal file is being carved as it were all unallocated space.
 
     """
 

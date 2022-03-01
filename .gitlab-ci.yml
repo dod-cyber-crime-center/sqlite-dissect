@@ -25,9 +25,9 @@ FlakeLint:
   stage: Lint
   allow_failure: false
   script:
-    - python -m pip install --upgrade pip
-    - python setup.py install
-    - pip install flake8
+    - python -m pip -q install --upgrade pip
+    - python setup.py -q install
+    - pip install -q flake8
     # stop the build if there are Python syntax errors or undefined names
     - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -39,9 +39,9 @@ PyTest:
   stage: Test
   allow_failure: false
   script:
-    - python -m pip install --upgrade pip
-    - python setup.py install
-    - pip install pytest pytest-cov
+    - python -m pip -q install --upgrade pip
+    - python setup.py -q install
+    - pip -q install pytest pytest-cov
     # Run the test with coverage
     - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc --junitxml=report.xml
   artifacts:
@@ -50,6 +50,19 @@ PyTest:
       junit: report.xml
     paths:
       - htmlcov/*
+  tags:
+    - docker
+
+BuildDocs:
+  stage: Build
+  allow_failure: false
+  script:
+    - pip install -q sphinx
+    - pip install -q sphinx-rtd-theme
+    - sphinx-build -b html ./docs/source/ ./docs/build/
+  artifacts:
+    paths:
+      - ./docs/build/*
   tags:
     - docker
 
