@@ -27,6 +27,8 @@ from sqlite_dissect.constants import ROLLBACK_JOURNALING_MODE
 from sqlite_dissect.constants import SQLITE_DATABASE_HEADER_LENGTH
 from sqlite_dissect.constants import VALID_SCHEMA_FORMATS
 from sqlite_dissect.constants import WAL_JOURNALING_MODE
+from sqlite_dissect.constants import HUMAN_READABLE_JOURNALING_MODES
+from sqlite_dissect.constants import HUMAN_READABLE_DATABASE_TEXT_ENCODINGS
 from sqlite_dissect.exception import HeaderParsingError
 from sqlite_dissect.file.header import SQLiteHeader
 from sqlite_dissect.utilities import get_md5_hash
@@ -296,8 +298,8 @@ class DatabaseHeader(SQLiteHeader):
                  + padding + "MD5 Hex Digest: {}"
         return string.format(self.magic_header_string,
                              self.page_size,
-                             self.file_format_write_version,
-                             self.file_format_read_version,
+                             HUMAN_READABLE_JOURNALING_MODES[self.file_format_write_version],
+                             HUMAN_READABLE_JOURNALING_MODES[self.file_format_read_version],
                              self.reserved_bytes_per_page,
                              self.maximum_embedded_payload_fraction,
                              self.minimum_embedded_payload_fraction,
@@ -310,7 +312,7 @@ class DatabaseHeader(SQLiteHeader):
                              self.schema_format_number,
                              self.default_page_cache_size,
                              self.largest_root_b_tree_page_number,
-                             self.database_text_encoding,
+                             HUMAN_READABLE_DATABASE_TEXT_ENCODINGS[self.database_text_encoding],
                              self.user_version,
                              self.incremental_vacuum_mode,
                              self.application_id,

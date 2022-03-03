@@ -294,6 +294,12 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
     # Create the version history (this is currently only supported for the WAL)
     version_history = VersionHistory(database, write_ahead_log)
 
+    # Check if the header info was asked for
+    if args.header:
+        # Print the header info of the database
+        print("\nDatabase header information:\n{}".format(database.database_header.stringify(padding="\t")))
+        print("Continuing to parse...")
+
     # Check if the master schema was asked for
     if arguments.schema:
         # print the master schema of the database
@@ -735,28 +741,20 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
 
         """
 
-        Only account for OrdinaryTableRow objects (not VirtualTableRow objects) that are not "without rowid" tables.
-        All signatures generated will not be outside this criteria either.
+        Only account for OrdinaryTableRow objects (not VirtualTableRow objects) that are not "without rowid" tables or
+        internal schema objects. All signatures generated will not be outside this criteria either.
 
         """
 
-        if isinstance(master_schema_entry, OrdinaryTableRow) and not master_schema_entry.without_row_id:
+        if isinstance(master_schema_entry, OrdinaryTableRow) and not master_schema_entry.without_row_id \
+                and not master_schema_entry.internal_schema_object:
 
             signature = None
             if signatures and master_schema_entry.name in signatures:
                 signature = signatures[master_schema_entry.name]
 
             # Make sure we found the error but don't error out if we don't.  Alert the user.
-            if not signature and master_schema_entry.row_type is MASTER_SCHEMA_ROW_TYPE.TABLE \
-                    and not master_schema_entry.without_row_id \
-                    and not master_schema_entry.internal_schema_object:
-                print("Unable to find signature for: {}.  This table will not be carved from the rollback journal."
-                      .format(master_schema_entry.name))
-                logger.error("Unable to find signature for: {}.  This table will not be carved from the "
-                             "rollback journal.".format(master_schema_entry.name))
-
-            else:
-
+            if signature:
                 # Carve the rollback journal with the signature
                 carved_commits = RollBackJournalCarver.carve(rollback_journal_file,
                                                              version_history.versions[BASE_VERSION_NUMBER],
@@ -765,6 +763,11 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
                 for commit in carved_commits:
                     commit_csv_exporter.write_commit(master_schema_entry, commit)
 
+            else:
+                print("Unable to find signature for: {}.  This table will not be carved from the rollback journal."
+                      .format(master_schema_entry.name))
+                logger.error("Unable to find signature for: {}.  This table will not be carved from the "
+                             "rollback journal.".format(master_schema_entry.name))
 
 if __name__ == "__main__":
     description = "SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases " \
@@ -845,6 +848,8 @@ if __name__ == "__main__":
                              "already exists)")
 
     parser.add_argument("--warnings", action="store_true", default=False, help="enable runtime warnings")
+
+    parser.add_argument("--header", action="store_true", default=False, help="Print header information")
 
     # Determine if a directory has been passed instead of a file, in which case, find all
     args = parser.parse_args()

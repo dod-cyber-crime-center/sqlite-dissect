@@ -37,17 +37,18 @@ will not be done by default.  Please see the options below to enable carving.
 | --no-journal                     | -n           | turn off automatic detection of journal files |
 | --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
 | --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
-| --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3 |
-| --schema                         | -s           | output the schema to console, the initial schema found in the main database file |
-| --schema-history                 | -t           | output the schema history to console, prints the --schema information and write-head log changes |
-| --signatures                     | -g           | output the signatures generated to console |
-| --carve                          | -c           | carves and recovers table data |
-| --carve-freelists                | -f           | carves freelist pages (carving must be enabled, under development) |
-| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex.) table1,table2,table3 |
-| --disable-strict-format-checking | -k           | disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files) |
-| --log-level LEVEL                | -l LEVEL     | level to log messages at {critical, error, warning, info, debug, off} |
-| --log-file FILE                  | -i FILE      | log file to write too, default is to write to console, ignored if log level set to off (appends if file already exists) |
-| --warnings                       |              | enable runtime warnings |
+| --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3                   |
+| --schema                         | -s           | output the schema to console, the initial schema found in the main database file                                                                                                      |
+| --schema-history                 | -t           | output the schema history to console, prints the --schema information and write-head log changes                                                                                      |
+| --signatures                     | -g           | output the signatures generated to console                                                                                                                                            |
+| --carve                          | -c           | carves and recovers table data                                                                                                                                                        |
+| --carve-freelists                | -f           | carves freelist pages (carving must be enabled, under development)                                                                                                                    |
+| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex.) table1,table2,table3                                                                                |
+| --disable-strict-format-checking | -k           | disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files)                                                                                 |
+| --log-level LEVEL                | -l LEVEL     | level to log messages at {critical, error, warning, info, debug, off}                                                                                                                 |
+| --log-file FILE                  | -i FILE      | log file to write too, default is to write to console, ignored if log level set to off (appends if file already exists)                                                               |
+| --warnings                       |              | enable runtime warnings                                                                                                                                                               |
+ | --header                         |              | enable header info printing                                                                                                                                                           |
 
 ### Example Usage:
 

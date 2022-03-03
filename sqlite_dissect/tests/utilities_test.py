@@ -1,9 +1,11 @@
 import struct
 import unittest
+import pytest
 
 from sqlite_dissect.utilities import calculate_expected_overflow, get_serial_type_signature, has_content, \
-    get_record_content
+    get_record_content, decode_varint, encode_varint, get_md5_hash, get_class_instance
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
+from sqlite_dissect.exception import InvalidVarIntError
 
 
 class TestRootUtilities(unittest.TestCase):
@@ -149,3 +151,65 @@ class TestRootUtilities(unittest.TestCase):
         for case in cases:
             result = has_content(case)
             self.assertEqual(True, result)
+
+
+# Begin pytest tests
+def test_decode_varint():
+    # only reads first 9 elements after provided offset, ignores others
+    # doesn't verify that offset is in the array
+    max_allowed = 0x7fffffffffffffff
+    min_allowed = (max_allowed + 1) - 0x10000000000000000
+
+    assert decode_varint(bytearray([0xbf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), 0) == (max_allowed, 9)
+    assert decode_varint(bytearray([0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00]), 0) == (min_allowed, 9)
+    assert decode_varint(bytearray([0x0]), 0) == (0, 1)
+
+
+def test_encode_varint():
+    max_allowed = 0x7fffffffffffffff
+    min_allowed = (max_allowed + 1) - 0x10000000000000000
+
+    # max value
+    assert encode_varint(max_allowed) == bytearray([0xbf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+    # max value + 1
+    with pytest.raises(InvalidVarIntError):
+        encode_varint(max_allowed + 1)
+
+    # min value
+    assert encode_varint(min_allowed) == bytearray([0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00])
+    # min value - 1
+    with pytest.raises(InvalidVarIntError):
+        encode_varint(min_allowed - 1)
+
+    # zero, currently fails!
+    # assert encode_varint(0) == 0
+    # one
+    assert encode_varint(1) == bytearray([0x1])
+    # negative one
+    assert encode_varint(-1) == bytearray([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+
+
+def test_get_md5_hash():
+    # not too in depth here, just a single check
+    assert get_md5_hash("test string") == "6F8DB599DE986FAB7A21625B7916589C"
+
+
+class TestClassInstance:
+    def __init__(self):
+        self.sampleData = 'this is a test class.'
+
+
+get_class_instance_params = [
+    ('sqlite_dissect.tests.utilities_test.TestClassInstance', TestClassInstance),
+    ('classWihoutModules', -1)
+]
+
+
+@pytest.mark.parametrize('class_name, expected_module', get_class_instance_params)
+def test_get_class_instance(class_name, expected_module):
+    if expected_module == -1:
+        with pytest.raises(ValueError):
+            get_class_instance(class_name)
+
+    else:
+        assert get_class_instance(class_name) == expected_module
