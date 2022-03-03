@@ -6,6 +6,7 @@ import string
 from collections import OrderedDict
 import uuid
 
+
 default_columns = OrderedDict(
     [
         ('name', 'TEXT NOT NULL'),
@@ -182,5 +183,3 @@ def db_file(request, tmp_path):
     if 'SFT-01' in request.param['name'] or request.param['journal_mode'] != 'WAL':
         db.close()
     yield db_filepath, modified_rows + deleted_rows
-
-

@@ -1,13 +1,14 @@
 import sqlite3
 import nist_assertions
 from hashlib import md5
-from main import main, parse_args
+from main import main
 import io
 import sys
 import os
 import pytest
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.tests.utilities import db_file
+from sqlite_dissect.utilities import get_sqlite_files, parse_args
 
 
 def get_md5_hash(filepath):
@@ -30,7 +31,9 @@ def test_header_reporting(db_file):
 
     parser_output = io.BytesIO()
     sys.stdout = parser_output
-    main(parse_args([db_filepath, '--header']))
+    args = parse_args([db_filepath, '--header'])
+    sqlite_files = get_sqlite_files(args.sqlite_path)
+    main(args, sqlite_files[0], len(sqlite_files) > 1)
 
     reported_page_size = None
     reported_journal_mode_read = None
@@ -78,7 +81,9 @@ def test_schema_reporting(db_file):
 
     parser_output = io.BytesIO()
     sys.stdout = parser_output
-    main(parse_args([db_filepath]))
+    args = parse_args([db_filepath])
+    sqlite_files = get_sqlite_files(args.sqlite_path)
+    main(args, sqlite_files[0], len(sqlite_files) > 1)
 
     reported_tables = []
     reported_columns = {}
@@ -144,7 +149,9 @@ def test_row_recovery(db_file):
 
     parser_output = io.BytesIO()
     sys.stdout = parser_output
-    main(parse_args([db_filepath, '-c']))
+    args = parse_args([db_filepath, '-c'])
+    sqlite_files = get_sqlite_files(args.sqlite_path)
+    main(args, sqlite_files, len(sqlite_files) > 1)
 
     current_table = None
     log_lines = ''
@@ -180,7 +187,9 @@ def test_metadata_reporting(db_file):
 
     parser_output = io.BytesIO()
     sys.stdout = parser_output
-    main(parse_args([db_filepath, '-c']))
+    args = parse_args([db_filepath, '-c'])
+    sqlite_files = get_sqlite_files(args.sqlite_path)
+    main(args, sqlite_files, len(sqlite_files) > 1)
 
     current_table = None
     log_lines = ''
