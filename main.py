@@ -1,6 +1,6 @@
 import uuid
 import warnings
-from argparse import ArgumentParser
+import configargparse
 from logging import CRITICAL
 from logging import DEBUG
 from logging import ERROR
@@ -779,7 +779,7 @@ if __name__ == "__main__":
                   "and their location will need to be specified in the command.  SQLite carving " \
                   "will not be done by default.  Please see the options below to enable carving."
 
-    parser = ArgumentParser(description=description)
+    parser = configargparse.ArgParser(description=description)
 
     parser.add_argument("sqlite_path", metavar="SQLITE_PATH", help="The path to the SQLite database file or directory "
                                                                    "containing multiple files")
