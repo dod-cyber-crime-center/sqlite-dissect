@@ -780,6 +780,8 @@ if __name__ == "__main__":
                   "will not be done by default.  Please see the options below to enable carving."
 
     parser = configargparse.ArgParser(description=description)
+    # Define the argument for the configuration file that can optionally be passed
+    parser.add_argument('--config', required=False, is_config_file=True, help='The path to the configuration file')
 
     parser.add_argument("sqlite_path", metavar="SQLITE_PATH", help="The path to the SQLite database file or directory "
                                                                    "containing multiple files")

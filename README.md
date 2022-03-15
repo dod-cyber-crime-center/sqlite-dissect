@@ -50,7 +50,7 @@ will not be done by default.  Please see the options below to enable carving.
 | --warnings                       |              | enable runtime warnings                                                                                                                                                               |
  | --header                         |              | enable header info printing                                                                                                                                                           |
 
-### Example Usage:
+### Command Line Usage:
 
 1. Print the version:
 
@@ -97,6 +97,49 @@ sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --ca
    
 ```shell
 sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
+```
+
+##### Configuration Files
+SQLite Dissect can optionally be configured with configuration files that are provided using the CLI argument `--config`
+
+The format for the configuration file is as follows:
+```text
+# this is a comment
+; this is also a comment (.ini style)
+---            # lines that start with --- are ignored (yaml style)
+-------------------
+[section]      # .ini-style section names are treated as comments
+
+# how to specify a key-value pair (all of these are equivalent):
+name value     # key is case sensitive: "Name" isn't "name"
+name = value   # (.ini style)  (white space is ignored, so name = value same as name=value)
+name: value    # (yaml style)
+--name value   # (argparse style)
+
+# how to set a flag arg (eg. arg which has action="store_true")
+--name
+name
+name = True    # "True" and "true" are the same
+
+# how to specify a list arg (eg. arg which has action="append")
+fruit = [apple, orange, lemon]
+indexes = [1, 12, 35 , 40]
+```
+
+For example:
+```
+[export]
+directory=/path/to/output
+export=[text, sqlite, case]
+```
+
+##### Environment Variables
+SQLite Dissect can also be configured using environment variables with the capitalized version of the argument flag.
+
+For example:
+```shell
+export DIRECTORY=/path/to/output
+export EXPORT=[text, sqlite, case]
 ```
 
 ### Description
