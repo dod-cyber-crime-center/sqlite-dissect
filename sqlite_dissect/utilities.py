@@ -346,7 +346,7 @@ def hash_file(file_path, hash_algo=hashlib.sha256()):
 
 
 # Uses ArgumentParser from argparse to evaluate user arguments.
-def parse_args(args):
+def parse_args(args = None):
     description = "SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases " \
                   "and their accompanying journal files. If no options are set other than the file " \
                   "name, the default behaviour will be to check for any journal files and print to " \
@@ -372,10 +372,10 @@ def parse_args(args):
     parser.add_argument("-e", "--export",
                         nargs="*",
                         choices=["text", "csv", "sqlite", "xlsx", "case"],
-                        default="text",
+                        default=["text"],
                         metavar="EXPORT_TYPE",
                         help="the format to export to {text, csv, sqlite, xlsx, case} (text written to console if -d "
-                             "is not specified)")
+                             "is not specified)")   
 
     journal_group = parser.add_mutually_exclusive_group()
     journal_group.add_argument("-n", "--no-journal", action="store_true", default=False,

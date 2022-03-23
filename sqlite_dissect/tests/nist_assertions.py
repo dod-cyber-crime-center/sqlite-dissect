@@ -10,7 +10,7 @@ def row_equals(row1, row2):
     return True
 
 
-def search_for_row(target, row_list):
+def row_exists(target, row_list):
     for row in row_list:
         if row_equals(row, target):
             return True
@@ -107,7 +107,7 @@ def assert_correct_num_rows(reported_num, correct_num, table):
 def assert_correct_rows(reported_rows, correct_rows):
     missed_rows = []
     for row in correct_rows:
-        if not search_for_row(row, reported_rows):
+        if not row_exists(row, reported_rows):
             missed_row = '('
             first_attribute = True
             for attribute in row:
@@ -120,8 +120,8 @@ def assert_correct_rows(reported_rows, correct_rows):
 
             missed_rows.append(missed_row)
 
-    assert not missed_rows, "The program failed to report all recoverable rows!\n" \
-                            "Rows missing: \n%s" % ("\n".join(missed_rows))
+    assert not missed_rows, "The program failed to report all recoverable rows (missed %i out of %i)!\n" \
+                            "Rows missing: \n%s" % (len(missed_rows), len(correct_rows), "\n".join(missed_rows))
 
 
 # SFT-CA-13

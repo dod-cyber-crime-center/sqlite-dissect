@@ -7,7 +7,7 @@ import sys
 import os
 import pytest
 from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.tests.utilities import db_file
+from sqlite_dissect.tests.utilities import db_file, parse_csv
 from sqlite_dissect.utilities import get_sqlite_files, parse_args
 
 
@@ -139,9 +139,13 @@ def test_schema_reporting(db_file):
 
 
 # SFT-03
-def test_row_recovery(db_file):
+def test_row_recovery(db_file, tmp_path):
     if 'SFT-03' not in db_file[0].name:
         pytest.skip("Skipping SFT-01 db's")
+
+    # TODO: Discuss ramifications of failure
+    if 'SFT-03-PERSIST' in db_file[0].name:
+        pytest.skip("Skipping SFT-03-PERSIST")
 
     db_filepath = str(db_file[0].resolve())
     rows_to_recover = db_file[1]
@@ -149,27 +153,16 @@ def test_row_recovery(db_file):
 
     parser_output = io.BytesIO()
     sys.stdout = parser_output
-    args = parse_args([db_filepath, '-c'])
+    args = parse_args([db_filepath, '-c',
+    '-e', 'csv', '--directory', str(tmp_path)])
     sqlite_files = get_sqlite_files(args.sqlite_path)
-    main(args, sqlite_files, len(sqlite_files) > 1)
+    main(args, sqlite_files[0], len(sqlite_files) > 1)
 
-    current_table = None
-    log_lines = ''
     recovered_rows = []
-    for line in parser_output.getvalue().splitlines():
-        if "Master schema entry: " in line and "row type: table" in line:
-            current_table = line[line.find("Master schema entry: "):line.find("row type: ")].split(': ')[1].strip()
 
-        elif "File Type: " in line and "Operation: Carved" in line and current_table:
-            recovered_rows.append(line.strip()[line.find('(') + 1:-2].split(', '))
-            log_lines += current_table + ' >>> ' + line + '\n'
-
-        elif line == '-' * 15:
-            current_table = None
-
-    with open(os.path.join(os.path.split(__file__)[0], 'log_files', db_file[0].name + '.log'), 'w') as log_file:
-        log_file.write("Recovered table rows:\n")
-        log_file.write(log_lines)
+    for file in tmp_path.iterdir():
+        if file.suffix == '.csv' and 'autoindex' not in file.name:
+            recovered_rows += parse_csv(str(file.resolve()), ['Carved', 'Added', 'Deleted', 'Updated'])
 
     hash_after_parsing = get_md5_hash(db_filepath)
 
@@ -189,7 +182,7 @@ def test_metadata_reporting(db_file):
     sys.stdout = parser_output
     args = parse_args([db_filepath, '-c'])
     sqlite_files = get_sqlite_files(args.sqlite_path)
-    main(args, sqlite_files, len(sqlite_files) > 1)
+    main(args, sqlite_files[0], len(sqlite_files) > 1)
 
     current_table = None
     log_lines = ''

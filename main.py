@@ -296,7 +296,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
     version_history = VersionHistory(database, write_ahead_log)
 
     # Check if the header info was asked for
-    if args.header:
+    if arguments.header:
         # Print the header info of the database
         print("\nDatabase header information:\n{}".format(database.database_header.stringify(padding="\t")))
         print("Continuing to parse...")
@@ -581,6 +581,8 @@ def print_text(output_directory, file_prefix, carve, carve_freelists, specified_
                 for commit in version_history_parser:
                     CommitConsoleExporter.write_commit(commit)
 
+            print('-' * 15)
+
     return export_paths
 
 
@@ -773,7 +775,7 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
 
 if __name__ == "__main__":
     # Determine if a directory has been passed instead of a file, in which case, find all
-    args = parse_args(sys.argv)
+    args = parse_args()
     if args.sqlite_path is not None:
         sqlite_files = get_sqlite_files(args.sqlite_path)
         # Ensure there is at least one SQLite file
