@@ -26,6 +26,9 @@
 /log
 /case
 /.pytest_cache
-/.coverage
 /htmlcov
 /docs/build
+sqlite_dissect/tests/log_files/
+test_files/
+*.coverage
+

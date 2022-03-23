@@ -39,10 +39,11 @@ from sqlite_dissect.file.schema.master import OrdinaryTableRow
 from sqlite_dissect.file.wal.wal import WriteAheadLog
 from sqlite_dissect.output import stringify_master_schema_version
 from sqlite_dissect.output import stringify_master_schema_versions
-from sqlite_dissect.utilities import get_sqlite_files, create_directory
+from sqlite_dissect.utilities import get_sqlite_files, create_directory, parse_args
 from sqlite_dissect.version_history import VersionHistory
 from sqlite_dissect.version_history import VersionHistoryParser
 from datetime import datetime
+import sys
 
 """
 
@@ -295,7 +296,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
     version_history = VersionHistory(database, write_ahead_log)
 
     # Check if the header info was asked for
-    if args.header:
+    if arguments.header:
         # Print the header info of the database
         print("\nDatabase header information:\n{}".format(database.database_header.stringify(padding="\t")))
         print("Continuing to parse...")
@@ -580,6 +581,8 @@ def print_text(output_directory, file_prefix, carve, carve_freelists, specified_
                 for commit in version_history_parser:
                     CommitConsoleExporter.write_commit(commit)
 
+            print('-' * 15)
+
     return export_paths
 
 
@@ -769,6 +772,7 @@ def carve_rollback_journal(output_directory, rollback_journal_file, rollback_jou
                 logger.error("Unable to find signature for: {}.  This table will not be carved from the "
                              "rollback journal.".format(master_schema_entry.name))
 
+
 if __name__ == "__main__":
     description = "SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases " \
                   "and their accompanying journal files. If no options are set other than the file " \
@@ -854,7 +858,7 @@ if __name__ == "__main__":
     parser.add_argument("--header", action="store_true", default=False, help="Print header information")
 
     # Determine if a directory has been passed instead of a file, in which case, find all
-    args = parser.parse_args()
+    args = parse_args()
     if args.sqlite_path is not None:
         sqlite_files = get_sqlite_files(args.sqlite_path)
         # Ensure there is at least one SQLite file

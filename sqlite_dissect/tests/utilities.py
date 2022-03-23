@@ -6,12 +6,13 @@ import string
 from collections import OrderedDict
 import uuid
 
+
 default_columns = OrderedDict(
     [
         ('name', 'TEXT NOT NULL'),
         ('data1', 'INT NOT NULL'),
-        ('data2', 'TEXT NOT NULL'),
-        ('data3', 'REAL NOT NULL'),
+        ('data2', 'INT NOT NULL'),
+        ('data3', 'INT NOT NULL'),
         ('data4', 'TEXT NOT NULL')
     ]
 )
@@ -184,3 +185,22 @@ def db_file(request, tmp_path):
     yield db_filepath, modified_rows + deleted_rows
 
 
+# Parses CSV file returned by sqlite_dissect operations and returns rows found that match the given operations.
+def parse_csv(filepath, operations):
+    accepted_sources = ["ROLLBACK_JOURNAL", "DATABASE", "WAL"]
+
+    with open(filepath, 'r') as csv_file:
+        keys = map(lambda key : key.strip('"'), csv_file.readline().strip().split(','))
+        op_index = keys.index("Operation")
+        id_index = keys.index("id")
+        rows = []
+
+        for line in csv_file:
+            line_list = map(lambda data: data.strip('"'), line.strip().split(','))
+            
+            if line_list[0] in accepted_sources and line_list[op_index] in operations:
+                rows.append(tuple(line_list[id_index:]))
+
+    return rows
+
+        
