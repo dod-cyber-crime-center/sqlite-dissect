@@ -283,7 +283,9 @@ class CaseExporter(object):
         action = {
             "@id": ("kb:investigative-action" + str(uuid.uuid4())),
             "@type": "case-investigation:InvestigativeAction",
-            "uco-core:hasFacet": []
+            "uco-action:instrument": guid_list_to_objects([tool_guid]),
+            "uco-action:object": guid_list_to_objects(source_guids),
+            "uco-action:result": guid_list_to_objects(self.result_guids)
         }
 
         if self.start_datetime:
@@ -296,14 +298,6 @@ class CaseExporter(object):
                 "@type": "xsd:dateTime",
                 "@value": self.end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             }
-        # Loop through and add the results to the ActionReferencesFacet
-        action_facet = {
-            "@type": "uco-action:ActionReferencesFacet",
-            "uco-action:instrument": guid_list_to_objects([tool_guid]),
-            "uco-action:object": guid_list_to_objects(source_guids),
-            "uco-action:result": guid_list_to_objects(self.result_guids)
-        }
-        action["uco-core:hasFacet"].append(action_facet)
         self.case['@graph'].append(action)
 
     def export_case_file(self, export_path='output/case.json'):
