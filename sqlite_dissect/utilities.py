@@ -24,6 +24,9 @@ utilities.py
 
 This script holds general utility functions for reference by the sqlite carving library.
 
+The script holds the following class(es):
+DotDict(dict)
+
 This script holds the following function(s):
 calculate_expected_overflow(overflow_byte_size, page_size)
 decode_varint(byte_array, offset)
@@ -39,6 +42,13 @@ create_directory(dir_path)
 hash_file(file_path, hash_algo=hashlib.sha256())
 
 """
+
+
+class DotDict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 
 def calculate_expected_overflow(overflow_byte_size, page_size):

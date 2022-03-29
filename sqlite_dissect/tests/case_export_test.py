@@ -1,8 +1,8 @@
 import os
 import unittest
-from argparse import Namespace
 
 from main import main
+from sqlite_dissect.utilities import DotDict
 from os.path import abspath, join, realpath, dirname
 
 
@@ -19,11 +19,15 @@ class TestCASEExport(unittest.TestCase):
         case_path = join(output_path, 'case.json')
 
         # Build the arguments for the testing
-        args = Namespace()
-        args.log_level = 'debug'
-        args.export = ['case']
-        args.directory = output_path
-        args.sqlite_file = input_path
+        args = {
+            'log_level': 'debug',
+            'export': ['case'],
+            'directory': output_path,
+            'sqlite_file': input_path
+        }
+
+        # Convert the dictionary to a dot-accessible object for the main parsing
+        args = DotDict(args)
 
         # Call the main argument
         main(args, input_path)
