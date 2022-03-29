@@ -32,7 +32,7 @@ class CaseExporter(object):
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
     # from the main.py execution path.
     case = {
-        '@context': {
+        "@context": {
             "@vocab": "http://example.org/ontology/local#",
             "case-investigation": "https://ontology.caseontology.org/case/investigation/",
             "drafting": "http://example.org/ontology/drafting#",
@@ -49,7 +49,7 @@ class CaseExporter(object):
             "uco-vocabulary": "https://unifiedcyberontology.org/ontology/uco/vocabulary#",
             "xsd": "http://www.w3.org/2001/XMLSchema#"
         },
-        '@graph': []
+        "@graph": []
     }
     start_datetime = None
     end_datetime = None
@@ -114,7 +114,7 @@ class CaseExporter(object):
             # Parse the file and get the attributes we need
             self.case['@graph'].append({
                 "@id": guid,
-                "@type": "uco-observable:ObservableObject",
+                "@type": "uco-observable:File",
                 "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
                     {

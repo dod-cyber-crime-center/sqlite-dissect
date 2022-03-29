@@ -1,6 +1,5 @@
 import uuid
 import warnings
-from argparse import ArgumentParser
 from logging import CRITICAL
 from logging import DEBUG
 from logging import ERROR
@@ -17,7 +16,6 @@ from os.path import normpath
 from os.path import sep
 from time import time
 from warnings import warn
-from _version import __version__
 from sqlite_dissect.carving.rollback_journal_carver import RollBackJournalCarver
 from sqlite_dissect.carving.signature import Signature
 from sqlite_dissect.constants import BASE_VERSION_NUMBER
@@ -43,7 +41,6 @@ from sqlite_dissect.utilities import get_sqlite_files, create_directory, parse_a
 from sqlite_dissect.version_history import VersionHistory
 from sqlite_dissect.version_history import VersionHistoryParser
 from datetime import datetime
-import sys
 
 """
 
@@ -60,6 +57,9 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
 
     :param arguments: the object of key => value arguments that have been provided as the runtime configuration in which
         the SQLite Dissect tool should run.
+    :param sqlite_file_path: the string path to the SQLite file or directory being processed.
+    :param export_sub_paths: the boolean determination of whether to generate subdirectories for the output for each
+        SQLite file being processed.
     """
     # Handle the logging and warning settings
     if not arguments.log_level:
