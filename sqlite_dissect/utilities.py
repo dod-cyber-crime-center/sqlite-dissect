@@ -16,16 +16,13 @@ from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
 from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import InvalidVarIntError
 from _version import __version__
-from argparse import ArgumentParser
+from configargparse import ArgParser
 
 """
 
 utilities.py
 
 This script holds general utility functions for reference by the sqlite carving library.
-
-The script holds the following class(es):
-DotDict(dict)
 
 This script holds the following function(s):
 calculate_expected_overflow(overflow_byte_size, page_size)
@@ -42,13 +39,6 @@ create_directory(dir_path)
 hash_file(file_path, hash_algo=hashlib.sha256())
 
 """
-
-
-class DotDict(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
 
 
 def calculate_expected_overflow(overflow_byte_size, page_size):
@@ -356,7 +346,10 @@ def parse_args(args=None):
                   "and their location will need to be specified in the command.  SQLite carving " \
                   "will not be done by default.  Please see the options below to enable carving."
 
-    parser = ArgumentParser(description=description)
+    parser = ArgParser(description=description)
+
+    # Define the argument for the configuration file that can optionally be passed
+    parser.add_argument('--config', required=False, is_config_file=True, help='The path to the configuration file')
 
     parser.add_argument("sqlite_path", metavar="SQLITE_PATH", help="The path to the SQLite database file or directory "
                                                                    "containing multiple files")
