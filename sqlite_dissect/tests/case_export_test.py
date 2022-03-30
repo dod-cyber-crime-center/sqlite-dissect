@@ -21,7 +21,7 @@ class TestCASEExport(unittest.TestCase):
         # Build the arguments for the testing
         args = {
             'log_level': 'debug',
-            'export': ['case'],
+            'export': ['case', 'text'],
             'directory': output_path,
             'sqlite_file': input_path
         }
