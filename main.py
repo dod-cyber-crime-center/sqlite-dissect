@@ -437,7 +437,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         case.register_options(arguments)
 
         # Add the SQLite/DB file to the CASE output
-        source_guids = [case.add_observable_file(normpath(arguments.sqlite_file), 'sqlite-file')]
+        source_guids = [case.add_observable_file(normpath(sqlite_file_path), 'sqlite-file')]
 
         # Add the WAL and journal files to the output if they exist
         if wal_file_name:
