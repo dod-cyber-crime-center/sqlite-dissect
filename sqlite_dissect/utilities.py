@@ -361,74 +361,121 @@ def parse_args(args=None):
     # Define the argument for the configuration file that can optionally be passed
     parser.add_argument('--config', required=False, is_config_file=True, help='The path to the configuration file')
 
-    parser.add_argument("sqlite_path", metavar="SQLITE_PATH", help="The path to the SQLite database file or directory "
-                                                                   "containing multiple files")
+    parser.add_argument("sqlite_path",
+                        metavar="SQLITE_PATH",
+                        help="The path to the SQLite database file or directory containing multiple files",
+                        )
 
-    parser.add_argument("-v", "--version", action="version", version="version {version}".format(version=__version__),
+    parser.add_argument("-v", "--version",
+                        action="version",
+                        version="version {version}".format(version=__version__),
                         help="display the version of SQLite Dissect")
-    parser.add_argument("-d", "--directory", metavar="OUTPUT_DIRECTORY", help="directory to write output to "
-                                                                              "(must be specified for outputs other "
-                                                                              "than console text)")
-    parser.add_argument("-p", "--file-prefix", default="", metavar="FILE_PREFIX",
+
+    parser.add_argument("-d", "--directory",
+                        metavar="OUTPUT_DIRECTORY",
+                        env_var="SQLD_OUTPUT_DIRECTORY",
+                        help="directory to write output to (must be specified for outputs other than console text)")
+
+    parser.add_argument("-p", "--file-prefix",
+                        default="",
+                        metavar="FILE_PREFIX",
+                        env_var="SQLD_FILE_PREFIX",
                         help="the file prefix to use on output files, default is the name of the SQLite "
                              "file (the directory for output must be specified)")
+
     parser.add_argument("-e", "--export",
                         nargs="*",
                         choices=["text", "csv", "sqlite", "xlsx", "case"],
                         default=["text"],
                         metavar="EXPORT_TYPE",
+                        env_var="SQLD_EXPORT_TYPE",
                         help="the format to export to {text, csv, sqlite, xlsx, case} (text written to console if -d "
                              "is not specified)")
 
     journal_group = parser.add_mutually_exclusive_group()
-    journal_group.add_argument("-n", "--no-journal", action="store_true", default=False,
+    journal_group.add_argument("-n", "--no-journal",
+                               action="store_true",
+                               default=False,
+                               env_var="SQLD_NO_JOURNAL",
                                help="turn off automatic detection of journal files")
     journal_group.add_argument("-w", "--wal",
+                               env_var="SQLD_WAL",
                                help="the wal file to use instead of searching the SQLite file directory by default")
     journal_group.add_argument("-j", "--rollback-journal",
+                               env_var="SQLD_ROLLBACK_JOURNAL",
                                help="the rollback journal file to use in carving instead of searching the SQLite file "
                                     "directory by default (under development, currently only outputs to csv, output "
                                     "directory needs to be specified)")
 
-    parser.add_argument("-r", "--exempted-tables", metavar="EXEMPTED_TABLES",
+    parser.add_argument("-r", "--exempted-tables",
+                        metavar="EXEMPTED_TABLES",
+                        env_var="SQLD_EXEMPTED_TABLES",
                         help="comma-delimited string of tables [table1,table2,table3] to exempt (only implemented "
                              "and allowed for rollback journal parsing currently) ex.) table1,table2,table3")
 
-    parser.add_argument("-s", "--schema", action="store_true",
+    parser.add_argument("-s", "--schema",
+                        action="store_true",
+                        env_var="SQLD_SCHEMA",
                         help="output the schema to console, the initial schema found in the main database file")
-    parser.add_argument("-t", "--schema-history", action="store_true",
+
+    parser.add_argument("-t", "--schema-history",
+                        action="store_true",
+                        env_var="SQLD_SCHEMA_HISTORY",
                         help="output the schema history to console, prints the --schema information and "
                              "write-head log changes")
 
-    parser.add_argument("-g", "--signatures", action="store_true",
+    parser.add_argument("-g", "--signatures",
+                        action="store_true",
+                        env_var="SQLD_SIGNATURES",
                         help="output the signatures generated to console")
 
-    parser.add_argument("-c", "--carve", action="store_true", default=False,
+    parser.add_argument("-c", "--carve",
+                        action="store_true",
+                        env_var="SQLD_CARVE",
+                        default=False,
                         help="carves and recovers table data")
-    parser.add_argument("-f", "--carve-freelists", action="store_true", default=False,
+
+    parser.add_argument("-f", "--carve-freelists",
+                        action="store_true",
+                        env_var="SQLD_CARVE_FREELISTS",
+                        default=False,
                         help="carves freelist pages (carving must be enabled, under development)")
 
-    parser.add_argument("-b", "--tables", metavar="TABLES",
+    parser.add_argument("-b", "--tables",
+                        metavar="TABLES",
+                        env_var="SQLD_TABLES",
                         help="specified comma-delimited string of tables [table1,table2,table3] to carve "
                              "ex.) table1,table2,table3")
 
-    parser.add_argument("-k", "--disable-strict-format-checking", action="store_true", default=False,
+    parser.add_argument("-k", "--disable-strict-format-checking",
+                        action="store_true",
+                        env_var="SQLD_DISABLE_STRICT_FORMAT_CHECKING",
+                        default=False,
                         help="disable strict format checks for SQLite databases "
                              "(this may result in improperly parsed SQLite files)")
 
     logging_group = parser.add_mutually_exclusive_group()
-    logging_group.add_argument("-l", "--log-level", default="off",
+    logging_group.add_argument("-l", "--log-level",
+                               default="off",
                                choices=["critical", "error", "warning", "info", "debug", "off"],
                                metavar="LOG_LEVEL",
+                               env_var="SQLD_LOG_LEVEL",
                                help="level to log messages at {critical, error, warning, info, debug, off}")
-    parser.add_argument("-i", "--log-file", default=None, metavar="LOG_FILE",
-                        help="log file to write too, default is to "
-                             "write to console, ignored if log "
-                             "level set to off (appends if file "
-                             "already exists)")
+    parser.add_argument("-i", "--log-file",
+                        default=None,
+                        metavar="LOG_FILE",
+                        env_var="SQLD_LOG_FILE",
+                        help="log file to write too, default is to write to console, ignored if log level set to off "
+                             "(appends if file already exists)")
 
-    parser.add_argument("--warnings", action="store_true", default=False, help="enable runtime warnings")
+    parser.add_argument("--warnings",
+                        action="store_true",
+                        default=False,
+                        help="enable runtime warnings")
 
-    parser.add_argument("--header", action="store_true", default=False, help="Print header information")
+    parser.add_argument("--header",
+                        action="store_true",
+                        default=False,
+                        help="Print header information")
 
     return parser.parse_args(args)

@@ -127,19 +127,19 @@ indexes = [1, 12, 35 , 40]
 ```
 
 For example:
-```
+```config
 [export]
 directory=/path/to/output
 export=[text, sqlite, case]
 ```
 
 ##### Environment Variables
-SQLite Dissect can also be configured using environment variables with the capitalized version of the argument flag.
+SQLite Dissect can also be configured using environment variables with the prefixed version of the argument flag.
 
 For example:
 ```shell
-export DIRECTORY=/path/to/output
-export EXPORT=[text, sqlite, case]
+export SQLD_DIRECTORY=/path/to/output
+export SQLD_EXPORT_TYPE="[text, sqlite, case]"
 ```
 
 ### Description

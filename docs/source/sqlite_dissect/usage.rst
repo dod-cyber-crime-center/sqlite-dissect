@@ -190,11 +190,11 @@ For example:
 
 Environment Variable Configuration
 ++++++++++++++++++++++++++++++++++++
-SQLite Dissect can also be configured using environment variables with the capitalized version of the argument flag.
+SQLite Dissect can also be configured using environment variables with the prefixed version of the argument flag.
 
 For example:
 
 .. code-block:: shell
 
-    export DIRECTORY=/path/to/output
-    export EXPORT=[text, sqlite, case]
+    export SQLD_DIRECTORY=/path/to/output
+    export SQLD_EXPORT_TYPE="[text, sqlite, case]"
