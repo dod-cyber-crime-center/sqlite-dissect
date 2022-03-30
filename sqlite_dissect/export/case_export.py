@@ -32,7 +32,7 @@ class CaseExporter(object):
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
     # from the main.py execution path.
     case = {
-        '@context': {
+        "@context": {
             "@vocab": "http://example.org/ontology/local#",
             "case-investigation": "https://ontology.caseontology.org/case/investigation/",
             "drafting": "http://example.org/ontology/drafting#",
@@ -49,7 +49,7 @@ class CaseExporter(object):
             "uco-vocabulary": "https://unifiedcyberontology.org/ontology/uco/vocabulary#",
             "xsd": "http://www.w3.org/2001/XMLSchema#"
         },
-        '@graph': []
+        "@graph": []
     }
     start_datetime = None
     end_datetime = None
@@ -114,7 +114,7 @@ class CaseExporter(object):
             # Parse the file and get the attributes we need
             self.case['@graph'].append({
                 "@id": guid,
-                "@type": "uco-observable:ObservableObject",
+                "@type": "uco-observable:File",
                 "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
                     {
@@ -283,7 +283,9 @@ class CaseExporter(object):
         action = {
             "@id": ("kb:investigative-action" + str(uuid.uuid4())),
             "@type": "case-investigation:InvestigativeAction",
-            "uco-core:hasFacet": []
+            "uco-action:instrument": guid_list_to_objects([tool_guid]),
+            "uco-action:object": guid_list_to_objects(source_guids),
+            "uco-action:result": guid_list_to_objects(self.result_guids)
         }
 
         if self.start_datetime:
@@ -296,14 +298,6 @@ class CaseExporter(object):
                 "@type": "xsd:dateTime",
                 "@value": self.end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             }
-        # Loop through and add the results to the ActionReferencesFacet
-        action_facet = {
-            "@type": "uco-action:ActionReferencesFacet",
-            "uco-action:instrument": guid_list_to_objects([tool_guid]),
-            "uco-action:object": guid_list_to_objects(source_guids),
-            "uco-action:result": guid_list_to_objects(self.result_guids)
-        }
-        action["uco-core:hasFacet"].append(action_facet)
         self.case['@graph'].append(action)
 
     def export_case_file(self, export_path='output/case.json'):

@@ -51,6 +51,7 @@ jobs:
         uses: kchason/case-validation-action@v1
         with:
           case-path: ./output/case.json
+          case-version: "case-0.6.0"
 
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
