@@ -83,8 +83,8 @@ All Optional CLI Arguments
       -
       - enable runtime warnings
 
-Example Usage
-+++++++++++++++++++
+Command Line Configuration
++++++++++++++++++++++++++++
 Print the version:
 
 .. code-block:: shell
@@ -150,3 +150,51 @@ Parse a SQLite database file along with a specified rollback journal file and se
             --carve \
             -j [ROLLBACK_JOURNAL]
 
+File-Based Configuration
+++++++++++++++++++++++++++
+SQLite Dissect can optionally be configured with configuration files that are provided using the CLI argument `--config`
+
+The format for the configuration file is as follows:
+
+.. code-block:: shell
+
+    # this is a comment
+    ; this is also a comment (.ini style)
+    ---            # lines that start with --- are ignored (yaml style)
+    -------------------
+    [section]      # .ini-style section names are treated as comments
+
+    # how to specify a key-value pair (all of these are equivalent):
+    name value     # key is case sensitive: "Name" isn't "name"
+    name = value   # (.ini style)  (white space is ignored, so name = value same as name=value)
+    name: value    # (yaml style)
+    --name value   # (argparse style)
+
+    # how to set a flag arg (eg. arg which has action="store_true")
+    --name
+    name
+    name = True    # "True" and "true" are the same
+
+    # how to specify a list arg (eg. arg which has action="append")
+    fruit = [apple, orange, lemon]
+    indexes = [1, 12, 35 , 40]
+
+
+For example:
+
+.. code-block:: shell
+
+    [export]
+    directory=/path/to/output
+    export=[text, sqlite, case]
+
+Environment Variable Configuration
+++++++++++++++++++++++++++++++++++++
+SQLite Dissect can also be configured using environment variables with the prefixed version of the argument flag.
+
+For example:
+
+.. code-block:: shell
+
+    export SQLD_DIRECTORY=/path/to/output
+    export SQLD_EXPORT_TYPE="[text, sqlite, case]"

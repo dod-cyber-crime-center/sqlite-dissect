@@ -48,7 +48,8 @@ setup(name="sqlite_dissect",
           "Programming Language :: Python :: 2.7"
       ],
       install_requires=[
-          "openpyxl==2.6.4"
+          "openpyxl==2.6.4",
+          "ConfigArgParse"
       ],
       zip_safe=False
       )
