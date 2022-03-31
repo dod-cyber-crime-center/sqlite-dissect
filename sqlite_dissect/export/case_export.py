@@ -33,20 +33,18 @@ class CaseExporter(object):
     # from the main.py execution path.
     case = {
         "@context": {
-            "@vocab": "http://example.org/ontology/local#",
             "case-investigation": "https://ontology.caseontology.org/case/investigation/",
-            "drafting": "http://example.org/ontology/drafting#",
             "kb": "http://example.org/kb/",
             "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-            "uco-action": "https://unifiedcyberontology.org/ontology/uco/action#",
-            "uco-core": "https://unifiedcyberontology.org/ontology/uco/core#",
-            "uco-identity": "https://unifiedcyberontology.org/ontology/uco/identity#",
-            "uco-location": "https://unifiedcyberontology.org/ontology/uco/location#",
-            "uco-observable": "https://unifiedcyberontology.org/ontology/uco/observable#",
-            "uco-tool": "https://unifiedcyberontology.org/ontology/uco/tool#",
-            "uco-types": "https://unifiedcyberontology.org/ontology/uco/types#",
-            "uco-vocabulary": "https://unifiedcyberontology.org/ontology/uco/vocabulary#",
+            "uco-action": "https://ontology.unifiedcyberontology.org/uco/action/",
+            "uco-core": "https://ontology.unifiedcyberontology.org/uco/core/",
+            "uco-identity": "https://ontology.unifiedcyberontology.org/uco/identity/",
+            "uco-location": "https://ontology.unifiedcyberontology.org/uco/location/",
+            "uco-observable": "https://ontology.unifiedcyberontology.org/uco/observable/",
+            "uco-tool": "https://ontology.unifiedcyberontology.org/uco/tool/",
+            "uco-types": "https://ontology.unifiedcyberontology.org/uco/types/",
+            "uco-vocabulary": "https://ontology.unifiedcyberontology.org/uco/vocabulary/",
             "xsd": "http://www.w3.org/2001/XMLSchema#"
         },
         "@graph": []
@@ -250,21 +248,36 @@ class CaseExporter(object):
         Generates the header for the tool and returns the GUID for the ObservableRelationships
         """
         # Generate the UUID which will be returned as a reference
-        guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
-
+        org_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
         self.case['@graph'].append({
-            "@id": guid,
+            "@id": org_guid,
+            "@type": "uco-identity:Organization",
+            "uco-core:name": "DoD Cyber Crime Center (DC3)",
+            "uco-core:description": "The DoD Cyber Crime Center (DC3) provides digital and multimedia (D/MM) forensics,"
+                                    " specialized cyber training, technical solutions development, and cyber analytics"
+                                    " for the following DoD mission areas: cybersecurity (CS) and critical"
+                                    " infrastructure protection (CIP); law enforcement and counterintelligence (LE/CI);"
+                                    " document and media exploitation (DOMEX), counterterrorism (CT) and safety"
+                                    " inquiries."
+        })
+
+        # Generate the UUID which will be returned as a reference
+        tool_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
+        self.case['@graph'].append({
+            "@id": tool_guid,
             "@type": "uco-tool:Tool",
             "uco-core:name": "SQLite Dissect",
             "uco-tool:description": "A SQLite parser with recovery abilities over SQLite databases and their "
                                     "accompanying journal files. https://github.com/Defense-Cyber-Crime-Center/sqlite"
                                     "-dissect",
             "uco-tool:toolType": "Extraction",
-            "uco-tool:creator": "Department of Defense Cyber Crime Center (DC3)",
+            "uco-tool:creator": {
+                "@id": org_guid
+            },
             "uco-tool:version": __version__,
         })
 
-        return guid
+        return tool_guid
 
     def generate_investigation_action(self, source_guids, tool_guid):
         """
