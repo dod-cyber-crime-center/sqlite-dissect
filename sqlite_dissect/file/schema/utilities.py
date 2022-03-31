@@ -63,7 +63,6 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
     closing_parenthesis_offset = opening_parenthesis_offset
     embedded_parentheses = 0
     comment_indicator = 0
-    literal_indicator = 0
 
     for index, character in enumerate(string[opening_parenthesis_offset + 1:], opening_parenthesis_offset + 1):
 
@@ -74,14 +73,6 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
             if (comment_indicator == 1 and character == '\n') or \
                     (comment_indicator == 2 and character == '/' and string[index - 1] == '*'):
                 comment_indicator = 0
-
-        if literal_indicator:
-            if literal_indicator == 1 and character == '\'':
-                literal_indicator = 0
-            elif literal_indicator == 2 and character == '\"':
-                literal_indicator = 0
-            elif literal_indicator == 3 and character == '`':
-                literal_indicator = 0
 
         else:
 
@@ -125,15 +116,6 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
 
                 # Set the comment indicator
                 comment_indicator = 2
-
-            elif character == "\'":
-                literal_indicator = 1
-
-            elif character == "\"":
-                literal_indicator = 2
-
-            elif character == "`":
-                literal_indicator = 3
 
     # Check to make sure the closing parenthesis was found
     if closing_parenthesis_offset == len(string) - 1 and string[closing_parenthesis_offset] != ")":
