@@ -1,4 +1,4 @@
-from sqlite_dissect.entrpoint import cli
+from sqlite_dissect.entrypoint import cli
 
 if __name__ == "__main__":
     """

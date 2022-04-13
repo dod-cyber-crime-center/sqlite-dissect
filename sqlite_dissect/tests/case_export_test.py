@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from main import main
+from sqlite_dissect.entrypoint import main
 from sqlite_dissect.utilities import DotDict
 from os.path import abspath, join, realpath, dirname
 

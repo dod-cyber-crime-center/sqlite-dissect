@@ -1,7 +1,7 @@
 import sqlite3
 import nist_assertions
 from hashlib import md5
-from main import main
+from sqlite_dissect.entrypoint import main
 import io
 import sys
 import os
