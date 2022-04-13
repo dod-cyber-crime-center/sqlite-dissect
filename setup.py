@@ -1,5 +1,10 @@
 import os
+import sys
 from setuptools import setup
+
+# Imports the __version__ since the package references don't yet exist in the scope of setup.py.
+sys.path.append('sqlite_dissect')
+from sqlite_dissect._version import __version__
 
 """
 
@@ -21,10 +26,6 @@ Note: PyInstaller is used for generation of executables but not included in this
       some systems this may be blocked and therefore the directory of files is preferred.
 
 """
-
-# Imports the __version__ since the package references doesn't yet exist in the scope of setup.py. It opens the file
-# and interprets the code so the __version__ variable is populated, despite IDE warnings that it's undefined.
-exec (open('sqlite_dissect/_version.py').read())
 
 # The text of the README file
 README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
