@@ -13,7 +13,11 @@ Basic CLI Usage
 
 .. code-block:: shell
 
+    # When installed as a binary or package
     sqlite_dissect /path/to/sqlite.db
+
+    # When running the Python file directly
+    python entrypoint.py /path/to/sqlite.db
 
 All Optional CLI Arguments
 ++++++++++++++++++++++++++
