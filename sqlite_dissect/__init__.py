@@ -1,6 +1,7 @@
 import logging
 import warnings
 from sqlite_dissect.constants import LOGGER_NAME
+from sqlite_dissect._version import __version__
 
 """
 

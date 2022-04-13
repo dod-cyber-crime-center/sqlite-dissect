@@ -15,7 +15,7 @@ from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
 from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import InvalidVarIntError
-from _version import __version__
+from sqlite_dissect._version import __version__
 from configargparse import ArgParser
 
 """
