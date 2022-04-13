@@ -30,7 +30,7 @@ exec (open('sqlite_dissect/_version.py').read())
 README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
 
 setup(name="sqlite_dissect",
-      version=os.environ.get('TAG_VERSION', __version__), #noqa: F821
+      version=os.environ.get('TAG_VERSION', __version__), # noqa: F821
       url="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect",
       description="This package allows parsing and carving of SQLite files",
       long_description=README,
