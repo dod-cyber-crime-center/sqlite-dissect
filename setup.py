@@ -3,7 +3,7 @@ import sys
 from setuptools import setup
 
 # Imports the __version__ since the package references don't yet exist in the scope of setup.py.
-sys.path.append('sqlite_dissect')
+sys.path.append('sqlite_dissect/_version.py')
 from sqlite_dissect._version import __version__
 
 """
