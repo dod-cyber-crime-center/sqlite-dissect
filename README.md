@@ -1,6 +1,7 @@
 # DC3 SQLite Dissect
 [![SQLite Dissect Python](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml)
-<a href="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases"><img src="https://img.shields.io/github/v/release/Defense-Cyber-Crime-Center/sqlite-dissect.svg"></a>
+<a href="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases" target="_blank"><img src="https://img.shields.io/github/v/release/Defense-Cyber-Crime-Center/sqlite-dissect?label=GitHub%20Release"></a>
+<a href="https://pypi.org/project/sqlite-dissect/" target="_blank"><img alt="PyPI" src="https://img.shields.io/pypi/v/sqlite-dissect?label=PyPi%20Release"></a>
 
 ### Usage:
 
