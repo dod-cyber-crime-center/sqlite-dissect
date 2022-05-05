@@ -62,6 +62,7 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
 
     closing_parenthesis_offset = opening_parenthesis_offset
     embedded_parentheses = 0
+    embedded_block_comments = 0
     comment_indicator = 0
     literal_indicator = 0
 
@@ -116,12 +117,26 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
             elif character == "/":
 
                 # Check to make sure the full comment indicators were found for "--" and "/*"
-                if character == "/" and string[index + 1] != "*":
+                if index > 0 and string[index - 1] == "*":
+                    # It's a closing comment block; ensure there was an opening comment first
+                    if embedded_block_comments > 0:
+                        embedded_block_comments -= 1
+                    else:
+                        log_message = "Closing comment indicator '*/' found without a corresponding opening comment " \
+                                      "indicator: {} found in {}."
+                        log_message = log_message.format(string[index + 1], string)
+                        logger.error(log_message)
+                        raise MasterSchemaParsingError(log_message)
+                elif string[index + 1] != "*":
+                    # It's expected to be an opening comment block; ensure there's a comment indicator
                     log_message = "Comment indicator '{}' found followed by an invalid secondary comment " \
                                   "indicator: {} found in {}."
                     log_message = log_message.format(character, string[index + 1], string)
                     logger.error(log_message)
                     raise MasterSchemaParsingError(log_message)
+                else:
+                    # It's an opening comment
+                    embedded_block_comments += 1
 
                 # Set the comment indicator
                 comment_indicator = 2
