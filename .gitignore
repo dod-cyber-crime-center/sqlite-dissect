@@ -21,6 +21,9 @@
 /sqlite_dissect.egg-info
 /sqlite_dissect/sqlite_dissect.egg-info
 
+# testing
+/sqlite_dissect/tests/log_files/
+
 # Other
 /output
 /log

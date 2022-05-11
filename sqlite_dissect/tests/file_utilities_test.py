@@ -3,6 +3,7 @@ from os.path import abspath, join, dirname, splitext
 import random
 from sqlite_dissect.file.utilities import validate_page_version_history
 from sqlite_dissect.file.database.database import Database
+from sqlite_dissect.tests.constants import DB_FILES
 from sqlite_dissect.version_history import VersionHistory, WriteAheadLogCommitRecord
 from sqlite_dissect.file.wal.wal import WriteAheadLog
 
@@ -17,7 +18,7 @@ validate_page_version_history_params = [
 @pytest.mark.parametrize('change, expected_result', validate_page_version_history_params)
 def test_validate_page_version_history(change, expected_result):
     # uses the version_history_test.sqlite file as a template; assumed to be valid at start
-    db_filepath = abspath(join(dirname(__file__), 'test_db_files', 'version_history_test.sqlite'))
+    db_filepath = abspath(join(DB_FILES, 'version_history_test.sqlite'))
     wal_filepath = splitext(db_filepath)[0] + '.sqlite-wal'
 
     db = Database(db_filepath)

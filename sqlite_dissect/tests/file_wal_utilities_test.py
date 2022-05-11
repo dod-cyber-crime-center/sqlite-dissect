@@ -1,4 +1,5 @@
 import pytest
+from sqlite_dissect.tests.constants import DB_FILES
 from sqlite_dissect.file.database.header import DatabaseHeader
 from sqlite_dissect.file.wal.utilities import compare_database_headers
 import os
@@ -19,8 +20,8 @@ def find_header_changes(prev_header, current_header):
 
 
 test_db_files = [
-    get_db_header(os.path.join(os.path.dirname(__file__), 'test_db_files', 'compare_header_1.sqlite')),
-    get_db_header(os.path.join(os.path.dirname(__file__), 'test_db_files', 'compare_header_2.sqlite'))
+    get_db_header(os.path.join(DB_FILES, 'compare_header_1.sqlite')),
+    get_db_header(os.path.join(DB_FILES, 'compare_header_2.sqlite'))
 ]
 
 compare_database_header_params = [

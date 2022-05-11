@@ -75,7 +75,7 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
                     (comment_indicator == 2 and character == '/' and string[index - 1] == '*'):
                 comment_indicator = 0
 
-        if literal_indicator:
+       	elif literal_indicator:
             if literal_indicator == 1 and character == '\'':
                 literal_indicator = 0
             elif literal_indicator == 2 and character == '\"':

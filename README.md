@@ -8,7 +8,7 @@
     sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
                    [-e EXPORT_TYPE] [-n | -w WAL | -j ROLLBACK_JOURNAL] [-r | EXEMPTED_TABLES]
                    [-s | -t] [-g] [-c] [-f] [-k] [-l LOG_LEVEL] [-i LOG_FILE] [--warnings]
-                   SQLITE_PATH`
+                   SQLITE_PATH
 
 SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases
 and their accompanying journal files. If no options are set other than the file
@@ -23,7 +23,7 @@ will not be done by default.  Please see the options below to enable carving.
 
 | Argument    | Description                                                                                                                                                                                                                  | Example Usage                  |
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| SQLITE_PATH | The path and filename of the SQLite file or directory to be carved. If a directory is provided, it will recursively search for files with the extensions: `.db`, `.sqlite`, `.sqlite3`. | `sqlite_dissect [SQLITE_PATH]` |  
+| SQLITE_PATH | The path and filename of the SQLite file or directory to be carved. If a directory is provided, it will recursively search for files with the extensions: `.db`, `.sqlite`, `.sqlite3`. | `sqlite_dissect SQLITE_PATH` |  
 
 
 #### Optional Arguments:
@@ -33,23 +33,24 @@ will not be done by default.  Please see the options below to enable carving.
 | --help                           | -h           | show this help message and exit          |
 | --version                        | -v           | display the version of SQLite Dissect    |
 | --directory DIRECTORY            | -d DIRECTORY | directory to write output to (must be specified for outputs other than console text) |
-| --file-prefix PREFIX             | -p PREFIX    | the file prefix to use on output files, default is the name of the SQLite file (the directory for output must be specified) |
-| --export FORMATS                 | -e FORMATS   | the format(s) to export to {text, csv, sqlite, xlsx, case} (text written to console if -d is not specified). Multiple space-delimited formats are permitted eg `-e sqlite csv xlsx`. |
+| --file-prefix PREFIX             | -p PREFIX    | the file prefix to use on output files; default is the name of the SQLite file (the directory for output must be specified) |
+| --export FORMATS                 | -e FORMATS   | the format(s) to export to {text, csv, sqlite, xlsx, case}. text written to console if -d is not specified. Multiple space-delimited format values are permitted ex. `-e sqlite csv xlsx`. |
 | --no-journal                     | -n           | turn off automatic detection of journal files |
 | --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
 | --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
-| --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (only implemented and allowed for rollback journal parsing currently) ex.) table1,table2,table3                   |
-| --schema                         | -s           | output the schema to console, the initial schema found in the main database file                                                                                                      |
+| --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (currently only implemented and allowed for rollback journal parsing) ex. `-r table1,table2,table3`                  |
+| --schema                         | -s           | output the the initial schema found in the main database file to console                                                                                                      |
 | --schema-history                 | -t           | output the schema history to console, prints the --schema information and write-head log changes                                                                                      |
 | --signatures                     | -g           | output the signatures generated to console                                                                                                                                            |
 | --carve                          | -c           | carves and recovers table data                                                                                                                                                        |
 | --carve-freelists                | -f           | carves freelist pages (carving must be enabled, under development)                                                                                                                    |
-| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex.) table1,table2,table3                                                                                |
+| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex. `-b table1,table2,table3`                                                                                |
 | --disable-strict-format-checking | -k           | disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files)                                                                                 |
 | --log-level LEVEL                | -l LEVEL     | level to log messages at {critical, error, warning, info, debug, off}                                                                                                                 |
-| --log-file FILE                  | -i FILE      | log file to write too, default is to write to console, ignored if log level set to off (appends if file already exists)                                                               |
+| --log-file FILE                  | -i FILE      | log file to write to; appends to file if file already exists. default is to write to console. ignored if log-level set to `off`                                                               |
 | --warnings                       |              | enable runtime warnings                                                                                                                                                               |
  | --header                         |              | enable header info printing                                                                                                                                                           |
+ | --config FILE                         |              | file containing configuration values for the execution of SQLite Dissect                                                                                                                                                            |
 
 ### Command Line Usage:
 
@@ -85,7 +86,7 @@ sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-fre
 ```
 
 6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and 
-   carving entries.  The schema history (schema updates throughout the WAL included if a WAL file detected) and 
+   carving entries.  The schema history (schema updates throughout the WAL are included if a WAL file is detected) and 
    signatures will be printed to standard output.  The log level will be set to debug and all log messages will be
    output to the specified log file.
 
@@ -94,7 +95,7 @@ sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --ca
 ```
 
 7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.  
-   (CSV is the only output option currently implemented for rollback journal files.)
+   (CSV is the only output option currently implemented for rollback journal files)
    
 ```shell
 sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
@@ -135,7 +136,7 @@ export=[text, sqlite, case]
 ```
 
 ##### Environment Variables
-SQLite Dissect can also be configured using environment variables with the prefixed version of the argument flag.
+SQLite Dissect can also be configured using environment variables with the prefixed version of the argument flag (SQLD_).
 
 For example:
 ```shell
@@ -154,11 +155,11 @@ the file.  This includes both interior and leaf table b-tree pages for that tabl
 are only applied to the pages belonging to the particular b-tree page it was generated from due
 to initial research showing that the pages when created or pulled from the freelist set are
 overwritten with zeros for the unallocated portions.  Fragments within the pages can be reported
-on but due to the size (<4 bytes), are not carved.  Due to the fact that entries are added into
+on but, due to the size (<4 bytes), are not carved.  Due to the fact that entries are added into
 tables in SQLite from the end of the page and moving toward the beginning, the carving works
-in the same manner in order to detect previously partial overwritten entries better.  This 
+in the same manner in order to detect previously partially overwritten entries better.  This 
 carving can also be applied to the set of freelist pages within the SQLite file if specified
-but the freelist pages are treated as sets of unallocated data currently with the exception 
+but the freelist pages are currently treated as sets of unallocated data with the exception 
 of the freelist page metadata.
 
 The carving process does not currently account for index b-trees as the more pertinent information
@@ -172,29 +173,29 @@ This application is written in the hopes that many of these use cases can be add
 and is scalable to those use cases.  Although one specific type of signature is preferred by default
 in the application, SQLite Dissect generates multiple versions of a signature and can eventually
 support carving by specifying other signatures or providing your own.  Since SQLite Dissect generates
-the signature based off of existing data within the SQLite files automatically there is no need to
+the signature based off of existing data within the SQLite files automatically, there is no need to
 supply SQLite Dissect a signature for a particular schema or application.  This could be implemented
 though to allow possibly more specific/targeted carving of SQLite files through this application.
 
 Journal carving is supported primarily for WAL files.  If a WAL file is found, this application will
 parse through each of the commit records in sequence and assign a version to them.  This is the same
-as timelining that some applications use to explain this.  Rollback journals are treated as a full
-unallocated block currently and only support export to csv files.
+as timelining that some applications use to explain this.  Rollback journals are currentlytreated as
+a full unallocated block and only support export to csv files.
 
 SQLite Dissect can support output to various forms: text, csv, xlsx, and sqlite.  Due to certain
 constraints on what can be written to some file types, certain modifications need to be made.  For
 instance, when writing SQLite columns such as row_id that are already going to pre-exist in the table
-for export to a SQLite file.  In cases like these, we need to preface the columns with "sd_" so
-they will not conflict with the actual row_id column.  This also applies to internal schema objects, 
-so if certain SQLite tables are requested to be written to a SQLite file, than these will be prefaced
-with a "iso_" so they will not conflict with similar internal schema objects that may already exist
-in the SQLite file bring written to.  In xlsx or csv, due to a "=" symbol indicating a type of equation,
-these are prefaced with a " " character to avoid this issue.  More details can be found in the
-code documentation of the export classes themselves.
+for export to a SQLite file we need to preface the columns with "sd_" so they will not conflict with 
+the actual row_id column.  This also applies to internal schema objects. If certain SQLite tables are 
+requested to be written to a SQLite file, than these will be prefaced with "iso_" so they will not 
+conflict with similar internal schema objects that may already exist in the SQLite file bring written 
+to.  In xlsx or csv, due to a "=" symbol indicating a type of equation, these are prefaced with a " " 
+character to avoid this issue.  More details can be found in the code documentation of the export classes 
+themselves.
 
 SQLite Dissect opens the file as read only and acts as a read only interpreter when parsing and carving
 the SQLite file.  This is to ensure no changes are made to the files being analyzed.  The only use
-of the sqlite3 libraries in python are to write the output to a SQLite file if that option is
+of the sqlite3 libraries in Python are to write the output to a SQLite file if that option is
 specified for output.
 
 #### Additional Notes:
@@ -206,17 +207,17 @@ specified for output.
    but will skip signature generation and carving processes.
 2. Signatures and carving are not implemented for virtual tables.  This will not cause an error but will skip 
    signature generation and carving processes.  `Note:  Even though virtual tables are skipped, virtual tables may 
-   create other non-virtual tables which are not skipped.  Currently nothing ties back these tables back to the 
-   virtual table that created them.`
+   create other non-virtual tables which are not skipped.  Currently nothing ties these tables back to the virtual
+   table that created them.`
 3. Invalidated frames in WAL files are currently skipped and not parsed.  `Note:  This applies to previous WAL records
    that were previously written to the SQLite database.`
 4. Signatures generated are only reflective of the base/initial schema in the SQLite database.
 
 #### Known issues and errors:
-1. A use case may occur on generating a very small signature due to a table with very few columns resulting in many 
-   false positives and longer parsing time.
-2. Due to current handling queuing of data objects to be printed in addition to #1 above, a memory issue may occur with
-   carving some tables.
+1. A use case may occur on generating a very small signature due to a table with very few columns resulting in
+   many false positives and longer parsing time.
+2. Due to current handling queuing of data objects to be printed in addition to #1 above, a memory issue may
+   occur with carving some tables.
 
 #### Future implementation:
 1. Export binary objects to separate files during export instead of being written to text files.
@@ -228,7 +229,7 @@ specified for output.
 
 # Library Scripts
 
-High level scripts that are used to access the rest of the library from and provide the base application for executing
+High level scripts that are used to access the rest of the library and provide the base application for executing
 SQLite Dissect when built.
 
 - api_usage.py
@@ -259,7 +260,7 @@ TODO:
 
 ### setup.py
 
-This script will be used to setup the sqlite_dissect package for use in python environments.
+This script is used to setup the sqlite_dissect package for use in python environments.
 
 >Note:  To compile a distribution for the project run "python setup.py sdist" in the directory this file is located in.
 
@@ -277,7 +278,7 @@ This script will be used to setup the sqlite_dissect package for use in python e
 
 ### sqlite_dissect.py
 
-This script will act as the command line script to run this library as a stand-alone application.
+This script acts as the command line script to run this library as a stand-alone application.
 
 TODO:
 - [ ] Documentation improvements.
