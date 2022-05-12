@@ -3,7 +3,8 @@ import unittest
 
 from sqlite_dissect.entrypoint import main
 from sqlite_dissect.utilities import DotDict
-from os.path import abspath, join, realpath, dirname
+from os.path import abspath, join, dirname
+from sqlite_dissect.tests.constants import DB_FILES
 
 
 class TestCASEExport(unittest.TestCase):
@@ -13,8 +14,8 @@ class TestCASEExport(unittest.TestCase):
 
     def test_case_output(self):
         # Get the full path to avoid any nested issues
-        base_path = abspath(join(dirname(realpath(__file__)), '..', '..'))
-        input_path = join(base_path, 'test_files', 'chinook.db')
+        base_path = join(dirname(abspath(__file__)), '..', '..')
+        input_path = join(DB_FILES, 'chinook.db')
         output_path = join(base_path, 'output')
         case_path = join(output_path, 'case.json')
 
