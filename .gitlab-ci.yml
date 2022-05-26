@@ -6,41 +6,40 @@
 # - Access to the internet for installation of dependencies during the build step.
 # - If there's a proxy behind which the runner needs to be configured, set the PYPI_PROXY_URL environment variable.
 
+default:
+  tags:
+    - rke
+
+  image: python:2.7
+
 stages:
   - Lint
   - Test
   - Build
 
-image: python:2.7
-
 before_script:
-  - >
-    if [[ ${PYPI_PROXY_URL} != "" ]]; then
-      echo "Setting PyPi proxy to be ${PYPI_PROXY_URL}"
-      export http_proxy=${PYPI_PROXY_URL}
-      export https_proxy=${PYPI_PROXY_URL}
-    fi
+  - pip config set global.index-url ${PIP_URL}
+  - pip config set global.trusted-host ${ARTIFACTORY_HOST_NAME}
+  - pip config set search.index ${PIP_URL}
+  - python -m pip -q install --upgrade pip
 
 FlakeLint:
   stage: Lint
   allow_failure: false
   script:
-    - python -m pip -q install --upgrade pip
-    - python setup.py -q install
+    - pip install .
     - pip install -q flake8
     # stop the build if there are Python syntax errors or undefined names
     - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
     - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-  tags:
-    - docker
 
 PyTest:
   stage: Test
   allow_failure: false
   script:
-    - python -m pip -q install --upgrade pip
-    - python setup.py -q install
+    - mkdir output
+    - pip install .
     - pip -q install pytest pytest-cov
     # Run the test with coverage
     - pytest --cov-report term-missing --cov-report html --cov=sqlite_dissect --cov-config=.coveragerc --junitxml=report.xml
@@ -50,8 +49,6 @@ PyTest:
       junit: report.xml
     paths:
       - htmlcov/*
-  tags:
-    - docker
 
 BuildDocs:
   stage: Build
@@ -63,15 +60,12 @@ BuildDocs:
   artifacts:
     paths:
       - ./docs/build/*
-  tags:
-    - docker
 
 BuildWheel:
   stage: Build
   allow_failure: false
   script:
-    - python -m pip install --upgrade pip
-    - python setup.py install
+    - pip install .
     - pip install build twine wheel
     # Build the wheel
     - python setup.py sdist bdist_wheel
@@ -82,5 +76,3 @@ BuildWheel:
   artifacts:
     paths:
       - dist/*
-  tags:
-    - docker

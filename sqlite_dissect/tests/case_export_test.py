@@ -15,7 +15,7 @@ class TestCASEExport(unittest.TestCase):
     def test_case_output(self):
         # Get the full path to avoid any nested issues
         base_path = join(dirname(abspath(__file__)), '..', '..')
-        input_path = join(DB_FILES, 'chinook.db')
+        input_path = join(DB_FILES, 'chinook.sqlite')
         output_path = join(base_path, 'output')
         case_path = join(output_path, 'case.json')
 
@@ -24,7 +24,8 @@ class TestCASEExport(unittest.TestCase):
             'log_level': 'debug',
             'export': ['case', 'text'],
             'directory': output_path,
-            'sqlite_file': input_path
+            'sqlite_file': input_path,
+            'no_journal': True
         }
 
         # Convert the dictionary to a dot-accessible object for the main parsing
