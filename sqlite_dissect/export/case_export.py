@@ -268,7 +268,7 @@ class CaseExporter(object):
             "@type": "uco-tool:Tool",
             "uco-core:name": "SQLite Dissect",
             "uco-tool:description": "A SQLite parser with recovery abilities over SQLite databases and their "
-                                    "accompanying journal files. https://github.com/Defense-Cyber-Crime-Center/sqlite"
+                                    "accompanying journal files. https://github.com/dod-cyber-crime-center/sqlite"
                                     "-dissect",
             "uco-tool:toolType": "Extraction",
             "uco-tool:creator": {

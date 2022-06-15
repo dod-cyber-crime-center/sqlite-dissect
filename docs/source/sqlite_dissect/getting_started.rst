@@ -17,4 +17,4 @@ SQLite Dissect is available from `PyPi <https://pypi.org/project/sqlite-dissect/
 
     pip install sqlite-dissect
 
-Alternatively, binary installations (packaged through PyInstaller) can be downloaded and installed from the `GitHub Releases <https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases>`_ page.
+Alternatively, binary installations (packaged through PyInstaller) can be downloaded and installed from the `GitHub Releases <https://github.com/dod-cyber-crime-center/sqlite-dissect/releases>`_ page.

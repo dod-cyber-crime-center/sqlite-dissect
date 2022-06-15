@@ -24,19 +24,19 @@ Note: PyInstaller is used for generation of executables but not included in this
 
 # Imports the __version__ since the package references don't yet exist in the scope of setup.py. It opens the file
 # and interprets the code so the __version__ variable is populated, despite IDE warnings that it's undefined.
-exec (open('sqlite_dissect/_version.py').read())
+exec(open('sqlite_dissect/_version.py').read())
 
 # The text of the README file
 README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
 
 setup(name="sqlite_dissect",
       version=os.environ.get('TAG_VERSION', __version__),  # noqa: F821
-      url="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect",
+      url="https://github.com/dod-cyber-crime-center/sqlite-dissect",
       description="This package allows parsing and carving of SQLite files",
       long_description=README,
       long_description_content_type="text/markdown",
-      author="Defense Cyber Crime Center (DC3)",
-      author_email="TSD@dc3.mil",
+      author="Department of Defense Cyber Crime Center (DC3)",
+      author_email="dc3.tsd@us.af.mil",
       packages=["sqlite_dissect",
                 "sqlite_dissect.file",
                 "sqlite_dissect.file.database",
