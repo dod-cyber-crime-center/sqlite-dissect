@@ -22,7 +22,7 @@ copyright = '2022, Department of Defense Cyber Crime Center (DC3)'
 author = 'Department of Defense Cyber Crime Center (DC3)'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.6'
+release = '0.2.0'
 
 # -- General configuration ---------------------------------------------------
 master_doc = 'index'
