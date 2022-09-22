@@ -79,6 +79,7 @@ class CaseExporter(object):
         # Build the configuration wrapper which includes the facet for the configuration
         configuration = [
             {
+                "@id": ("kb:tool-configuration-type-facet" + str(uuid.uuid4())),
                 "@type": "uco-tool:ToolConfigurationTypeFacet",
                 "uco-tool:configurationSettings": configuration_options
             }
@@ -116,6 +117,7 @@ class CaseExporter(object):
                 "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
                     {
+                        "@id": ("kb:file-facet-" + str(uuid.uuid4())),
                         "@type": "uco-observable:FileFacet",
                         "uco-observable:observableCreatedTime": {
                             "@type": "xsd:dateTime",
@@ -136,9 +138,11 @@ class CaseExporter(object):
                         "uco-observable:sizeInBytes": path.getsize(filepath)
                     },
                     {
+                        "@id": ("kb:content-data-facet-" + str(uuid.uuid4())),
                         "@type": "uco-observable:ContentDataFacet",
                         "uco-observable:hash": [
                             {
+                                "@id": ("kb:md5-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -150,6 +154,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha1-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -161,6 +166,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha256-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -172,6 +178,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha512-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
