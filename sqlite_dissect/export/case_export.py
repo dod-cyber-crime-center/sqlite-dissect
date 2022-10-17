@@ -28,6 +28,8 @@ class CaseExporter(object):
     logger = None
 
     result_guids = []
+    
+    configuration_guid = ""
 
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
     # from the main.py execution path.
@@ -38,6 +40,7 @@ class CaseExporter(object):
             "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "uco-action": "https://ontology.unifiedcyberontology.org/uco/action/",
+            "uco-configuration": "https://ontology.unifiedcyberontology.org/uco/configuration/",
             "uco-core": "https://ontology.unifiedcyberontology.org/uco/core/",
             "uco-identity": "https://ontology.unifiedcyberontology.org/uco/identity/",
             "uco-location": "https://ontology.unifiedcyberontology.org/uco/location/",
@@ -58,35 +61,39 @@ class CaseExporter(object):
     def register_options(self, options):
         """
         Adds the command line options provided as the configuration values provided and outputting them in the schema
-        defined in the uco-tool namespace.
+        defined in the uco-configuration namespace.
 
-        Ontology Source: https://github.com/ucoProject/UCO/blob/master/uco-tool/tool.ttl
+        Ontology Source: https://github.com/ucoProject/UCO/blob/master/ontology/uco/configuration/configuration.ttl
 
         :param options: the dictionary of key => value pairs of configuration options with which the tool was run
         :type options: dict
         """
         configuration_options = []
+        
+        self.configuration_guid = ("kb:configuration-" + str(uuid.uuid4()))
 
         # Loop through the list of provided options and add each configuration option to the CASE output
         for option in vars(options):
             if getattr(options, option) is not None and len(str(getattr(options, option))) > 0:
                 configuration_options.append({
-                    "@type": "uco-tool:ConfigurationSettingType",
-                    "uco-tool:itemName": option,
-                    "uco-tool:itemValue": str(getattr(options, option))
+                    "@id": ("kb:configuration-entry-" + str(uuid.uuid4())),
+                    "@type": "uco-configuration:ConfigurationEntry",
+                    "uco-configuration:itemName": option,
+                    "uco-configuration:itemValue": str(getattr(options, option)),
+                    "uco-configuration:itemType": str(type(getattr(options, option)))
                 })
 
         # Build the configuration wrapper which includes the facet for the configuration
         configuration = [
             {
-                "@id": ("kb:tool-configuration-type-facet" + str(uuid.uuid4())),
-                "@type": "uco-tool:ToolConfigurationTypeFacet",
-                "uco-tool:configurationSettings": configuration_options
+                "@id": self.configuration_guid,
+                "@type": "uco-configuration:Configuration",
+                "uco-configuration:configurationEntry": configuration_options
             }
         ]
 
-        # Add the configuration facet to the in progress CASE object
-        self.case['@graph'][0]['uco-core:hasFacet'] = configuration
+        # Add the configuration object to the in progress CASE object
+        self.case['@graph'].append(configuration)
 
     def add_observable_file(self, filepath, filetype=None):
         """
@@ -272,7 +279,7 @@ class CaseExporter(object):
         tool_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
         self.case['@graph'].append({
             "@id": tool_guid,
-            "@type": "uco-tool:Tool",
+            "@type": "uco-tool:ConfiguredTool",
             "uco-core:name": "SQLite Dissect",
             "uco-tool:description": "A SQLite parser with recovery abilities over SQLite databases and their "
                                     "accompanying journal files. https://github.com/dod-cyber-crime-center/sqlite"
@@ -280,6 +287,9 @@ class CaseExporter(object):
             "uco-tool:toolType": "Extraction",
             "uco-tool:creator": {
                 "@id": org_guid
+            },
+            "uco-configuration:usesConfiguration": {
+                "@id": self.configuration_guid
             },
             "uco-tool:version": __version__,
         })
