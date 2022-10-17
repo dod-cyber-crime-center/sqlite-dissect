@@ -83,13 +83,11 @@ class CaseExporter(object):
                 })
 
         # Build the configuration wrapper which includes the facet for the configuration
-        configuration = [
-            {
-                "@id": self.configuration_guid,
-                "@type": "uco-configuration:Configuration",
-                "uco-configuration:configurationEntry": configuration_options
-            }
-        ]
+        configuration = {
+            "@id": self.configuration_guid,
+            "@type": "uco-configuration:Configuration",
+            "uco-configuration:configurationEntry": configuration_options
+        }
 
         # Add the configuration object to the in progress CASE object
         self.case['@graph'].append(configuration)
