@@ -57,6 +57,7 @@ class CaseExporter(object):
 
     def __init__(self, logger):
         self.logger = logger
+        self.configuration_guid = ("kb:configuration-" + str(uuid.uuid4()))
 
     def register_options(self, options):
         """
@@ -69,8 +70,6 @@ class CaseExporter(object):
         :type options: dict
         """
         configuration_options = []
-        
-        self.configuration_guid = ("kb:configuration-" + str(uuid.uuid4()))
 
         # Loop through the list of provided options and add each configuration option to the CASE output
         for option in vars(options):
@@ -80,7 +79,7 @@ class CaseExporter(object):
                     "@type": "uco-configuration:ConfigurationEntry",
                     "uco-configuration:itemName": option,
                     "uco-configuration:itemValue": str(getattr(options, option)),
-                    "uco-configuration:itemType": str(type(getattr(options, option)))
+                    "uco-configuration:itemType": str(type(getattr(options, option)).__name__)
                 })
 
         # Build the configuration wrapper which includes the facet for the configuration
