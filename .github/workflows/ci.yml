@@ -19,7 +19,7 @@ jobs:
       # Setup the Python environment (currently Python 2.7). This will need to be
       # updated when the project is upgraded to Python 3.x
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
