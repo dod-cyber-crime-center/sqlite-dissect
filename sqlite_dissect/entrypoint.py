@@ -1,12 +1,6 @@
 import uuid
 import warnings
-from logging import CRITICAL
-from logging import DEBUG
-from logging import ERROR
-from logging import INFO
-from logging import WARNING
-from logging import basicConfig
-from logging import getLogger
+from logging import CRITICAL, ERROR, WARNING, INFO, DEBUG, basicConfig, getLogger, StreamHandler, FileHandler
 from os import path
 from os.path import basename
 from os.path import join
@@ -66,6 +60,7 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         raise SqliteError("Error in setting up logging: no log level determined.")
 
     # Get the logging level
+    logger = getLogger(LOGGER_NAME)
     logging_level_arg = arguments.log_level
     logging_level = logging_level_arg
     if logging_level_arg != "off":
@@ -82,13 +77,17 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
         else:
             raise SqliteError("Invalid option for logging: {}.".format(logging_level_arg))
 
-        # Setup logging
-        logging_format = '%(levelname)s %(asctime)s [%(pathname)s] %(funcName)s at line %(lineno)d: %(message)s'
-        logging_data_format = '%d %b %Y %H:%M:%S'
-        basicConfig(level=logging_level, format=logging_format, datefmt=logging_data_format,
-                    filename=arguments.log_file)
+    # Setup logging
+    if arguments.log_file:
+        handler = FileHandler(arguments.log_file)
+    else:
+        handler = StreamHandler()
 
-    logger = getLogger(LOGGER_NAME)
+    basicConfig(level=logging_level,
+                format='%(levelname)s %(asctime)s [%(pathname)s] %(funcName)s at line %(lineno)d: %(message)s',
+                datefmt='%d %b %Y %H:%M:%S',
+                handler=handler)
+
     logger.debug("Setup logging using the log level: {}.".format(logging_level))
     logger.info("Using options: {}".format(arguments))
 
