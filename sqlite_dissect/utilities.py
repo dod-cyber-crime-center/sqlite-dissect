@@ -465,7 +465,7 @@ def parse_args(args=None):
                         default=None,
                         metavar="LOG_FILE",
                         env_var="SQLD_LOG_FILE",
-                        help="log file to write to. Default is to write to console, ignored if log level set to off "
+                        help="log file to write to; default is to write to console, ignored if log level set to off "
                              "(appends if file already exists)")
 
     parser.add_argument("--warnings",
