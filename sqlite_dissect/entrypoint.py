@@ -76,17 +76,14 @@ def main(arguments, sqlite_file_path, export_sub_paths=False):
             logging_level = DEBUG
         else:
             raise SqliteError("Invalid option for logging: {}.".format(logging_level_arg))
+    else:
+        logging_level = None
 
     # Setup logging
-    if arguments.log_file:
-        handler = FileHandler(arguments.log_file)
-    else:
-        handler = StreamHandler()
-
     basicConfig(level=logging_level,
                 format='%(levelname)s %(asctime)s [%(pathname)s] %(funcName)s at line %(lineno)d: %(message)s',
                 datefmt='%d %b %Y %H:%M:%S',
-                handler=handler)
+                filename=arguments.log_file if arguments.log_file else None)
 
     logger.debug("Setup logging using the log level: {}.".format(logging_level))
     logger.info("Using options: {}".format(arguments))
