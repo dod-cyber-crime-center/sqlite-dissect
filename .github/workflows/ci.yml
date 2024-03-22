@@ -48,7 +48,7 @@ jobs:
 
       # Run the CASE validation job to confirm the output is valid
       - name: CASE Export Validation
-        uses: kchason/case-validation-action@v2.9
+        uses: kchason/case-validation-action@v2.9.0
         with:
           case-path: ./output/case.json
           case-version: "case-1.3.0"
