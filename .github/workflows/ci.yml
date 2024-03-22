@@ -5,7 +5,7 @@ on: [ push ]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # Once we move to Python 3.x, this can be tested against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9]
