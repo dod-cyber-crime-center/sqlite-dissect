@@ -5,7 +5,7 @@ on: [ push ]
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         # Once we move to Python 3.x, this can be tested against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9]
@@ -19,7 +19,7 @@ jobs:
       # Setup the Python environment (currently Python 2.7). This will need to be
       # updated when the project is upgraded to Python 3.x
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
