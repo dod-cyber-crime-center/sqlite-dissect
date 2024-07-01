@@ -54,7 +54,7 @@ setup(name="sqlite_dissect",
           'console_scripts': ['sqlite_dissect=sqlite_dissect.entrypoint:cli'],
       },
       install_requires=[
-          "openpyxl==2.6.4",
+          "openpyxl==3.1.5",
           "ConfigArgParse"
       ],
       zip_safe=False
