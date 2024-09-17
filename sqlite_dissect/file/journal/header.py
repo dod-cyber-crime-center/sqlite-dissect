@@ -1,7 +1,6 @@
 from binascii import hexlify
 from logging import getLogger
 from struct import unpack
-from re import sub
 from warnings import warn
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import ROLLBACK_JOURNAL_ALL_CONTENT_UNTIL_END_OF_FILE
@@ -40,8 +39,7 @@ class RollbackJournalHeader(SQLiteHeader):
 
         self.header_string = rollback_journal_header_byte_array[0:8]
 
-        if self.header_string != ROLLBACK_JOURNAL_HEADER_HEX_STRING.decode("hex"):
-
+        if self.header_string != ROLLBACK_JOURNAL_HEADER_HEX_STRING:
             """
 
             Instead of throwing an error here, a warning is thrown instead.  This is due to the fact that the header
@@ -52,12 +50,12 @@ class RollbackJournalHeader(SQLiteHeader):
             """
 
             log_message = "The header string is invalid."
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         self.page_count = unpack(b">I", rollback_journal_header_byte_array[8:12])[0]
 
-        if rollback_journal_header_byte_array[8:12] == ROLLBACK_JOURNAL_HEADER_ALL_CONTENT.decode("hex"):
+        if rollback_journal_header_byte_array[8:12] == ROLLBACK_JOURNAL_HEADER_ALL_CONTENT:
             self.page_count = ROLLBACK_JOURNAL_ALL_CONTENT_UNTIL_END_OF_FILE
 
         self.random_nonce_for_checksum = unpack(b">I", rollback_journal_header_byte_array[12:16])[0]
@@ -85,14 +83,8 @@ class RollbackJournalHeader(SQLiteHeader):
 
 class RollbackJournalPageRecordHeader(object):
 
-    def __init__(self):
-        pass
-
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
-
-    def stringify(self, padding=""):
-        pass
+        return self.stringify().replace('\t', '').replace('\n', ' ')

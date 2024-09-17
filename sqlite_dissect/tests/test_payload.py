@@ -53,7 +53,7 @@ def test_record_init(page, payload_offset, payload_byte_size, bytes_on_first_pag
 
         current_header_offset = decode_varint(page, payload_offset)[1]
         num_columns = 0
-        serial_type_signature = b""
+        serial_type_signature = ""
         while current_header_offset < decode_varint(page, payload_offset)[0]:
             serial_type, serial_type_varint_length = decode_varint(total_record_content, current_header_offset)
             serial_type_signature += str(get_serial_type_signature(serial_type))

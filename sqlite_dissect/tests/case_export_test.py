@@ -3,7 +3,8 @@ import unittest
 
 from sqlite_dissect.entrypoint import main
 from sqlite_dissect.utilities import DotDict
-from os.path import abspath, join, dirname
+from os.path import abspath, join, dirname, isdir
+from os import mkdir
 from sqlite_dissect.tests.constants import DB_FILES
 
 

@@ -1,5 +1,4 @@
 from os.path import exists, basename
-from hashlib import md5
 
 
 def row_equals(row1, row2):
@@ -40,9 +39,9 @@ def assert_file_exists(file_path):
 
 # SFT-CA-03
 def assert_correct_page_size(reported_size, correct_size):
-    assert reported_size == correct_size, "The program reports an incorrect page size!\nCorrect page size: %d\n" \
-                                          "Reported page size: %d" % (correct_size, reported_size)
-
+    assert reported_size == correct_size, "The program reports an incorrect page size!\n" \
+                                          f"Correct page size: {correct_size}\n" \
+                                          f"Reported page size: {reported_size}"
 
 # SFT-CA-04
 # SFT-CA-05
@@ -73,7 +72,7 @@ def assert_correct_num_pages(reported_num, correct_num):
 def assert_correct_encoding(reported_enc, correct_enc):
     assert reported_enc.upper() == correct_enc.upper(), "The program reports and incorrect database text encoding!\n" \
                                                         "Correct encoding: %s\nReported encoding: %s" % (
-                                                        correct_enc, reported_enc)
+                                                            correct_enc, reported_enc)
 
 
 # SFT-CA-08
@@ -127,7 +126,7 @@ def assert_correct_rows(reported_rows, correct_rows):
 # SFT-CA-13
 def assert_correct_source(reported_source, accepted_sources, element):
     assert reported_source in accepted_sources, "The program reports an invalid file source!\n Element: %s\n" \
-                                              "Reported source: %s" % (element, reported_source)
+                                                "Reported source: %s" % (element, reported_source)
 
 
 # NIST SFT-AO:

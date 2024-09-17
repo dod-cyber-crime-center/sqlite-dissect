@@ -8,6 +8,7 @@ import json
 import uuid
 from datetime import datetime
 from os import path
+from typing import Optional
 
 from sqlite_dissect._version import __version__
 from sqlite_dissect.utilities import hash_file
@@ -28,6 +29,8 @@ class CaseExporter(object):
     logger = None
 
     result_guids = []
+    
+    configuration_guid = ""
 
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
     # from the main.py execution path.
@@ -38,6 +41,7 @@ class CaseExporter(object):
             "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "uco-action": "https://ontology.unifiedcyberontology.org/uco/action/",
+            "uco-configuration": "https://ontology.unifiedcyberontology.org/uco/configuration/",
             "uco-core": "https://ontology.unifiedcyberontology.org/uco/core/",
             "uco-identity": "https://ontology.unifiedcyberontology.org/uco/identity/",
             "uco-location": "https://ontology.unifiedcyberontology.org/uco/location/",
@@ -54,13 +58,14 @@ class CaseExporter(object):
 
     def __init__(self, logger):
         self.logger = logger
+        self.configuration_guid = ("kb:configuration-" + str(uuid.uuid4()))
 
     def register_options(self, options):
         """
         Adds the command line options provided as the configuration values provided and outputting them in the schema
-        defined in the uco-tool namespace.
+        defined in the uco-configuration namespace.
 
-        Ontology Source: https://github.com/ucoProject/UCO/blob/master/uco-tool/tool.ttl
+        Ontology Source: https://github.com/ucoProject/UCO/blob/master/ontology/uco/configuration/configuration.ttl
 
         :param options: the dictionary of key => value pairs of configuration options with which the tool was run
         :type options: dict
@@ -71,21 +76,22 @@ class CaseExporter(object):
         for option in vars(options):
             if getattr(options, option) is not None and len(str(getattr(options, option))) > 0:
                 configuration_options.append({
-                    "@type": "uco-tool:ConfigurationSettingType",
-                    "uco-tool:itemName": option,
-                    "uco-tool:itemValue": str(getattr(options, option))
+                    "@id": ("kb:configuration-entry-" + str(uuid.uuid4())),
+                    "@type": "uco-configuration:ConfigurationEntry",
+                    "uco-configuration:itemName": option,
+                    "uco-configuration:itemValue": str(getattr(options, option)),
+                    "uco-configuration:itemType": str(type(getattr(options, option)).__name__)
                 })
 
         # Build the configuration wrapper which includes the facet for the configuration
-        configuration = [
-            {
-                "@type": "uco-tool:ToolConfigurationTypeFacet",
-                "uco-tool:configurationSettings": configuration_options
-            }
-        ]
+        configuration = {
+            "@id": self.configuration_guid,
+            "@type": "uco-configuration:Configuration",
+            "uco-configuration:configurationEntry": configuration_options
+        }
 
-        # Add the configuration facet to the in progress CASE object
-        self.case['@graph'][0]['uco-core:hasFacet'] = configuration
+        # Add the configuration object to the in progress CASE object
+        self.case['@graph'].append(configuration)
 
     def add_observable_file(self, filepath, filetype=None):
         """
@@ -116,6 +122,7 @@ class CaseExporter(object):
                 "uco-observable:hasChanged": False,
                 "uco-core:hasFacet": [
                     {
+                        "@id": ("kb:file-facet-" + str(uuid.uuid4())),
                         "@type": "uco-observable:FileFacet",
                         "uco-observable:observableCreatedTime": {
                             "@type": "xsd:dateTime",
@@ -136,9 +143,11 @@ class CaseExporter(object):
                         "uco-observable:sizeInBytes": path.getsize(filepath)
                     },
                     {
+                        "@id": ("kb:content-data-facet-" + str(uuid.uuid4())),
                         "@type": "uco-observable:ContentDataFacet",
                         "uco-observable:hash": [
                             {
+                                "@id": ("kb:md5-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -150,6 +159,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha1-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -161,6 +171,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha256-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -172,6 +183,7 @@ class CaseExporter(object):
                                 }
                             },
                             {
+                                "@id": ("kb:sha512-hash-" + str(uuid.uuid4())),
                                 "@type": "uco-types:Hash",
                                 "uco-types:hashMethod": {
                                     "@type": "uco-vocabulary:HashNameVocab",
@@ -190,8 +202,9 @@ class CaseExporter(object):
             return guid
         else:
             self.logger.critical('Attempting to add invalid filepath to CASE Observable export: {}'.format(filepath))
+            return None
 
-    def link_observable_relationship(self, source_guid, target_guid, relationship):
+    def link_observable_relationship(self, source_guid: str, target_guid: str, relationship: str) -> None:
         self.case['@graph'].append({
             "@id": ("kb:export-artifact-relationship-" + str(uuid.uuid4())),
             "@type": "uco-observable:ObservableRelationship",
@@ -208,7 +221,7 @@ class CaseExporter(object):
             "uco-core:isDirectional": True
         })
 
-    def add_export_artifacts(self, export_paths=None):
+    def add_export_artifacts(self, export_paths: list = None):
         """
         Loops through the list of provided export artifact paths and adds them as observables and links them to the
         original observable artifact
@@ -222,7 +235,7 @@ class CaseExporter(object):
             # Add the export result GUID to the list to be extracted
             self.result_guids.append(export_guid)
 
-    def generate_provenance_record(self, description, guids):
+    def generate_provenance_record(self, description: str, guids: list) -> Optional[str]:
         """
         Generates a provenance record for the tool and returns the GUID for the new object
         """
@@ -243,7 +256,7 @@ class CaseExporter(object):
         else:
             return None
 
-    def generate_header(self):
+    def generate_header(self) -> str:
         """
         Generates the header for the tool and returns the GUID for the ObservableRelationships
         """
@@ -265,21 +278,24 @@ class CaseExporter(object):
         tool_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
         self.case['@graph'].append({
             "@id": tool_guid,
-            "@type": "uco-tool:Tool",
+            "@type": "uco-tool:ConfiguredTool",
             "uco-core:name": "SQLite Dissect",
-            "uco-tool:description": "A SQLite parser with recovery abilities over SQLite databases and their "
-                                    "accompanying journal files. https://github.com/Defense-Cyber-Crime-Center/sqlite"
+            "uco-core:description": "A SQLite parser with recovery abilities over SQLite databases and their "
+                                    "accompanying journal files. https://github.com/dod-cyber-crime-center/sqlite"
                                     "-dissect",
             "uco-tool:toolType": "Extraction",
             "uco-tool:creator": {
                 "@id": org_guid
+            },
+            "uco-configuration:usesConfiguration": {
+                "@id": self.configuration_guid
             },
             "uco-tool:version": __version__,
         })
 
         return tool_guid
 
-    def generate_investigation_action(self, source_guids, tool_guid):
+    def generate_investigation_action(self, source_guids: list, tool_guid: str):
         """
         Builds the investigative action object as defined in the CASE ontology. This also takes in the start and end
         datetimes from the analysis.
@@ -313,7 +329,7 @@ class CaseExporter(object):
             }
         self.case['@graph'].append(action)
 
-    def export_case_file(self, export_path='output/case.json'):
+    def export_case_file(self, export_path: str = 'output/case.json'):
         """
         Exports the built CASE object to the path specified in the export_path parameter.
         """

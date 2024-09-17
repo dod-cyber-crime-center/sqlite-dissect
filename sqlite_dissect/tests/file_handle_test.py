@@ -74,11 +74,11 @@ def test_database_text_encoding_setter(database_text_encoding, expected_value):
 @pytest.fixture(params=[RUNTIME_WARNING, SUCCESS])
 def test_close_file_handle(request):
     if request.param == RUNTIME_WARNING:
-        temp_file = open(os.path.join(DB_FILES, 'chinook.sqlite'))
+        temp_file = open(os.path.join(DB_FILES, 'chinook.sqlite'), "rb")
         yield FileHandle(FILE_TYPE.DATABASE, temp_file, None, None), RUNTIME_WARNING
         temp_file.close()
     elif request.param == IO_ERROR:
-        temp_file = open(os.path.join(DB_FILES, 'chinook.sqlite'))
+        temp_file = open(os.path.join(DB_FILES, 'chinook.sqlite'), "rb")
         temp_file.close()
         yield FileHandle(FILE_TYPE.DATABASE, temp_file, None, None), IO_ERROR
     else:

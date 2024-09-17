@@ -164,7 +164,7 @@ test_corpus_params = [
         },
         [
             ('20001', 'Katja', 'Werner', '27333'),
-            ('20002', 'Michael', 'Wei\xc3 ', '24145'),
+            ('20002', 'Michael', 'Weiß', '24145'),
             ('20003', 'Christine', 'Lange', '53619'),
             ('20004', 'Markus', 'Meyer', '44147'),
             ('20005', 'Silke', 'Engel', '38122'),
@@ -311,7 +311,7 @@ test_corpus_params = [
 @pytest.mark.parametrize('file_name, first_field, expected_schema, expected_rows', test_corpus_params)
 def test_corpus(tmp_path, file_name, first_field, expected_schema, expected_rows):
     args = parse_args([os.path.join(DB_FILES, "corpus", file_name), '-scf',
-    '--export', 'csv', '--directory', str(tmp_path)])
+    '--export', 'csv', 'text', '--directory', str(tmp_path)])
     sqlite_files = get_sqlite_files(args.sqlite_path)
 
     # TODO: Refactor csv parsing to account for WITHOUT_ROWID cases (no schema info)
@@ -333,7 +333,7 @@ def test_corpus(tmp_path, file_name, first_field, expected_schema, expected_rows
         else:
             main(args, sqlite_files[0], len(sqlite_files) > 1)
 
-    with open(str(tmp_path / "log.txt"), 'r') as stdout:
+    with open(str(tmp_path / (file_name + ".txt")), 'r') as stdout:
         schema = parse_schema(stdout.read())
 
     recovered_rows = []

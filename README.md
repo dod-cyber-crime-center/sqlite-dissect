@@ -1,14 +1,14 @@
 # DC3 SQLite Dissect
-[![SQLite Dissect Python](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/actions/workflows/ci.yml)
-<a href="https://github.com/Defense-Cyber-Crime-Center/sqlite-dissect/releases" target="_blank"><img src="https://img.shields.io/github/v/release/Defense-Cyber-Crime-Center/sqlite-dissect?label=GitHub%20Release"></a>
+[![SQLite Dissect Python](https://github.com/dod-cyber-crime-center/sqlite-dissect/actions/workflows/ci.yml/badge.svg)](https://github.com/dod-cyber-crime-center/sqlite-dissect/actions/workflows/ci.yml)
+<a href="https://github.com/dod-cyber-crime-center/sqlite-dissect/releases" target="_blank"><img src="https://img.shields.io/github/v/release/dod-cyber-crime-center/sqlite-dissect?label=GitHub%20Release"></a>
 <a href="https://pypi.org/project/sqlite-dissect/" target="_blank"><img alt="PyPI" src="https://img.shields.io/pypi/v/sqlite-dissect?label=PyPi%20Release"></a>
 
 ### Usage:
 
-    sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX]
-                   [-e EXPORT_TYPE] [-n | -w WAL | -j ROLLBACK_JOURNAL] [-r | EXEMPTED_TABLES]
+    sqlite_dissect [-h] [-v] [-d OUTPUT_DIRECTORY] [-p FILE_PREFIX] [-e EXPORT_TYPE]
+                   [-n | -w WAL | -j ROLLBACK_JOURNAL] [-r EXEMPTED_TABLES | -b TABLES_TO_CARVE]
                    [-s | -t] [-g] [-c] [-f] [-k] [-l LOG_LEVEL] [-i LOG_FILE] [--warnings]
-                   SQLITE_PATH
+                   [--header] [--config CONFIG_FILE] SQLITE_PATH
 
 SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases
 and their accompanying journal files. If no options are set other than the file
@@ -39,12 +39,12 @@ will not be done by default.  Please see the options below to enable carving.
 | --wal WAL                        | -w WAL       | the WAL file to use instead of searching the SQLite file directory by default |
 | --rollback-journal JOURNAL       | -j JOURNAL   | the rollback journal file to use instead of searching the SQLite file directory by default (under development, currently only outputs to csv, output directory needs to be specified) |
 | --exempted-tables TABLES         | -r TABLES    | comma-delimited string of tables \[table1,table2,table3\] to exempt (currently only implemented and allowed for rollback journal parsing) ex. `-r table1,table2,table3`                  |
+| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex. `-b table1,table2,table3`                                                                                |
 | --schema                         | -s           | output the the initial schema found in the main database file to console                                                                                                      |
 | --schema-history                 | -t           | output the schema history to console, prints the --schema information and write-head log changes                                                                                      |
 | --signatures                     | -g           | output the signatures generated to console                                                                                                                                            |
 | --carve                          | -c           | carves and recovers table data                                                                                                                                                        |
 | --carve-freelists                | -f           | carves freelist pages (carving must be enabled, under development)                                                                                                                    |
-| --tables TABLES                  | -b TABLES    | specified comma-delimited string of tables \[table1,table2,table3\] to carve ex. `-b table1,table2,table3`                                                                                |
 | --disable-strict-format-checking | -k           | disable strict format checks for SQLite databases (this may result in improperly parsed SQLite files)                                                                                 |
 | --log-level LEVEL                | -l LEVEL     | level to log messages at {critical, error, warning, info, debug, off}                                                                                                                 |
 | --log-file FILE                  | -i FILE      | log file to write to; appends to file if file already exists. default is to write to console. ignored if log-level set to `off`                                                               |
@@ -298,6 +298,5 @@ TODO:
 - [ ] Add additional logging messages to the master schema entries skipped in signature generation. 
 - [ ] Integrate in the SQLite Forensic Corpus into tests.
 - [ ] Look into updating terminology for versioning to timelining.
-- [ ] Update code for compatibility with Python 3.
 - [ ] Create PyUnit tests.
 - [ ] Create a GUI.

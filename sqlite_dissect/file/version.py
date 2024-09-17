@@ -2,7 +2,6 @@ from abc import ABCMeta
 from abc import abstractmethod
 from binascii import hexlify
 from logging import getLogger
-from re import sub
 from sqlite_dissect.constants import INDEX_INTERIOR_PAGE_HEX_ID
 from sqlite_dissect.constants import INDEX_LEAF_PAGE_HEX_ID
 from sqlite_dissect.constants import LOGGER_NAME
@@ -139,10 +138,10 @@ class Version(object):
         self.updated_b_tree_page_numbers = None
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_pages=True, print_schema=True):
         string = padding + "File Type: {}\n" \
@@ -182,7 +181,7 @@ class Version(object):
                                self.pointer_map_pages_modified,
                                self.updated_b_tree_page_numbers)
         if print_pages:
-            for page in self.pages.itervalues():
+            for page in self.pages.values():
                 string += "\n" + padding + "Page:\n{}".format(page.stringify(padding + "\t"))
         if print_schema:
             string += "\n" \
@@ -268,7 +267,7 @@ class Version(object):
             self._logger.error(log_message)
             raise VersionParsingError(log_message)
 
-        for page_number in [page_index + 1 for page_index in range(self.database_size_in_pages)]:
+        for page_number in [page_index + 1 for page_index in range(int(self.database_size_in_pages))]:
             if page_number not in pages:
                 log_message = "Page number: {} was not found in the pages: {} for version: {}."
                 log_message = log_message.format(page_number, pages.keys(), self.version_number)

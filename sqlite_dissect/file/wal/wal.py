@@ -1,5 +1,4 @@
 from logging import getLogger
-from re import sub
 from warnings import warn
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.constants import LOGGER_NAME
@@ -44,7 +43,7 @@ class WriteAheadLog(object):
 
         frame_size = (WAL_FRAME_HEADER_LENGTH + self.file_handle.header.page_size)
 
-        self.number_of_frames = (self.file_handle.file_size - WAL_HEADER_LENGTH) / frame_size
+        self.number_of_frames = int((self.file_handle.file_size - WAL_HEADER_LENGTH) / frame_size)
 
         valid_frame_array = []
         invalid_frame_array = []
@@ -78,7 +77,7 @@ class WriteAheadLog(object):
         # Initialize the dictionary
         self.invalid_frame_indices = {}
 
-        for frame_index in range(self.number_of_frames):
+        for frame_index in range(int(self.number_of_frames)):
 
             frame = WriteAheadLogFrame(self.file_handle, frame_index, commit_record_number)
 
@@ -175,7 +174,7 @@ class WriteAheadLog(object):
             log_message = "The wal file contains {} invalid frames.  Invalid frames are currently skipped and not " \
                           "implemented which may cause loss in possible carved data at this time until implemented."
             log_message = log_message.format(len(self.invalid_frames))
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         self.last_frame_commit_record = None
@@ -212,10 +211,10 @@ class WriteAheadLog(object):
             raise NotImplementedError(log_message)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_frames=True):
         string = padding + "File Handle:\n{}"
@@ -232,9 +231,9 @@ class WriteAheadLog(object):
                                self.invalid_frame_indices,
                                self.last_frame_commit_record.frame_index + 1)
         if print_frames:
-            for frame in self.frames.itervalues():
+            for frame in self.frames.values():
                 string += "\n" + padding + "Frame:\n{}".format(frame.stringify(padding + "\t"))
         if print_frames and self.invalid_frames:
-            for invalid_frame in self.invalid_frames.itervalues():
+            for invalid_frame in self.invalid_frames.values():
                 string += "\n" + padding + "Invalid Frame:\n{}".format(invalid_frame.stringify(padding + "\t"))
         return string

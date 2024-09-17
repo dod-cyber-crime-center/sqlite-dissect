@@ -1,7 +1,6 @@
 from abc import ABCMeta
 from binascii import hexlify
 from logging import getLogger
-from re import sub
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.exception import RecordParsingError
 from sqlite_dissect.utilities import decode_varint
@@ -51,10 +50,10 @@ class Payload(object):
         self.serial_type_signature = ""
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_record_columns=True):
         string = padding + "Start Offset: {}\n" \
@@ -101,7 +100,7 @@ class Record(Payload):
 
         if bytes_on_first_page is None:
 
-            bytes_on_first_page = payload_byte_size
+            bytes_on_first_page = int(payload_byte_size)
 
             if overflow:
                 log_message = "Bytes on first page not specified on page in record when overflow was (hex): {}."
@@ -121,13 +120,13 @@ class Record(Payload):
             logger.error(log_message)
             raise RecordParsingError(log_message)
 
-        self.start_offset = payload_offset
-        self.byte_size = payload_byte_size
-        self.end_offset = self.start_offset + bytes_on_first_page
+        self.start_offset = int(payload_offset)
+        self.byte_size = int(payload_byte_size)
+        self.end_offset = int(self.start_offset + bytes_on_first_page)
 
         self.has_overflow = False if not overflow else True
-        self.bytes_on_first_page = bytes_on_first_page
-        self.overflow_byte_size = self.byte_size - self.bytes_on_first_page
+        self.bytes_on_first_page = int(bytes_on_first_page)
+        self.overflow_byte_size = int(self.byte_size - self.bytes_on_first_page)
 
         if self.overflow_byte_size == 0 and overflow:
             log_message = "Overflow determined to exist with byte size: {} on page with overflow set: {}."
@@ -136,12 +135,12 @@ class Record(Payload):
             raise RecordParsingError(log_message)
 
         self.header_byte_size, self.header_byte_size_varint_length = decode_varint(page, self.start_offset)
-        self.header_start_offset = self.start_offset
-        self.header_end_offset = self.start_offset + self.header_byte_size
-        self.body_start_offset = self.header_end_offset
-        self.body_end_offset = self.end_offset
+        self.header_start_offset = int(self.start_offset)
+        self.header_end_offset = int(self.start_offset + self.header_byte_size)
+        self.body_start_offset = int(self.header_end_offset)
+        self.body_end_offset = int(self.end_offset)
 
-        current_page_record_content = page[self.start_offset:self.end_offset]
+        current_page_record_content = page[int(self.start_offset):int(self.end_offset)]
 
         total_record_content = current_page_record_content + overflow
 
@@ -154,7 +153,7 @@ class Record(Payload):
 
         self.md5_hex_digest = get_md5_hash(total_record_content)
 
-        current_header_offset = self.header_byte_size_varint_length
+        current_header_offset = int(self.header_byte_size_varint_length)
         current_body_offset = 0
         column_index = 0
         while current_header_offset < self.header_byte_size:
@@ -201,10 +200,10 @@ class RecordColumn(object):
         self.md5_hex_digest = md5_hex_digest
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Index: {}\n" \

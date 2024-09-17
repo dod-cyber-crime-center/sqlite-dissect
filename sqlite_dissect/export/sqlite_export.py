@@ -2,7 +2,6 @@ from logging import getLogger
 from os import rename
 from os.path import exists
 from os.path import sep
-from re import sub
 from sqlite3 import connect
 from sqlite3 import sqlite_version
 from sqlite3 import version
@@ -168,7 +167,7 @@ class CommitSqliteExporter(object):
                                   "found for sqlite export on master schema entry name: {} page type: {} " \
                                   "while writing to sqlite file name: {}."
                     log_message = log_message.format(len(cells), commit.name, commit.page_type, self._sqlite_file_name)
-                    logger.warn(log_message)
+                    logger.warning(log_message)
                     raise ExportError(log_message)
 
                 number_of_columns = len(cells[0].payload.record_columns)
@@ -177,7 +176,7 @@ class CommitSqliteExporter(object):
                     index_column_headers.append("Column {}".format(i))
 
                 column_headers.extend(index_column_headers)
-                column_headers = [sub(" ", "_", column_header).lower() for column_header in column_headers]
+                column_headers = [column_header.replace(" ", "_").lower() for column_header in column_headers]
 
             elif commit.page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
 
@@ -194,7 +193,7 @@ class CommitSqliteExporter(object):
 
                 updated_column_headers = []
                 for column_header in column_headers:
-                    updated_column_header_name = "sd_" + sub(" ", "_", column_header).lower()
+                    updated_column_header_name = "sd_" + column_header.replace(" ", "_").lower()
                     while updated_column_header_name in column_definitions:
                         updated_column_header_name = "sd_" + updated_column_header_name
                     updated_column_headers.append(updated_column_header_name)
@@ -207,7 +206,7 @@ class CommitSqliteExporter(object):
                 log_message = "Invalid commit page type: {} found for sqlite export on master " \
                               "schema entry name: {} while writing to sqlite file name: {}."
                 log_message = log_message.format(commit.page_type, commit.name, self._sqlite_file_name)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 raise ExportError(log_message)
 
             create_table_statement = "CREATE TABLE {} ({})"
@@ -266,7 +265,7 @@ class CommitSqliteExporter(object):
             log_message = "Invalid commit page type: {} found for sqlite export on master " \
                           "schema entry name: {} while writing to sqlite file name: {}."
             log_message = log_message.format(commit.page_type, commit.name, self._sqlite_file_name)
-            logger.warn(log_message)
+            logger.warning(log_message)
             raise ExportError(log_message)
 
         """
@@ -298,14 +297,14 @@ class CommitSqliteExporter(object):
                algorithm internal to SQLite to slightly change.  Despite this, we make the following modifications in
                order to best ensure data integrity when writing the data back to the SQLite file:
                1.) If the value is a bytearray, the value is interpreted as a blob object.  In order to write this
-                   back correctly, we set it to buffer(value) in order to write it back to the SQLite database as
+                   back correctly, we set it to memoryview(value) in order to write it back to the SQLite database as
                    a blob object.  Before we write it back, we make sure that the object does not have text affinity,
                    or if it does we decode it in the database text encoding before writing it.
                2.) If the value is a string, we encode it using UTF-8.  If this fails, that means it had characters
                    not supported by the unicode encoding which caused it to fail.  Since we are writing back carved
                    records that may have invalid characters in strings due to parts being overwritten or false
                    positives, this can occur a lot.  Therefore, if the unicode encoding fails, we do the same
-                   as above for blob objects and create a buffer(value) blob object and write that back to the
+                   as above for blob objects and create a memoryview(value) blob object and write that back to the
                    database in order to maintain the original data.  Therefore, in some tables, depending on the
                    data parsed or strings retrieved may be stored in either a string (text) or blob storage class.
                3.) If the value does not fall in one of the above use cases, we leave it as is and write it back to the
@@ -348,19 +347,17 @@ class CommitSqliteExporter(object):
                     text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                     value = record_column.value
 
-                    if value is None:
-                        pass
-                    elif isinstance(value, bytearray):
+                    if isinstance(value, bytearray):
                         if text_affinity:
                             value = value.decode(database_text_encoding, "replace")
                         else:
-                            value = buffer(value)
+                            value = memoryview(value)
                     elif isinstance(value, str):
                         try:
                             if text_affinity:
                                 value = value.decode(database_text_encoding, "replace")
                             else:
-                                value = buffer(value)
+                                value = memoryview(value)
                         except UnicodeDecodeError:
 
                             """
@@ -374,7 +371,7 @@ class CommitSqliteExporter(object):
 
                             """
 
-                            value = buffer(value)
+                            value = memoryview(value)
 
                     cell_record_column_values.append(value)
 

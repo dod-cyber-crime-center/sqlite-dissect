@@ -3,12 +3,8 @@ from re import compile
 from warnings import warn
 from sqlite_dissect.carving.carved_cell import CarvedBTreeCell
 from sqlite_dissect.carving.utilities import generate_signature_regex
-from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import CELL_LOCATION
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
-from sqlite_dissect.exception import CarvingError
-from sqlite_dissect.exception import CellCarvingError
+from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER, CELL_LOCATION, LOGGER_NAME, TEXT_SIGNATURE_IDENTIFIER
+from sqlite_dissect.exception import CarvingError, CellCarvingError
 
 """
 
@@ -83,7 +79,7 @@ class SignatureCarver(object):
                           "carving freeblocks with signatures: {}.  Signatures starting with variable length serial " \
                           "types are not fully implemented and may result in carving false positives."
             log_message = log_message.format(first_column_serial_types, simplified_signature)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         # Retrieve and compile the serial type definition signature pattern
@@ -186,7 +182,7 @@ class SignatureCarver(object):
                                                      serial_type_definition_start_offset,
                                                      serial_type_definition_end_offset, cutoff_offset,
                                                      number_of_columns, signature.name, signature.table_name)
-                    logger.warn(log_message)
+                    logger.warning(log_message)
                     warn(log_message, RuntimeWarning)
 
         # Return the cells carved from the freeblocks
@@ -406,7 +402,7 @@ class SignatureCarver(object):
                                                  serial_type_definition_start_offset,
                                                  serial_type_definition_end_offset, cutoff_offset,
                                                  number_of_columns, signature.name, signature.table_name)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
         """
@@ -586,7 +582,7 @@ class SignatureCarver(object):
                                                              partial_serial_type_definition_end_offset,
                                                              partial_cutoff_offset, number_of_columns, signature.name,
                                                              signature.table_name)
-                            logger.warn(log_message)
+                            logger.warning(log_message)
                             warn(log_message, RuntimeWarning)
 
         # Return the cells carved from the freeblocks

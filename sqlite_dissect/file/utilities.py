@@ -13,8 +13,8 @@ validate_page_version_history(version_history)
 
 
 def validate_page_version_history(version_history):
-    for version_number, version in version_history.versions.iteritems():
-        for page_number, page in version.pages.iteritems():
+    for version_number, version in version_history.versions.items():
+        for page_number, page in version.pages.items():
             if page.page_version_number != version.page_version_index[page.number]:
                 return False
             if page.version_number != version.version_number:

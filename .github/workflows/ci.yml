@@ -8,18 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Once we move to Python 3.x, this can be tested against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9]
-        python-version: [ 2.7 ]
+        # This allows the pipeline to be run against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9, 3.10]. This results
+        # in linting and unit tests running for all listed versions as well as the creation of packages and wheels on
+        # creation of a tag in Git.
+        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10" ]
 
     steps:
       # Get the code from the repository to be packaged
       - name: Get Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Setup the Python environment (currently Python 2.7). This will need to be
       # updated when the project is upgraded to Python 3.x
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -48,14 +50,14 @@ jobs:
 
       # Run the CASE validation job to confirm the output is valid
       - name: CASE Export Validation
-        uses: kchason/case-validation-action@v2
+        uses: kchason/case-validation-action@v2.5
         with:
           case-path: ./output/case.json
-          case-version: "case-0.6.0"
+          case-version: "case-1.1.0"
 
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
           path: htmlcov
@@ -69,7 +71,7 @@ jobs:
 
       # Upload the HTML documentation for distribution
       - name: Upload HTML Docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: html-docs
           path: ./docs/build/
@@ -78,6 +80,8 @@ jobs:
       - name: Build Objects
         if: startsWith(github.ref, 'refs/tags')
         run: python setup.py sdist bdist_wheel
+        env:
+          TAG_VERSION: "${GITHUB_REF#refs/*/}"
 
       # Ensure the objects were packaged correctly and there wasn't an issue with
       # the compilation or packaging process.

@@ -69,10 +69,10 @@ def test_get_pointer_map_entries_breakdown():
         MockPointerMapPage([MockPage("LOCK_BYTE", 0), MockPage("FREELIST_TRUNK", 1), MockPage("FREELIST_LEAF", 2)], 0, 0), 
         MockPointerMapPage([MockPage("LOCK_BYTE", 3), MockPage("FREELIST_TRUNK", 4), MockPage("FREELIST_LEAF", 5)], 1, 0)
     ], 0)) == [
-        (0, 1, 0, 0, '4c4f434b5f42595445'), 
-        (0, 1, 1, 1, '465245454c4953545f5452554e4b'), 
-        (0, 2, 2, 1, '465245454c4953545f4c454146'), 
-        (1, 2, 3, 2, '4c4f434b5f42595445'), 
-        (1, 4, 4, 1, '465245454c4953545f5452554e4b'), 
-        (1, 5, 5, 1, '465245454c4953545f4c454146')
+        (0, 1, 0, 0, b'4c4f434b5f42595445'),
+        (0, 1, 1, 1, b'465245454c4953545f5452554e4b'),
+        (0, 2, 2, 1, b'465245454c4953545f4c454146'),
+        (1, 2, 3, 2, b'4c4f434b5f42595445'),
+        (1, 4, 4, 1, b'465245454c4953545f5452554e4b'),
+        (1, 5, 5, 1, b'465245454c4953545f4c454146')
     ]

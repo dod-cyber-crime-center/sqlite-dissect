@@ -1,5 +1,4 @@
 from logging import getLogger
-from re import sub
 from struct import unpack
 from warnings import warn
 from sqlite_dissect.constants import LOGGER_NAME
@@ -66,7 +65,7 @@ class WriteAheadLogHeader(SQLiteHeader):
         if self.checkpoint_sequence_number != 0:
             log_message = "Checkpoint sequence number is {} instead of 0 and may cause inconsistencies in wal parsing."
             log_message = log_message.format(self.checkpoint_sequence_number)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         self.salt_1 = unpack(b">I", wal_header_byte_array[16:20])[0]
@@ -119,10 +118,10 @@ class WriteAheadLogFrameHeader(object):
         self.md5_hex_digest = get_md5_hash(wal_frame_header_byte_array)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Page Number: {}\n" \

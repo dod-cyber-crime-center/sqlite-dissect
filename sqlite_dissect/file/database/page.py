@@ -1,7 +1,6 @@
 from abc import ABCMeta
 from binascii import hexlify
 from logging import getLogger
-from re import sub
 from struct import unpack
 from warnings import warn
 from sqlite_dissect.constants import CELL_LOCATION
@@ -112,10 +111,10 @@ class Page(object):
         self.unallocated_space_end_offset = None
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Version Number: {}\n" \
@@ -302,7 +301,7 @@ class FreelistTrunkPage(Page):
                                                                FREELIST_HEADER_LENGTH])[0]
         self.freelist_leaf_page_numbers = []
         self.freelist_leaf_pages = []
-        for index in range(self.number_of_leaf_page_pointers):
+        for index in range(int(self.number_of_leaf_page_pointers)):
             start_offset = index * FREELIST_LEAF_PAGE_NUMBER_LENGTH + FREELIST_HEADER_LENGTH
             end_offset = start_offset + FREELIST_LEAF_PAGE_NUMBER_LENGTH
             freelist_leaf_page_number = unpack(b">I", page[start_offset:end_offset])[0]
@@ -424,7 +423,7 @@ class PointerMapPage(Page):
         self.md5_hex_digest = get_md5_hash(page)
 
         self.pointer_map_entries = []
-        for index in range(self.number_of_entries):
+        for index in range(int(self.number_of_entries)):
 
             offset = index * POINTER_MAP_ENTRY_LENGTH
 
@@ -551,10 +550,10 @@ class PointerMapEntry(object):
         self.md5_hex_digest = md5_hex_digest
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Index: {}\n" \
@@ -582,10 +581,10 @@ class BTreePage(Page):
         page = self._version_interface.get_page_data(self.number)
 
         self.page_type = None
-        self.hex_type = page[0]
+        self.hex_type = chr(page[0]).encode()
 
         if self.hex_type == MASTER_PAGE_HEX_ID:
-            master_page_hex_type = page[SQLITE_DATABASE_HEADER_LENGTH]
+            master_page_hex_type = chr(page[SQLITE_DATABASE_HEADER_LENGTH]).encode()
             if master_page_hex_type == TABLE_INTERIOR_PAGE_HEX_ID:
                 self.page_type = PAGE_TYPE.B_TREE_TABLE_INTERIOR
             elif master_page_hex_type == TABLE_LEAF_PAGE_HEX_ID:
@@ -593,7 +592,7 @@ class BTreePage(Page):
             else:
                 log_message = "Page hex type for master page is: {} and not a table interior or table leaf page as " \
                               "expected in b-tree page: {} in page version: {} for version: {}."
-                log_message = log_message.format(hexlify(master_page_hex_type), self.number,
+                log_message = log_message.format(master_page_hex_type, self.number,
                                                  self.page_version_number, self.version_number)
                 self._logger.error(log_message)
                 raise BTreePageParsingError(log_message)
@@ -609,7 +608,7 @@ class BTreePage(Page):
         else:
             log_message = "Page hex type: {} is not a valid b-tree page type for b-tree page: {} in page version: {} " \
                           "for version: {}."
-            log_message = log_message.format(hexlify(self.hex_type), self.number, self.page_version_number,
+            log_message = log_message.format(hex(self.hex_type), self.number, self.page_version_number,
                                              self.version_number)
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
@@ -657,7 +656,7 @@ class BTreePage(Page):
 
         self.cells = []
         self.calculated_cell_total_byte_size = 0
-        for cell_index in range(self.header.number_of_cells_on_page):
+        for cell_index in range(int(self.header.number_of_cells_on_page)):
             cell_start_offset = cell_pointer_array_offset + cell_index * CELL_POINTER_BYTE_LENGTH
             cell_end_offset = cell_start_offset + CELL_POINTER_BYTE_LENGTH
             cell_offset = unpack(b">H", page[cell_start_offset:cell_end_offset])[0]
@@ -907,10 +906,10 @@ class BTreeCell(object):
         self.md5_hex_digest = None
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Version Number: {}\n" \
@@ -1058,15 +1057,15 @@ class TableLeafCell(BTreeCell):
 
         self.bytes_on_first_page = p
         if p > u - 35:
-            m = (((u - 12) * 32) / 255) - 23
+            m = int((((u - 12) * 32) / 255) - 23)
             self.bytes_on_first_page = m + ((p - m) % (u - 4))
             if self.bytes_on_first_page > u - 35:
                 self.bytes_on_first_page = m
             self.has_overflow = True
             self.overflow_page_number_offset = self.payload_offset + self.bytes_on_first_page
             overflow_page_number_end_offset = self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
-            self.overflow_page_number = unpack(b">I", page[self.overflow_page_number_offset:
-                                                           overflow_page_number_end_offset])[0]
+            self.overflow_page_number = unpack(b">I", page[int(self.overflow_page_number_offset):
+                                                           int(overflow_page_number_end_offset)])[0]
             if self.bytes_on_first_page < m:
                 log_message = "When calculating overflow, the bytes on the first page: {} calculated are less than " \
                               "m: {} for b-tree table leaf cell index: {} at offset: {} for page: {} in " \
@@ -1080,11 +1079,11 @@ class TableLeafCell(BTreeCell):
         self.byte_size += FIRST_OVERFLOW_PAGE_NUMBER_LENGTH if self.has_overflow else 0
         self.end_offset = self.start_offset + self.byte_size - self.payload_byte_size + self.bytes_on_first_page
 
-        self.overflow_byte_size = self.payload_byte_size - self.bytes_on_first_page
+        self.overflow_byte_size = int(self.payload_byte_size - self.bytes_on_first_page)
         self.expected_number_of_overflow_pages, \
             self.expected_last_overflow_page_content_size = calculate_expected_overflow(self.overflow_byte_size, u)
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[int(self.start_offset):int(self.end_offset)])
 
         if self.has_overflow:
 
@@ -1142,8 +1141,8 @@ class TableLeafCell(BTreeCell):
                                              self.page_number, self.page_version_number, self.version_number)
             raise CellParsingError(log_message)
 
-        self.payload = Record(page, self.payload_offset, self.payload_byte_size,
-                              self.bytes_on_first_page, self.overflow)
+        self.payload = Record(page, int(self.payload_offset), int(self.payload_byte_size),
+                              int(self.bytes_on_first_page), self.overflow)
 
     def stringify(self, padding=""):
         string = "\n" \
@@ -1240,7 +1239,7 @@ class IndexInteriorCell(BTreeCell):
 
         u = self._page_size
         p = self.payload_byte_size
-        x = (((u - 12) * 64) / 255) - 23
+        x = int((((u - 12) * 64) / 255) - 23)
 
         """
 
@@ -1274,7 +1273,7 @@ class IndexInteriorCell(BTreeCell):
 
         self.bytes_on_first_page = p
         if p > x:
-            m = (((u - 12) * 32) / 255) - 23
+            m = int((((u - 12) * 32) / 255) - 23)
             self.bytes_on_first_page = m + ((p - m) % (u - 4))
             if self.bytes_on_first_page > x:
                 self.bytes_on_first_page = m
@@ -1483,7 +1482,7 @@ class IndexLeafCell(BTreeCell):
 
         u = self._page_size
         p = self.payload_byte_size
-        x = (((u - 12) * 64) / 255) - 23
+        x = int((((u - 12) * 64) / 255) - 23)
 
         """
 
@@ -1517,7 +1516,7 @@ class IndexLeafCell(BTreeCell):
 
         self.bytes_on_first_page = p
         if p > x:
-            m = (((u - 12) * 32) / 255) - 23
+            m = int((((u - 12) * 32) / 255) - 23)
             self.bytes_on_first_page = m + ((p - m) % (u - 4))
             if self.bytes_on_first_page > x:
                 self.bytes_on_first_page = m
