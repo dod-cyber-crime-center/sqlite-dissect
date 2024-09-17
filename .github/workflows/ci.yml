@@ -28,7 +28,7 @@ jobs:
       # Install the packages to build the SQLite Dissect package
       - name: Prepare Build Environment
         run: |
-          apt install python3-setuptools
+          sudo apt install python3-setuptools
           python -m pip install -q --upgrade pip
           pip install .
           pip install -q flake8 pytest pytest-cov build twine wheel
