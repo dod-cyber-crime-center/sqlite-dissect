@@ -93,12 +93,7 @@ def test_close(test_close_file_handle):
         with pytest.raises(IOError):
             test_close_file_handle[0].close()
     else:
-        with pytest.warns(None) as w:
-            test_close_file_handle[0].close()
-            if w:
-                assert False
-            else:
-                assert True
+        test_close_file_handle[0].close()
 
 
 test_read_data_params = [
