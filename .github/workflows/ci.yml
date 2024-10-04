@@ -11,7 +11,7 @@ jobs:
         # This allows the pipeline to be run against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9, 3.10]. This results
         # in linting and unit tests running for all listed versions as well as the creation of packages and wheels on
         # creation of a tag in Git.
-        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        python-version: [ "3.8", "3.10", "3.12" ]
 
     steps:
       # Get the code from the repository to be packaged
@@ -84,9 +84,20 @@ jobs:
           pip install .
           pip install -q pyinstaller build twine wheel
 
-      - name: Build Linux Executable (Single File)
+      - name: Build Windows Executable (Single File)
         run: |
           pyinstaller pyinstaller/sqlite_dissect_win-x86_64_onefile.spec
+          cd ./dist/win-x86_64/bin/
+          sqlite_dissect.exe -h
+          Compress-Archive -Path sqlite_dissect.exe -DestinationPath sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip
+          Move-Item -Path sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip -Destination ../../../
+
+      # Upload the built executable
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip
 
   linux-build:
     runs-on: ubuntu-latest            
@@ -117,10 +128,9 @@ jobs:
           ./sqlite_dissect -h
           zip -r sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip sqlite_dissect
           mv sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip ../../../
-          rm -rf ./dist/
 
       # Upload the built executables
-      - name: Upload Executables
+      - name: Upload Linux Executable
         uses: actions/upload-artifact@v4
         with:
           name: linux-binary
