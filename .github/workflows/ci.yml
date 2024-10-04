@@ -35,7 +35,7 @@ jobs:
           mkdir executables
 
       - name: Build Linux Executable (Single File)
-        if: ${{ matrix.python-version }} == "3.12"
+        if: ${{ matrix.python-version == '3.12 '}}
         run: |
           pip install pyinstaller
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
@@ -51,6 +51,7 @@ jobs:
         with:
           name: executable-builds-${{ matrix.python-version }}
           path: executables/
+          if-no-files-found: ignore
 
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
@@ -78,9 +79,11 @@ jobs:
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
         uses: actions/upload-artifact@v4
+        if: ${{ matrix.python-version == '3.12 '}}
         with:
-          name: code-coverage-report
+          name: code-coverage-report-${{ matrix.python-version }}
           path: htmlcov
+          if-no-files-found: ignore
 
       # Build the Sphinx documentation into a PDF for easier distribution
       - name: Build Documentation
