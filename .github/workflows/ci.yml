@@ -32,6 +32,7 @@ jobs:
           python -m pip install -q --upgrade pip
           pip install .
           pip install -q flake8 pytest pytest-cov build twine wheel
+          mkdir executables
 
       - name: Build Linux Executable (Single File)
         run: |
@@ -39,21 +40,25 @@ jobs:
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
           cd ./dist/linux-x64/bin/
           ./sqlite_dissect -h
-          zip -r linux_x64_executable_sqlite_dissect.zip sqlite_dissect
-          mv linux_x64_executable_sqlite_dissect.zip ../../../
+          zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip sqlite_dissect
+          mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../../executables/
           rm -rf ./dist/
 
       - name: Build Linux Executable (Single Directory)
         run: |
           pip install pyinstaller
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onedir.spec
+          cd ./build/sqlite_dissect_linux-x64_onedir/
+          ./sqlite_dissect -h
+          zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-directory.zip sqlite_dissect
+          mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../executables/
 
-      # Upload the single file executable
-      - name: Upload PyTest Coverage
+      # Upload the built executables
+      - name: Upload Executables
         uses: actions/upload-artifact@v4
         with:
-          name: linux-executable-single-file
-          path: linux_x64_executable_sqlite_dissect.zip
+          name: executable-builds-${{ matrix.python-version }}
+          path: executables/
 
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
