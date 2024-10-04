@@ -16,12 +16,12 @@ jobs:
     steps:
       # Get the code from the repository to be packaged
       - name: Get Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Setup the Python environment (currently Python 2.7). This will need to be
       # updated when the project is upgraded to Python 3.x
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -33,10 +33,27 @@ jobs:
           pip install .
           pip install -q flake8 pytest pytest-cov build twine wheel
 
-      - name: Build Linux Executable
+      - name: Build Linux Executable (Single File)
         run: |
           pip install pyinstaller
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
+          cd /dist/linux-x64/bin/
+          ./sqlite_dissect -h
+          zip -r linux_x64_executable_sqlite_dissect.zip sqlite_dissect
+          mv linux_x64_executable_sqlite_dissect.zip ../../../
+          rm -rf /dist/
+
+      - name: Build Linux Executable (Single Directory)
+        run: |
+          pip install pyinstaller
+          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onedir.spec
+
+      # Upload the single file executable
+      - name: Upload PyTest Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-executable-single-file
+          path: linux_x64_executable_sqlite_dissect.zip
 
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
@@ -63,7 +80,7 @@ jobs:
 
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: htmlcov
@@ -77,7 +94,7 @@ jobs:
 
       # Upload the HTML documentation for distribution
       - name: Upload HTML Docs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: html-docs
           path: ./docs/build/
