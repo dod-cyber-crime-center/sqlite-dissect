@@ -37,11 +37,11 @@ jobs:
         run: |
           pip install pyinstaller
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
-          cd /dist/linux-x64/bin/
+          cd ./dist/linux-x64/bin/
           ./sqlite_dissect -h
           zip -r linux_x64_executable_sqlite_dissect.zip sqlite_dissect
           mv linux_x64_executable_sqlite_dissect.zip ../../../
-          rm -rf /dist/
+          rm -rf ./dist/
 
       - name: Build Linux Executable (Single Directory)
         run: |
