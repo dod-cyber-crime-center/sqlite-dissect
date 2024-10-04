@@ -35,6 +35,7 @@ jobs:
           mkdir executables
 
       - name: Build Linux Executable (Single File)
+        if: ${{ matrix.python-version }} == "3.12"
         run: |
           pip install pyinstaller
           pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
@@ -43,15 +44,6 @@ jobs:
           zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip sqlite_dissect
           mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../../executables/
           rm -rf ./dist/
-
-      - name: Build Linux Executable (Single Directory)
-        run: |
-          pip install pyinstaller
-          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onedir.spec
-          cd ./build/sqlite_dissect_linux-x64_onedir/
-          ./sqlite_dissect -h
-          zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-directory.zip sqlite_dissect
-          mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../executables/
 
       # Upload the built executables
       - name: Upload Executables
