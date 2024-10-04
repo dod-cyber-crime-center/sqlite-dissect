@@ -1,10 +1,15 @@
-name: Pipeline
+name: CI/CD Pipeline
 
-on: [ push ]
+on:
+  push:
+  pull_request:
+
 env:
+  # The Python version for the build jobs as well as the primary one for the test and artifact generation. This MUST be
+  # in the python-version matrix in the `test` job.
   PYTHON_VERSION: "3.12"  
-jobs:    
-  test:
+jobs:
+  test:      
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -60,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ matrix.python-version == env.PYTHON_VERSION }}
         with:
-          name: code-coverage-report-${{ matrix.python-version }}
+          name: code-coverage-report
           path: htmlcov
 
   windows-build:
