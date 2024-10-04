@@ -1,10 +1,9 @@
-name: Build Pipeline
+name: Pipeline
 
 on: [ push ]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,8 +17,7 @@ jobs:
       - name: Get Repo
         uses: actions/checkout@v4
 
-      # Setup the Python environment (currently Python 2.7). This will need to be
-      # updated when the project is upgraded to Python 3.x
+      # Setup the appropriate Python version
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -32,26 +30,6 @@ jobs:
           python -m pip install -q --upgrade pip
           pip install .
           pip install -q flake8 pytest pytest-cov build twine wheel
-          mkdir executables
-
-      - name: Build Linux Executable (Single File)
-        if: ${{ matrix.python-version == '3.12 '}}
-        run: |
-          pip install pyinstaller
-          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
-          cd ./dist/linux-x64/bin/
-          ./sqlite_dissect -h
-          zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip sqlite_dissect
-          mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../../executables/
-          rm -rf ./dist/
-
-      # Upload the built executables
-      - name: Upload Executables
-        uses: actions/upload-artifact@v4
-        with:
-          name: executable-builds-${{ matrix.python-version }}
-          path: executables/
-          if-no-files-found: ignore
 
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
@@ -79,11 +57,52 @@ jobs:
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
         uses: actions/upload-artifact@v4
-        if: ${{ matrix.python-version == '3.12 '}}
+        if: ${{ matrix.python-version == '3.12'}}
         with:
           name: code-coverage-report-${{ matrix.python-version }}
           path: htmlcov
-          if-no-files-found: ignore
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.12" ]
+
+    steps:
+      # Get the code from the repository to be packaged
+      - name: Get Repo
+        uses: actions/checkout@v4
+
+      # Setup the Python environment (currently Python 2.7). This will need to be
+      # updated when the project is upgraded to Python 3.x
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Install the packages to build the SQLite Dissect package
+      - name: Prepare Build Environment
+        run: |
+          sudo apt install python3-setuptools
+          python -m pip install -q --upgrade pip
+          pip install .
+          pip install -q pyinstaller build twine wheel
+          mkdir executables
+
+      - name: Build Linux Executable (Single File)
+        run: |
+          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
+          cd ./dist/linux-x64/bin/
+          ./sqlite_dissect -h
+          zip -r sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip sqlite_dissect
+          mv sqlite-dissect-linux-x64-${{ matrix.python-version }}-binary.zip ../../../executables/
+          rm -rf ./dist/
+
+      # Upload the built executables
+      - name: Upload Executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-builds-${{ matrix.python-version }}
+          path: executables/
 
       # Build the Sphinx documentation into a PDF for easier distribution
       - name: Build Documentation
@@ -103,8 +122,6 @@ jobs:
       - name: Build Objects
         if: startsWith(github.ref, 'refs/tags')
         run: python setup.py sdist bdist_wheel
-        env:
-          TAG_VERSION: "${GITHUB_REF#refs/*/}"
 
       # Ensure the objects were packaged correctly and there wasn't an issue with
       # the compilation or packaging process.
