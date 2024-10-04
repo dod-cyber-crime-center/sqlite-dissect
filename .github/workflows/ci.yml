@@ -33,6 +33,11 @@ jobs:
           pip install .
           pip install -q flake8 pytest pytest-cov build twine wheel
 
+      - name: Build Linux Executable
+        run: |
+          pip install pyinstaller
+          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
+
       # Lint the Python code to check for syntax errors
       - name: Lint with Flake8
         run: |
