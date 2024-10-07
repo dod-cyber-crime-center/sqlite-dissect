@@ -133,6 +133,7 @@ jobs:
           ./sqlite_dissect -h
           zip -r sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip sqlite_dissect
           mv sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip ../../../
+          cd ../../../
           rm -rf ./dist/
 
       # Upload the built executables
