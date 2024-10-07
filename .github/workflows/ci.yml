@@ -133,6 +133,7 @@ jobs:
           ./sqlite_dissect -h
           zip -r sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip sqlite_dissect
           mv sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip ../../../
+          rm -rf ./dist/
 
       # Upload the built executables
       - name: Upload Linux Executable
@@ -157,13 +158,13 @@ jobs:
 
       # Build the binary wheel as well as the source tar
       - name: Build Objects
-        if: startsWith(github.ref, 'refs/tags')
+        # if: startsWith(github.ref, 'refs/tags')
         run: python setup.py sdist bdist_wheel
 
       # Ensure the objects were packaged correctly and there wasn't an issue with
       # the compilation or packaging process.
       - name: Check Objects
-        if: startsWith(github.ref, 'refs/tags')
+        # if: startsWith(github.ref, 'refs/tags')
         run: twine check dist/*
 
       # If this commit is the result of a Git tag, push the wheel and tar packages
