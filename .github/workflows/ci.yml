@@ -1,27 +1,31 @@
-name: Build Pipeline
+name: CI/CD Pipeline
 
-on: [ push ]
+on:
+  push:
+  pull_request:
 
+env:
+  # The Python version for the build jobs as well as the primary one for the test and artifact generation. This MUST be
+  # in the python-version matrix in the `test` job.
+  PYTHON_VERSION: "3.12"  
 jobs:
-  build:
-
+  test:      
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # This allows the pipeline to be run against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9, 3.10]. This results
         # in linting and unit tests running for all listed versions as well as the creation of packages and wheels on
         # creation of a tag in Git.
-        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        python-version: [ "3.8", "3.10", "3.12" ]
 
     steps:
       # Get the code from the repository to be packaged
       - name: Get Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Setup the Python environment (currently Python 2.7). This will need to be
-      # updated when the project is upgraded to Python 3.x
+      # Setup the appropriate Python version
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -58,10 +62,84 @@ jobs:
 
       # Upload the PyTest HTML coverage report for review
       - name: Upload PyTest Coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.python-version == env.PYTHON_VERSION }}
         with:
           name: code-coverage-report
           path: htmlcov
+
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+      # Get the code from the repository to be packaged
+      - name: Get Repo
+        uses: actions/checkout@v4
+
+      # Setup the target build version
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      # Install the packages to build the SQLite Dissect package
+      - name: Prepare Build Environment
+        run: |
+          python -m pip install -q --upgrade pip
+          pip install .
+          pip install -q pyinstaller build twine wheel
+
+      - name: Build Windows Executable (Single File)
+        run: |
+          pyinstaller pyinstaller/sqlite_dissect_win-x86_64_onefile.spec
+          cd ./dist/win-x86_64/bin/
+          sqlite_dissect.exe -h
+          Compress-Archive -Path sqlite_dissect.exe -DestinationPath sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip
+          Move-Item -Path sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip -Destination ../../../
+
+      # Upload the built executable
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: sqlite-dissect-windows-x64-${{ env.PYTHON_VERSION }}-binary.zip
+
+  linux-build:
+    runs-on: ubuntu-latest            
+    
+    steps:
+      # Get the code from the repository to be packaged
+      - name: Get Repo
+        uses: actions/checkout@v4
+
+      # Setup the target build version
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Install the packages to build the SQLite Dissect package
+      - name: Prepare Build Environment
+        run: |
+          sudo apt install python3-setuptools
+          python -m pip install -q --upgrade pip
+          pip install .
+          pip install -q pyinstaller build twine wheel
+
+      - name: Build Linux Executable (Single File)
+        run: |
+          pyinstaller pyinstaller/sqlite_dissect_linux-x64_onefile.spec
+          cd ./dist/linux-x64/bin/
+          ./sqlite_dissect -h
+          zip -r sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip sqlite_dissect
+          mv sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip ../../../
+
+      # Upload the built executables
+      - name: Upload Linux Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary
+          path: sqlite-dissect-linux-x64-${{ env.PYTHON_VERSION }}-binary.zip
 
       # Build the Sphinx documentation into a PDF for easier distribution
       - name: Build Documentation
@@ -72,7 +150,7 @@ jobs:
 
       # Upload the HTML documentation for distribution
       - name: Upload HTML Docs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: html-docs
           path: ./docs/build/
@@ -81,8 +159,6 @@ jobs:
       - name: Build Objects
         if: startsWith(github.ref, 'refs/tags')
         run: python setup.py sdist bdist_wheel
-        env:
-          TAG_VERSION: "${GITHUB_REF#refs/*/}"
 
       # Ensure the objects were packaged correctly and there wasn't an issue with
       # the compilation or packaging process.
