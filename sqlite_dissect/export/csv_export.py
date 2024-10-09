@@ -1,17 +1,10 @@
 import os
-from csv import QUOTE_ALL
-from csv import writer
-from logging import DEBUG
-from logging import getLogger
-from os.path import basename
-from os.path import normpath
-from os.path import sep
 from re import sub
-from sqlite_dissect.constants import ILLEGAL_XML_CHARACTER_PATTERN
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import MASTER_SCHEMA_ROW_TYPE
-from sqlite_dissect.constants import PAGE_TYPE
-from sqlite_dissect.constants import UTF_8
+from csv import QUOTE_ALL, writer
+from logging import DEBUG, getLogger
+from os.path import basename, normpath, sep
+from sqlite_dissect.constants import (ILLEGAL_XML_CHARACTER_PATTERN, LOGGER_NAME, MASTER_SCHEMA_ROW_TYPE, PAGE_TYPE,
+    UTF_8, UTF_16BE, UTF_16LE)
 from sqlite_dissect.exception import ExportError
 from sqlite_dissect.file.database.utilities import aggregate_leaf_cells
 
@@ -52,7 +45,7 @@ class VersionCsvExporter(object):
             if master_schema_entry.root_page_number:
 
                 fixed_file_name = basename(normpath(csv_file_name))
-                fixed_master_schema_name = sub(" ", "_", master_schema_entry.name)
+                fixed_master_schema_name = master_schema_entry.name.replace(" ", "_")
                 csv_file_name = export_directory + sep + fixed_file_name + "-" + fixed_master_schema_name + ".csv"
 
                 logger.info("Writing CSV file: {}.".format(csv_file_name))
@@ -119,7 +112,7 @@ class VersionCsvExporter(object):
                         log_message = log_message.format(master_schema_entry.row_type, master_schema_entry.name,
                                                          master_schema_entry.table_name, master_schema_entry.sql)
 
-                        logger.warn(log_message)
+                        logger.warning(log_message)
                         raise ExportError(log_message)
 
     @staticmethod
@@ -231,17 +224,17 @@ class VersionCsvExporter(object):
                 serial_type = record_column.serial_type
                 text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                 value = record_column.value
-                if value is None:
-                    pass
-                elif isinstance(value, (bytearray, str)):
+                if isinstance(value, (bytes, bytearray, str)):
                     value = value.decode(version.database_text_encoding, "replace") if text_affinity else str(value)
                     try:
                         value.encode(UTF_8)
                     except UnicodeDecodeError:
-                        value = value.decode(UTF_8, "replace")
-                    value = ILLEGAL_XML_CHARACTER_PATTERN.sub(" ", value)
-                    if value.startswith("="):
+                        value = value.decode(UTF_8, "replace").encode(UTF_8)
+                    if not isinstance(value, str):
+                        value = value.decode(UTF_8)
+                    if value[0] == "=":
                         value = ' ' + value
+                    value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
             row = [version.file_type, cell.version_number, cell.page_version_number, cell.source, cell.page_number,
@@ -370,18 +363,17 @@ class VersionCsvExporter(object):
                 serial_type = record_column.serial_type
                 text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                 value = record_column.value
-                if value is None:
-                    pass
-                elif isinstance(value, (bytearray, str)):
+                if isinstance(value, (bytes, bytearray, str)):
                     value = value.decode(version.database_text_encoding, "replace") if text_affinity else str(value)
                     try:
                         value = value.encode(UTF_8)
                     except UnicodeDecodeError:
                         value = value.decode(UTF_8, "replace").encode(UTF_8)
-                    value = ILLEGAL_XML_CHARACTER_PATTERN.sub(" ", value)
-                    if value.startswith("="):
+                    if not isinstance(value, str):
+                        value = value.decode(UTF_8)
+                    if value[0] == "=":
                         value = ' ' + value
-                    value = str(value)
+                    value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
             row = [version.file_type, cell.version_number, cell.page_version_number, cell.source, cell.page_number,
@@ -416,18 +408,17 @@ class VersionCsvExporter(object):
                 serial_type = record_column.serial_type
                 text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                 value = record_column.value
-                if value is None:
-                    pass
-                elif isinstance(value, (bytearray, str)):
+                if isinstance(value, (bytes, bytearray, str)):
                     value = value.decode(version.database_text_encoding, "replace") if text_affinity else str(value)
                     try:
                         value = value.encode(UTF_8)
                     except UnicodeDecodeError:
                         value = value.decode(UTF_8, "replace").encode(UTF_8)
-                    value = ILLEGAL_XML_CHARACTER_PATTERN.sub(" ", value)
-                    if value.startswith("="):
+                    if not isinstance(value, str):
+                        value = value.decode(UTF_8)
+                    if value[0] == "=":
                         value = ' ' + value
-                    value = str(value)
+                    value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
             row = [version.file_type, carved_cell.version_number, carved_cell.page_version_number,
@@ -477,18 +468,19 @@ class CommitCsvExporter(object):
 
         logger = getLogger(LOGGER_NAME)
 
-        mode = "ab"
+        mode = "a"
         csv_file_name = self._csv_file_names[commit.name] if commit.name in self._csv_file_names else None
         write_headers = False
 
         if not csv_file_name:
-            mode = "wb"
-            commit_name = sub(" ", "_", commit.name)
+            mode = "w"
+            commit_name = commit.name.replace(" ", "_")
+            commit_name = commit_name.replace("\"", "_")
             csv_file_name = os.path.join(self._export_directory, (self._file_name_prefix + "-" + commit_name + ".csv"))
             self._csv_file_names[commit.name] = csv_file_name
             write_headers = True
 
-        with open(csv_file_name, mode) as csv_file_handle:
+        with open(csv_file_name, mode, newline='') as csv_file_handle:
 
             csv_writer = writer(csv_file_handle, delimiter=',', quotechar="\"", quoting=QUOTE_ALL)
 
@@ -541,7 +533,10 @@ class CommitCsvExporter(object):
                     column_headers.append("Row ID")
                     column_headers.extend([column_definition.column_name
                                            for column_definition in master_schema_entry.column_definitions])
-                    csv_writer.writerow(column_headers)
+                    if isinstance(column_headers, str):
+                        csv_writer.writerow([column_headers])
+                    else:
+                        csv_writer.writerow(column_headers)
 
                 # Sort the added, updated, and deleted cells by the row id
                 sorted_added_cells = sorted(commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
@@ -563,7 +558,7 @@ class CommitCsvExporter(object):
                 log_message = "Invalid commit page type: {} found for csv export on master " \
                               "schema entry name: {} while writing to csv file name: {}."
                 log_message = log_message.format(commit.page_type, commit.name, csv_file_name)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 raise ExportError(log_message)
 
     @staticmethod
@@ -649,18 +644,17 @@ class CommitCsvExporter(object):
                 serial_type = record_column.serial_type
                 text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                 value = record_column.value
-                if value is None:
-                    pass
-                elif isinstance(value, (bytearray, str)):
+                if isinstance(value, (bytes, bytearray, str)):
                     value = value.decode(database_text_encoding, "replace") if text_affinity else str(value)
                     try:
                         value = value.encode(UTF_8)
                     except UnicodeDecodeError:
                         value = value.decode(UTF_8, "replace").encode(UTF_8)
-                    value = ILLEGAL_XML_CHARACTER_PATTERN.sub(" ", value)
-                    if value.startswith("="):
+                    if not isinstance(value, str):
+                        value = value.decode(UTF_8)
+                    if value[0] == "=":
                         value = ' ' + value
-                    value = str(value)
+                    value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
             row = [file_type, cell.version_number, cell.page_version_number, cell.source, cell.page_number,

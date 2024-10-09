@@ -1,10 +1,8 @@
 from logging import getLogger
 from os import rename
-from os.path import exists
-from os.path import sep
+from os.path import exists, sep
 from uuid import uuid4
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import PAGE_TYPE
+from sqlite_dissect.constants import LOGGER_NAME, PAGE_TYPE, UTF_8
 from sqlite_dissect.exception import ExportError
 from sqlite_dissect.output import stringify_cell_record
 
@@ -25,10 +23,8 @@ class CommitConsoleExporter(object):
 
     @staticmethod
     def write_header(master_schema_entry, page_type):
-        header = "\nMaster schema entry: {} row type: {} on page type: {} with sql: {}."
-        header = header.format(master_schema_entry.name, master_schema_entry.row_type,
-                               page_type, master_schema_entry.sql)
-        print(header)
+        print(f"\nMaster schema entry: {master_schema_entry.name} row type: {master_schema_entry.row_type} on page "
+              f"type: {page_type} with sql: {master_schema_entry.sql}.")
 
     @staticmethod
     def write_commit(commit):
@@ -87,7 +83,7 @@ class CommitConsoleExporter(object):
             log_message = "Invalid commit page type: {} found for text export on master " \
                           "schema entry name: {} while writing to sqlite file name: {}."
             log_message = log_message.format(commit.page_type, commit.name)
-            logger.warn(log_message)
+            logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
@@ -116,7 +112,9 @@ class CommitConsoleExporter(object):
             preface = base_string.format(file_type, cell.version_number, cell.page_version_number, cell.source,
                                          cell.page_number, cell.location, operation, cell.file_offset)
             row_values = stringify_cell_record(cell, database_text_encoding, page_type)
-            print(preface + " " + row_values + ".")
+            row_value = preface + " " + row_values + "."
+            print(row_value)
+
 
 
 class CommitTextExporter(object):
@@ -144,7 +142,6 @@ class CommitTextExporter(object):
 
         # Check if the file exists and if it does rename it
         if exists(self._text_file_name):
-
             # Generate a uuid to append to the file name
             new_file_name_for_existing_file = self._text_file_name + "-" + str(uuid4())
 
@@ -156,7 +153,7 @@ class CommitTextExporter(object):
             log_message = log_message.format(self._text_file_name, new_file_name_for_existing_file)
             getLogger(LOGGER_NAME).debug(log_message)
 
-        self._file_handle = open(self._text_file_name, "w")
+        self._file_handle = open(self._text_file_name, "wb")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -166,7 +163,9 @@ class CommitTextExporter(object):
         header = "\nMaster schema entry: {} row type: {} on page type: {} with sql: {}."
         header = header.format(master_schema_entry.name, master_schema_entry.row_type,
                                page_type, master_schema_entry.sql)
-        self._file_handle.write(header + "\n")
+        header += "\n"
+        encoded = header.encode(UTF_8)
+        self._file_handle.write(encoded)
 
     def write_commit(self, commit):
 
@@ -187,9 +186,9 @@ class CommitTextExporter(object):
 
         logger = getLogger(LOGGER_NAME)
 
-        commit_header = "Commit: {} updated in version: {} with root page number: {} on b-tree page numbers: {}.\n"
+        commit_header = 'Commit: {} updated in version: {} with root page number: {} on b-tree page numbers: {}.\n'
         self._file_handle.write(commit_header.format(commit.name, commit.version_number,
-                                                     commit.root_page_number, commit.b_tree_page_numbers))
+                                                     commit.root_page_number, commit.b_tree_page_numbers).encode(UTF_8))
 
         if commit.page_type == PAGE_TYPE.B_TREE_INDEX_LEAF:
 
@@ -224,7 +223,7 @@ class CommitTextExporter(object):
             log_message = "Invalid commit page type: {} found for text export on master " \
                           "schema entry name: {}."
             log_message = log_message.format(commit.page_type, commit.name, self._text_file_name)
-            logger.warn(log_message)
+            logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
@@ -254,4 +253,6 @@ class CommitTextExporter(object):
             preface = base_string.format(file_type, cell.version_number, cell.page_version_number, cell.source,
                                          cell.page_number, cell.location, operation, cell.file_offset)
             row_values = stringify_cell_record(cell, database_text_encoding, page_type)
-            file_handle.write(preface + " " + row_values + ".\n")
+            full_str = preface + " " + row_values + ".\n"
+            encoded_str = full_str.encode(UTF_8)
+            file_handle.write(encoded_str)

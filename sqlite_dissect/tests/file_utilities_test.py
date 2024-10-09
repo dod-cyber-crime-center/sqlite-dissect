@@ -33,8 +33,8 @@ def test_validate_page_version_history(change, expected_result):
     else:
         modified = False
 
-        for version_number, version in version_history.versions.iteritems():
-            for page_number, page in version.pages.iteritems():
+        for version_number, version in version_history.versions.items():
+            for page_number, page in version.pages.items():
                 # modifies first page version number
                 if change == 1:
                     page.page_version_number += 1

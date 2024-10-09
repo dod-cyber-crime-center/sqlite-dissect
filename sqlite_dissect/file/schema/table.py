@@ -1,5 +1,4 @@
 from logging import getLogger
-from re import sub
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.exception import MasterSchemaRowParsingError
 
@@ -34,10 +33,10 @@ class TableConstraint(object):
         self.comments = [comment.strip() for comment in comments] if comments else []
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Index: {}\n" \

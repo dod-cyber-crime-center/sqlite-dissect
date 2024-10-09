@@ -430,7 +430,7 @@ class ColumnDefinition(object):
         derived_data_type = sub("\(.*\)$", "", derived_data_type)
 
         # Replace spaces with underscores
-        derived_data_type = sub(" ", "_", derived_data_type)
+        derived_data_type = derived_data_type.replace(" ", "_")
 
         for data_type in DATA_TYPE:
 
@@ -558,10 +558,10 @@ class ColumnDefinition(object):
         return False
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_column_constraints=True):
         string = padding + "Column Text: {}\n" \
@@ -593,10 +593,10 @@ class ColumnConstraint(object):
         self.constraint = constraint
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Index: {}\n" \

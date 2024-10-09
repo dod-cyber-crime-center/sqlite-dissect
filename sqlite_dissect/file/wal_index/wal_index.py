@@ -1,5 +1,4 @@
 from logging import getLogger
-from re import sub
 from struct import unpack
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.constants import LOGGER_NAME
@@ -55,10 +54,10 @@ class WriteAheadLogIndex(object):
         logger.debug("Number of entries found: {}.".format(number_found))
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "File Handle:\n{}"

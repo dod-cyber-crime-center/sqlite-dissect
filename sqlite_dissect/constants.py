@@ -1,4 +1,4 @@
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from logging import getLogger
 from re import compile
 from sys import maxunicode
@@ -79,7 +79,7 @@ LOCK_BYTE_PAGE_START_OFFSET = 1073741824
 LOCK_BYTE_PAGE_END_OFFSET = 1073742336
 
 SQLITE_DATABASE_HEADER_LENGTH = 100
-MAGIC_HEADER_STRING = "SQLite format 3\000"
+MAGIC_HEADER_STRING = b'SQLite format 3\000'
 MAGIC_HEADER_STRING_ENCODING = UTF_8
 MAXIMUM_PAGE_SIZE_INDICATOR = 1
 MINIMUM_PAGE_SIZE_LIMIT = 512
@@ -155,7 +155,7 @@ BLOB_SIGNATURE_IDENTIFIER = -1
 TEXT_SIGNATURE_IDENTIFIER = -2
 
 ZERO_BYTE = b'\x00'
-ALL_ZEROS_REGEX = "^0*$"
+ALL_ZEROS_REGEX = b"^0*$"
 
 SQLITE_MASTER_SCHEMA_ROOT_PAGE = 1
 MASTER_SCHEMA_COLUMN = Enum({"TYPE": 0, "NAME": 1, "TABLE_NAME": 2, "ROOT_PAGE": 3, "SQL": 4})
@@ -240,8 +240,8 @@ WAL_INDEX_READER_MARK_LENGTH = 4
 ROLLBACK_JOURNAL_ALL_CONTENT_UNTIL_END_OF_FILE = -1
 ROLLBACK_JOURNAL_POSTFIX = "-journal"
 ROLLBACK_JOURNAL_HEADER_LENGTH = 28
-ROLLBACK_JOURNAL_HEADER_HEX_STRING = 'd9d505f920a163d7'
-ROLLBACK_JOURNAL_HEADER_ALL_CONTENT = 'ffffffff'
+ROLLBACK_JOURNAL_HEADER_HEX_STRING = b'\xd9\xd5\x05\xf9\x20\xa1\x63\xd7'
+ROLLBACK_JOURNAL_HEADER_ALL_CONTENT = b'\xff\xff\xff\xff'
 
 BASE_VERSION_NUMBER = 0
 COMMIT_RECORD_BASE_VERSION_NUMBER = BASE_VERSION_NUMBER + 1
@@ -293,5 +293,5 @@ if maxunicode >= 0x10000:
                                     (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
                                     (0x10FFFE, 0x10FFFF)])
 
-_illegal_xml_ranges = ["%s-%s" % (unichr(low), unichr(high)) for (low, high) in _illegal_xml_characters]
+_illegal_xml_ranges = ["%s-%s" % (chr(low), chr(high)) for (low, high) in _illegal_xml_characters]
 ILLEGAL_XML_CHARACTER_PATTERN = compile(u'[%s]' % u''.join(_illegal_xml_ranges))

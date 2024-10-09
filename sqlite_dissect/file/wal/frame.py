@@ -1,6 +1,5 @@
 from binascii import hexlify
 from logging import getLogger
-from re import sub
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import MASTER_PAGE_HEX_ID
@@ -74,10 +73,10 @@ class WriteAheadLogFrame(object):
             self.contains_sqlite_database_header = True
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Frame Index: {}\n" \

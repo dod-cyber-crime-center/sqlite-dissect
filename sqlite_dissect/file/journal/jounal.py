@@ -1,4 +1,3 @@
-from re import sub
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.file.file_handle import FileHandle
 
@@ -21,10 +20,10 @@ class RollbackJournal(object):
         self.file_handle = FileHandle(FILE_TYPE.ROLLBACK_JOURNAL, file_identifier, file_size=file_size)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "File Handle:\n{}"

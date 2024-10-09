@@ -86,20 +86,20 @@ class TestRootUtilities(unittest.TestCase):
         # Test when serial_type is >= 12 and even
         result = get_record_content(12, test_string_array, 0)
         self.assertEqual(0, result[0])
-        self.assertEqual('', result[1])
+        self.assertEqual(b'', result[1])
 
         result = get_record_content(24, test_string_array, 0)
         self.assertEqual(6, result[0])
-        self.assertEqual('this i', result[1])
+        self.assertEqual(b'this i', result[1])
 
         # Test when serial_type is >= 13 and odd
         result = get_record_content(13, test_string_array, 0)
         self.assertEqual(0, result[0])
-        self.assertEqual('', result[1])
+        self.assertEqual(b'', result[1])
 
         result = get_record_content(25, test_string_array, 0)
         self.assertEqual(6, result[0])
-        self.assertEqual('this i', result[1])
+        self.assertEqual(b'this i', result[1])
 
         # Test that the proper exception is thrown when the input is invalid
         cases = [10, 11]

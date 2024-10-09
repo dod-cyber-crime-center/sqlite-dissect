@@ -73,9 +73,9 @@ class RollBackJournalCarver(object):
             logger.debug("At offset: %s page Number: %s of type: %s has content with checksum of: %s"
                          % (offset, page_number, page_type, page_checksum))
 
-            if page_type in ["0d", "05"]:
+            if page_type in [b'0d', b'05']:
 
-                page_type_string = PAGE_TYPE.B_TREE_TABLE_LEAF if page_type == "0d" else PAGE_TYPE.B_TREE_TABLE_INTERIOR
+                page_type_string = PAGE_TYPE.B_TREE_TABLE_LEAF if page_type == b'0d' else PAGE_TYPE.B_TREE_TABLE_INTERIOR
                 carved_cells = SignatureCarver.carve_unallocated_space(version, FILE_TYPE.ROLLBACK_JOURNAL, page_number,
                                                                        0, page_content, signature,
                                                                        offset + page_record_header_size)
@@ -107,9 +107,9 @@ class RollBackJournalCarver(object):
                                                                       page_record_header_size - offset)
                 page_type = hexlify(page_content[:1])
 
-                if page_type in ["0d", "05"]:
+                if page_type in [b'0d', b'05']:
 
-                    page_type_string = PAGE_TYPE.B_TREE_TABLE_LEAF if page_type == "0d" \
+                    page_type_string = PAGE_TYPE.B_TREE_TABLE_LEAF if page_type == b'0d' \
                         else PAGE_TYPE.B_TREE_TABLE_INTERIOR
                     carved_cells = SignatureCarver.carve_unallocated_space(version, FILE_TYPE.ROLLBACK_JOURNAL,
                                                                            page_number, 0, page_content, signature,

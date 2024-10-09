@@ -2,7 +2,6 @@ from abc import ABCMeta
 from abc import abstractmethod
 from copy import copy
 from logging import getLogger
-from re import sub
 from warnings import warn
 from sqlite_dissect.carving.utilities import get_content_size
 from sqlite_dissect.constants import LOGGER_NAME
@@ -84,7 +83,7 @@ class Signature(VersionParser):
             log_message = log_message.format(master_schema_entry.root_page_number,
                                              master_schema_entry.row_type, master_schema_entry.name,
                                              master_schema_entry.table_name, master_schema_entry.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
             if master_schema_entry.internal_schema_object:
@@ -94,7 +93,7 @@ class Signature(VersionParser):
                 log_message = log_message.format(master_schema_entry.root_page_number,
                                                  master_schema_entry.row_type, master_schema_entry.name,
                                                  master_schema_entry.table_name, master_schema_entry.sql)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
         log_message = "Creating signature for master schema entry with name: {} table name: {} row type: {} and " \
@@ -258,7 +257,7 @@ class Signature(VersionParser):
                     """
 
                     # Iterate through each of the records
-                    for cell_md5_hex_digest, record in records.iteritems():
+                    for cell_md5_hex_digest, record in records.items():
 
                         """
 
@@ -294,7 +293,7 @@ class Signature(VersionParser):
             total_table_row_signature_count = 0
 
             # Iterate through the table row signatures and set the total rows and increment the count
-            for serial_type_signature, table_row_signature in self.table_row_signatures.iteritems():
+            for serial_type_signature, table_row_signature in self.table_row_signatures.items():
                 table_row_signature.number_of_rows = self.unique_records
                 total_table_row_signature_count += table_row_signature.count
 
@@ -422,7 +421,7 @@ class Signature(VersionParser):
                 table_row_columns = {}
 
                 # Iterate through the table row signatures and create the table row columns dictionary
-                for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.iteritems():
+                for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.items():
 
                     # Iterate through all of the column signatures in the current table row signature
                     for column_index in range(len(table_row_signature.column_signatures)):
@@ -434,7 +433,7 @@ class Signature(VersionParser):
                             table_row_columns[column_index] = [table_row_signature.column_signatures[column_index]]
 
                 # Iterate through the table row columns and create the table column signatures
-                for table_row_column_index, table_row_column_serial_type_array in table_row_columns.iteritems():
+                for table_row_column_index, table_row_column_serial_type_array in table_row_columns.items():
                     column_name = column_definitions[table_row_column_index].column_name
                     self.table_column_signatures.append(TableColumnSignature(table_row_column_index, column_name,
                                                                              table_row_column_serial_type_array))
@@ -541,7 +540,7 @@ class Signature(VersionParser):
                 signature_string = signature_string.format(schema_column_signature.stringify("\t"))
                 string += signature_string
         if print_table_row_signatures:
-            for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.iteritems():
+            for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.items():
                 signature_string = "\n" + padding + "Table Row Signature:\n{}"
                 signature_string = signature_string.format(table_row_signature.stringify("\t", print_column_signatures))
                 string += signature_string
@@ -820,10 +819,10 @@ class SchemaColumnSignature(object):
             raise SignatureError(log_message)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Derived Data Type Name: {}\n" \
@@ -913,14 +912,14 @@ class TableColumnSignature(object):
                     self._logger.error(log_message)
                     raise SignatureError(log_message)
 
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             column_signature.number_of_rows = self.count
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_column_signatures=True):
         string = padding + "Index: {}\n" \
@@ -936,14 +935,14 @@ class TableColumnSignature(object):
                                self.simplified_signature,
                                len(self.column_signatures))
         if print_column_signatures:
-            for column_signature_index, column_signature in self.column_signatures.iteritems():
+            for column_signature_index, column_signature in self.column_signatures.items():
                 string += "\n" + padding + "Column Signature:\n{}".format(column_signature.stringify(padding + "\t"))
         return string
 
     @property
     def focused_probabilistic_signature(self):
         focused_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
                 for serial_type in column_signature.variable_length_serial_types:
                     serial_type_probability = column_signature.get_variable_length_serial_type_probability(serial_type)
@@ -961,7 +960,7 @@ class TableColumnSignature(object):
     @property
     def focused_signature(self):
         focused_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
                 focused_signatures.extend(column_signature.variable_length_serial_types.keys())
             elif isinstance(column_signature, ColumnFixedLengthSignature):
@@ -977,14 +976,14 @@ class TableColumnSignature(object):
     @property
     def simplified_probabilistic_signature(self):
         simplified_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             simplified_signatures.append((column_signature.serial_type, column_signature.probability))
         return sorted(simplified_signatures, key=lambda x: x[0])
 
     @property
     def simplified_signature(self):
         simplified_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             simplified_signatures.append(column_signature.serial_type)
         return sorted(simplified_signatures, key=int)
 
@@ -1098,10 +1097,10 @@ class TableRowSignature(object):
                 raise SignatureError(log_message)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_column_signatures=True):
         string = padding + "Record Serial Type Signature: {}\n" \
@@ -1119,14 +1118,14 @@ class TableRowSignature(object):
                                self.simplified_signature,
                                len(self.column_signatures))
         if print_column_signatures:
-            for column_signature_index, column_signature in self.column_signatures.iteritems():
+            for column_signature_index, column_signature in self.column_signatures.items():
                 string += "\n" + padding + "Column Signature:\n{}".format(column_signature.stringify(padding + "\t"))
         return string
 
     @property
     def focused_signature(self):
         focused_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
                 focused_signatures.append(sorted(column_signature.variable_length_serial_types.keys(), key=int))
             elif isinstance(column_signature, ColumnFixedLengthSignature):
@@ -1165,7 +1164,7 @@ class TableRowSignature(object):
 
         self._number_of_rows = number_of_rows
 
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             column_signature.number_of_rows = number_of_rows
 
     @property
@@ -1188,7 +1187,7 @@ class TableRowSignature(object):
     @property
     def simplified_signature(self):
         simplified_signatures = []
-        for column_signature_index, column_signature in self.column_signatures.iteritems():
+        for column_signature_index, column_signature in self.column_signatures.items():
             simplified_signatures.append([column_signature.serial_type])
         return simplified_signatures
 
@@ -1311,10 +1310,10 @@ class ColumnSignature(object):
             raise ValueError(log_message)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Index: {}\n" \
@@ -1519,7 +1518,7 @@ class ColumnReducedVariableLengthSignature(ColumnVariableLengthSignature):
 
         self.count += count
 
-        for variable_length_serial_type, variable_length_serial_type_count in variable_length_serial_types.iteritems():
+        for variable_length_serial_type, variable_length_serial_type_count in variable_length_serial_types.items():
             if variable_length_serial_type in self.variable_length_serial_types:
                 self.variable_length_serial_types[variable_length_serial_type] += variable_length_serial_type_count
             else:

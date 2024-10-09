@@ -4,6 +4,7 @@ from os import rename
 from os.path import exists
 from os.path import sep
 from uuid import uuid4
+from re import sub
 from sqlite_dissect.constants import ILLEGAL_XML_CHARACTER_PATTERN
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import PAGE_TYPE
@@ -147,7 +148,7 @@ class CommitXlsxExporter(object):
                                   "which is greater than the 31 allowed characters while writing to xlsx file name: {}."
                     log_message = log_message.format(commit.name, commit.page_type, len(commit.name),
                                                      self._xlsx_file_name)
-                    logger.warn(log_message)
+                    logger.warning(log_message)
                     raise ExportError(log_message)
 
         sheet = self._sheets[sheet_name] if sheet_name in self._sheets else None
@@ -229,7 +230,7 @@ class CommitXlsxExporter(object):
             log_message = "Invalid commit page type: {} found for xlsx export on master " \
                           "schema entry name: {} while writing to xlsx file name: {}."
             log_message = log_message.format(commit.page_type, commit.name, self._xlsx_file_name)
-            logger.warn(log_message)
+            logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
@@ -314,7 +315,7 @@ class CommitXlsxExporter(object):
                 serial_type = record_column.serial_type
                 text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
                 value = record_column.value
-                if isinstance(value, (bytearray, str)):
+                if isinstance(value, (bytes, bytearray, str)):
                     if len(value) == 0 and isinstance(value, bytearray):
                         value = None
                     else:
@@ -322,10 +323,12 @@ class CommitXlsxExporter(object):
                         try:
                             value.encode(UTF_8)
                         except UnicodeDecodeError:
-                            value = value.decode(UTF_8, "replace")
-                        value = ILLEGAL_XML_CHARACTER_PATTERN.sub(" ", value)
-                        if value.startswith("="):
+                            value = value.decode(UTF_8, "replace").encode(UTF_8)
+                        if not isinstance(value, str):
+                            value = value.decode(UTF_8)
+                        if value[0] == "=":
                             value = ' ' + value
+                        value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
             row = [file_type, cell.version_number, cell.page_version_number, cell.source, cell.page_number,
@@ -333,5 +336,4 @@ class CommitXlsxExporter(object):
             if page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
                 row.append(cell.row_id)
             row.extend(cell_record_column_values)
-
             sheet.append(row)

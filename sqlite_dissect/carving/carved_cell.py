@@ -13,7 +13,7 @@ from sqlite_dissect.exception import InvalidVarIntError
 from sqlite_dissect.file.database.page import BTreeCell
 from sqlite_dissect.file.database.payload import Payload
 from sqlite_dissect.file.database.payload import RecordColumn
-from sqlite_dissect.utilities import decode_varint
+from sqlite_dissect.utilities import decode_varint, append_byte_strings
 from sqlite_dissect.utilities import encode_varint
 from sqlite_dissect.utilities import get_md5_hash
 from sqlite_dissect.utilities import get_record_content
@@ -143,8 +143,8 @@ class CarvedBTreeCell(BTreeCell):
 
         """
 
-        self.start_offset = self.payload.cell_start_offset
-        self.end_offset = self.payload.cell_end_offset
+        self.start_offset = int(self.payload.cell_start_offset)
+        self.end_offset = int(self.payload.cell_end_offset)
 
         self.byte_size = self.end_offset - self.start_offset
         self.md5_hex_digest = get_md5_hash(data[self.start_offset:self.end_offset])
@@ -648,8 +648,11 @@ class CarvedRecord(Payload):
         """
 
         # First truncated column field
-        current_body_offset = self.body_start_offset
+        current_body_offset = int(self.body_start_offset)
         for carved_record_column in self.record_columns:
+
+            # Ensure it's an int for the slice operation as Python 3 requires int for both slice indexes
+            carved_record_column.content_size = int(carved_record_column.content_size)
 
             if (current_body_offset + carved_record_column.content_size) > len(data):
                 carved_record_column.truncated_value = True
@@ -673,7 +676,7 @@ class CarvedRecord(Payload):
                 if content_size != carved_record_column.content_size:
                     raise CellCarvingError()
                 carved_record_column.value = value
-                record_column_md5_hash_strings[carved_record_column.index] += value_data
+                record_column_md5_hash_strings[carved_record_column.index] = append_byte_strings(record_column_md5_hash_strings[carved_record_column.index], value_data)
                 carved_record_column.md5_hex_digest = \
                     get_md5_hash(record_column_md5_hash_strings[carved_record_column.index])
 

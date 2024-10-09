@@ -121,7 +121,7 @@ class Database(Version):
                                              self.database_header.file_change_counter,
                                              self.database_header.sqlite_version_number,
                                              self.database_size_in_pages)
-            self._logger.warn(log_message)
+            self._logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         # The database header size in pages is set and the version valid for number does equals the change counter
@@ -157,7 +157,7 @@ class Database(Version):
                               "pages will remain unchanged but possibly erroneous use cases may occur when parsing."
                 log_message = log_message.format(self.version_number, self.database_header.database_size_in_pages,
                                                  calculated_size_in_pages, self.database_header.sqlite_version_number)
-                self._logger.warn(log_message)
+                self._logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
             else:
@@ -174,7 +174,7 @@ class Database(Version):
 
         """
 
-        self.updated_page_numbers = [page_index + 1 for page_index in range(self.database_size_in_pages)]
+        self.updated_page_numbers = [page_index + 1 for page_index in range(int(self.database_size_in_pages))]
         self.page_version_index = dict(map(lambda x: [x, self.version_number], self.updated_page_numbers))
 
         self._logger.debug("Updated page numbers initialized as: {} in version: {}.".format(self.updated_page_numbers,

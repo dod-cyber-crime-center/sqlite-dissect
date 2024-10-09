@@ -1,6 +1,5 @@
 import os
 from logging import getLogger
-from re import sub
 from warnings import warn
 from sqlite_dissect.constants import FILE_TYPE
 from sqlite_dissect.constants import LOCK_BYTE_PAGE_START_OFFSET
@@ -68,7 +67,8 @@ class FileHandle(object):
         self.file_externally_controlled = False
         self._database_text_encoding = database_text_encoding
 
-        if isinstance(file_identifier, basestring):
+        xbasestring = (str, bytes)
+        if isinstance(file_identifier, xbasestring):
 
             """
 
@@ -178,10 +178,10 @@ class FileHandle(object):
             raise ValueError(log_message)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_header=True):
         string = padding + "File Type: {}\n" \
@@ -221,7 +221,7 @@ class FileHandle(object):
         if self.file_externally_controlled:
 
             log_message = "Ignored request to close externally controlled file."
-            self._logger.warn(log_message)
+            self._logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         else:
@@ -253,7 +253,7 @@ class FileHandle(object):
         try:
 
             self.file_object.seek(offset)
-            return self.file_object.read(number_of_bytes)
+            return self.file_object.read(int(number_of_bytes))
 
         except ValueError:
             log_message = "An error occurred while reading from the file at offset: {} for {} number of bytes."

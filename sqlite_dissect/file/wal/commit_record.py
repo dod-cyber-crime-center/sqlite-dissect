@@ -100,7 +100,7 @@ class WriteAheadLogCommitRecord(Version):
 
         self._database = database
 
-        for page_version_number in page_version_index.itervalues():
+        for page_version_number in page_version_index.values():
             if page_version_number >= version_number:
                 log_message = "Page version number: {} is greater than the commit record specified version: {}."
                 log_message = log_message.format(page_version_number, version_number)
@@ -181,7 +181,7 @@ class WriteAheadLogCommitRecord(Version):
             self.frames[frame.header.page_number] = frame
 
         # Set the updated page numbers derived from this commit records frame keys
-        self.updated_page_numbers = copy(self.frames.keys())
+        self.updated_page_numbers = copy(list(self.frames.keys()))
 
         log_message = "Commit Record Version: {} has the updated page numbers: {}."
         log_message = log_message.format(self.version_number, self.updated_page_numbers)
@@ -226,7 +226,7 @@ class WriteAheadLogCommitRecord(Version):
                           "when parsing."
             log_message = log_message.format(len(self.page_version_index), self.database_size_in_pages,
                                              self.version_number, self.page_version_index)
-            self._logger.warn(log_message)
+            self._logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         """
@@ -332,7 +332,7 @@ class WriteAheadLogCommitRecord(Version):
                 log_message = "The sqlite database root page was found in version: {} in the updated pages: {} when " \
                               "both the database header and the root b-tree page were not modified."
                 log_message = log_message.format(self.version_number, self.updated_page_numbers)
-                self._logger.warn(log_message)
+                self._logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
         if not self.master_schema_modified:
@@ -416,7 +416,7 @@ class WriteAheadLogCommitRecord(Version):
                               "committed page size is {}.  Possibly erroneous use cases may occur when parsing."
                 log_message = log_message.format(self.version_number, last_database_header.database_size_in_pages,
                                                  self.committed_page_size)
-                self._logger.warn(log_message)
+                self._logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
         if self.master_schema_modified:
@@ -648,7 +648,7 @@ class WriteAheadLogCommitRecord(Version):
         string += "\n" + padding + "Database Header Differences:"
 
         # Parse the database header differences
-        for field, difference in self.database_header_differences.iteritems():
+        for field, difference in self.database_header_differences.items():
             difference_string = "\n" + padding + "\t" + "Field: {} changed from previous Value: {} to new Value: {}"
             string += difference_string.format(field, difference[0], difference[1])
 

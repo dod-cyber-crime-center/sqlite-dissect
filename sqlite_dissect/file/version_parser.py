@@ -1,6 +1,5 @@
 from abc import ABCMeta
 from logging import getLogger
-from re import sub
 from warnings import warn
 from sqlite_dissect.constants import BASE_VERSION_NUMBER
 from sqlite_dissect.constants import LOGGER_NAME
@@ -139,7 +138,7 @@ class VersionParser(object):
             log_message = log_message.format(master_schema_entry.row_type, master_schema_entry.root_page_number,
                                              master_schema_entry.name, master_schema_entry.table_name,
                                              master_schema_entry.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         # Set the page type and update it as appropriate
@@ -151,7 +150,7 @@ class VersionParser(object):
             log_message = log_message.format(master_schema_entry.root_page_number,
                                              master_schema_entry.row_type, master_schema_entry.name,
                                              master_schema_entry.table_name, master_schema_entry.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         elif isinstance(master_schema_entry, OrdinaryTableRow) and master_schema_entry.without_row_id:
@@ -161,7 +160,7 @@ class VersionParser(object):
             log_message = log_message.format(master_schema_entry.root_page_number,
                                              master_schema_entry.row_type, master_schema_entry.name,
                                              master_schema_entry.table_name, master_schema_entry.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
             self.page_type = PAGE_TYPE.B_TREE_INDEX_LEAF
@@ -277,7 +276,7 @@ class VersionParser(object):
                     log_message = log_message.format(version_number,  self.name, self.table_name, self.row_type,
                                                      self.sql, self.parser_starting_version_number,
                                                      self.parser_ending_version_number)
-                    logger.warn(log_message)
+                    logger.warning(log_message)
                     warn(log_message, RuntimeWarning)
 
             if starting_version_number is None and ending_version_number is None:
@@ -287,7 +286,7 @@ class VersionParser(object):
                 log_message = log_message.format(self.parser_starting_version_number,
                                                  self.parser_ending_version_number,  self.name, self.table_name,
                                                  self.row_type, self.sql)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
             self.parser_starting_version_number = starting_version_number
@@ -307,10 +306,10 @@ class VersionParser(object):
         """
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Row Type: {}\n" \

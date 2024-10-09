@@ -4,16 +4,11 @@ from binascii import hexlify
 from hashlib import md5
 from logging import getLogger
 from re import compile
-from struct import pack
-from struct import unpack
+from struct import pack, unpack
 from os import walk, makedirs, path
 from os.path import exists, isdir, join
 from sqlite_dissect.constants import ALL_ZEROS_REGEX, SQLITE_DATABASE_HEADER_LENGTH, MAGIC_HEADER_STRING, \
-    MAGIC_HEADER_STRING_ENCODING, SQLITE_FILE_EXTENSIONS
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
-from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
+    SQLITE_FILE_EXTENSIONS, LOGGER_NAME, OVERFLOW_HEADER_LENGTH, BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import InvalidVarIntError
 from sqlite_dissect._version import __version__
 from configargparse import ArgParser
@@ -68,7 +63,7 @@ def decode_varint(byte_array, offset=0):
     unsigned_integer_value = 0
     varint_relative_offset = 0
 
-    for x in xrange(1, 10):
+    for x in range(1, 10):
 
         varint_byte = ord(byte_array[offset + varint_relative_offset:offset + varint_relative_offset + 1])
         varint_relative_offset += 1
@@ -92,7 +87,9 @@ def decode_varint(byte_array, offset=0):
     return signed_integer_value, varint_relative_offset
 
 
-def encode_varint(value):
+def encode_varint(value: int):
+    # Ensure the value is an int, despite Python type hinting
+    value = int(value)
     max_allowed = 0x7fffffffffffffff
     min_allowed = (max_allowed + 1) - 0x10000000000000000
     if value > max_allowed or value < min_allowed:
@@ -108,17 +105,16 @@ def encode_varint(value):
     if value & 0xff000000 << 32:
 
         byte = value & 0xff
-        byte_array.insert(0, pack("B", byte))
+        byte_array.insert(0, byte)
         value >>= 8
 
-        for _ in xrange(8):
-            byte_array.insert(0, pack("B", (value & 0x7f) | 0x80))
+        for _ in range(8):
+            byte_array.insert(0, ((value & 0x7f) | 0x80))
             value >>= 7
 
     else:
-
         while value:
-            byte_array.insert(0, pack("B", (value & 0x7f) | 0x80))
+            byte_array.insert(0, ((value & 0x7f) | 0x80))
             value >>= 7
 
             if len(byte_array) >= 9:
@@ -128,7 +124,7 @@ def encode_varint(value):
                 getLogger(LOGGER_NAME).error(log_message)
                 raise InvalidVarIntError(log_message)
 
-        byte_array[-1] &= 0x7f
+        byte_array = byte_array[:-1] + pack("B", (byte_array[-1] & 0x7f))
 
     return byte_array
 
@@ -150,6 +146,9 @@ def get_class_instance(class_name):
 
 def get_md5_hash(string):
     md5_hash = md5()
+    # Ensure the string is properly encoded as a binary string
+    if isinstance(string, str):
+        string = string.encode()
     md5_hash.update(string)
     return md5_hash.hexdigest().upper()
 
@@ -173,7 +172,7 @@ def get_record_content(serial_type, record_body, offset=0):
     # Big-endian 24-bit twos-complement integer
     elif serial_type == 3:
         content_size = 3
-        value_byte_array = '\0' + record_body[offset:offset + content_size]
+        value_byte_array = b'\0' + record_body[offset:offset + content_size]
         value = unpack(b">I", value_byte_array)[0]
         if value & 0x800000:
             value -= 0x1000000
@@ -186,7 +185,7 @@ def get_record_content(serial_type, record_body, offset=0):
     # Big-endian 48-bit twos-complement integer
     elif serial_type == 5:
         content_size = 6
-        value_byte_array = '\0' + '\0' + record_body[offset:offset + content_size]
+        value_byte_array = b'\0' + b'\0' + record_body[offset:offset + content_size]
         value = unpack(b">Q", value_byte_array)[0]
         if value & 0x800000000000:
             value -= 0x1000000000000
@@ -217,12 +216,12 @@ def get_record_content(serial_type, record_body, offset=0):
 
     # A BLOB that is (N-12)/2 bytes in length
     elif serial_type >= 12 and serial_type % 2 == 0:
-        content_size = (serial_type - 12) / 2
+        content_size = int((serial_type - 12) / 2)
         value = record_body[offset:offset + content_size]
 
     # A string in the database encoding and is (N-13)/2 bytes in length.  The nul terminator is omitted
     elif serial_type >= 13 and serial_type % 2 == 1:
-        content_size = (serial_type - 13) / 2
+        content_size = int((serial_type - 13) / 2)
         value = record_body[offset:offset + content_size]
 
     else:
@@ -250,7 +249,7 @@ def has_content(byte_array):
     return True
 
 
-def is_sqlite_file(path):
+def is_sqlite_file(path: str) -> bool:
     """
     Determines if the specified file contains the magic bytes to indicate it is a SQLite file. This is not meant to be a
     full validation of the file format, and that is asserted within the class at file/database/header.py.
@@ -269,13 +268,12 @@ def is_sqlite_file(path):
         with open(path, "rb") as sqlite:
             header = sqlite.read(SQLITE_DATABASE_HEADER_LENGTH)
             header_magic = header[0:16]
-            magic = MAGIC_HEADER_STRING.decode(MAGIC_HEADER_STRING_ENCODING)
-            return header_magic == magic
+            return header_magic == MAGIC_HEADER_STRING
     except IOError as e:
         logging.error("Invalid SQLite file found: {}".format(e))
 
 
-def get_sqlite_files(path):
+def get_sqlite_files(path: str) -> []:
     """
     Parses the path, validates it exists, and returns a list of all valid file(s) at the provided path. If the provided
     path is a file, it ensures it's a valid SQLite file and returns the path. If it's a directory, it validates all
@@ -310,7 +308,7 @@ def get_sqlite_files(path):
     return sqlite_files
 
 
-def create_directory(dir_path):
+def create_directory(dir_path: str) -> bool:
     """
     Creates a directory if it doesn't already exist.
     :param dir_path: The path of the directory to create
@@ -327,7 +325,7 @@ def create_directory(dir_path):
     return exists(dir_path) and isdir(dir_path)
 
 
-def hash_file(file_path, hash_algo=hashlib.sha256()):
+def hash_file(file_path: str, hash_algo=hashlib.sha256()) -> str:
     """
     Generates a hash of a file by chunking it and utilizing the Python hashlib library.
     """
@@ -344,6 +342,24 @@ def hash_file(file_path, hash_algo=hashlib.sha256()):
             hash_algo.update(chunk)
     return hash_algo.hexdigest()
 
+
+def decode_str(string):
+    """Python compatibility for auto-detecting encoded strings and decoding them"""
+    if isinstance(string, bytes):
+        return string.decode()
+    else:
+        return string
+
+def append_byte_strings(str1: str, str2: str) -> str:
+    """
+    Appends two strings together and returns the result. Will convert to b-strings if the string is not already one.
+    """
+    if not isinstance(str1, bytes):
+        str1 = str1.encode()
+    if not isinstance(str2, bytes):
+        str2 = str2.encode()
+
+    return f"{str1}{str2}"
 
 # Uses ArgumentParser from argparse to evaluate user arguments.
 def parse_args(args=None):
@@ -407,11 +423,18 @@ def parse_args(args=None):
                                     "directory by default (under development, currently only outputs to csv, output "
                                     "directory needs to be specified)")
 
-    parser.add_argument("-r", "--exempted-tables",
+    table_group = parser.add_mutually_exclusive_group()
+    table_group.add_argument("-r", "--exempted-tables",
                         metavar="EXEMPTED_TABLES",
                         env_var="SQLD_EXEMPTED_TABLES",
                         help="comma-delimited string of tables [table1,table2,table3] to exempt (only implemented "
                              "and allowed for rollback journal parsing currently) ex.) table1,table2,table3")
+
+    table_group.add_argument("-b", "--tables",
+                        metavar="TABLES",
+                        env_var="SQLD_TABLES",
+                        help="specified comma-delimited string of tables [table1,table2,table3] to carve "
+                             "ex.) table1,table2,table3")
 
     parser.add_argument("-s", "--schema",
                         action="store_true",
@@ -440,12 +463,6 @@ def parse_args(args=None):
                         env_var="SQLD_CARVE_FREELISTS",
                         default=False,
                         help="carves freelist pages (carving must be enabled, under development)")
-
-    parser.add_argument("-b", "--tables",
-                        metavar="TABLES",
-                        env_var="SQLD_TABLES",
-                        help="specified comma-delimited string of tables [table1,table2,table3] to carve "
-                             "ex.) table1,table2,table3")
 
     parser.add_argument("-k", "--disable-strict-format-checking",
                         action="store_true",

@@ -56,7 +56,6 @@ TriggerRow(MasterSchemaRow)
 
 
 class MasterSchema(object):
-
     MasterSchemaEntryData = namedtuple("MasterSchemaEntryData",
                                        "record_columns row_type sql b_tree_table_leaf_page_number cell")
 
@@ -291,10 +290,10 @@ class MasterSchema(object):
         self.master_schema_page_numbers = [master_schema_page.number for master_schema_page in self.master_schema_pages]
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_master_schema_root_page=True,
                   print_master_schema_entries=True, print_b_tree_root_pages=True):
@@ -422,7 +421,7 @@ class MasterSchema(object):
                 logger.error(log_message)
                 raise MasterSchemaParsingError(log_message)
 
-            for row_type, row_type_data in returned_master_schema_entry_data.iteritems():
+            for row_type, row_type_data in returned_master_schema_entry_data.items():
                 if row_type in master_schema_entry_data:
                     master_schema_entry_data[row_type].extend(row_type_data)
                 else:
@@ -470,7 +469,6 @@ class MasterSchema(object):
 
 
 class MasterSchemaRow(object):
-
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -589,15 +587,15 @@ class MasterSchemaRow(object):
 
         """
 
-        master_schema_entry_identifier_string = "{}{}{}{}".format(self.row_id, self.row_type, self.name,
+        master_schema_entry_identifier_string = "{}{}{}{}{}".format(self.row_id, self.row_type, self.name,
                                                                   self.table_name, self.sql)
         self.md5_hash_identifier = get_md5_hash(master_schema_entry_identifier_string)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding="", print_record_columns=True):
         string = padding + "Version Number: {}\n" \
@@ -629,7 +627,7 @@ class MasterSchemaRow(object):
         for comment in self.comments:
             string += "\n" + padding + "Comment: {}".format(comment)
         if print_record_columns:
-            for index, record_column in self.record_columns.iteritems():
+            for index, record_column in self.record_columns.items():
                 string += "\n" \
                           + padding + "Record Column {}:\n{}:".format(index, record_column.stringify(padding + "\t"))
         return string
@@ -677,7 +675,7 @@ class MasterSchemaRow(object):
         if remaining_sql_command[0] == "[":
 
             # The table name or index name is surrounded by brackets
-            match_object = match("^\[(.*?)\]", remaining_sql_command)
+            match_object = match(r"^\[(.*?)\]", remaining_sql_command)
 
             if not match_object:
                 log_message = "No bracket match found for {} name in sql for {} row name: {} and sql: {}."
@@ -784,7 +782,6 @@ class MasterSchemaRow(object):
                     # Check to make sure the full comment indicators were found for "--" and "/*"
                     if (character == '-' and remaining_sql_command[index + 1] != '-') or \
                             (character == '/' and remaining_sql_command[index + 1] != '*'):
-
                         log_message = "Comment indicator '{}' found followed by an invalid secondary comment " \
                                       "indicator: {} found in {} name in sql for {} row name: {} and sql: {}."
                         log_message = log_message.format(character, remaining_sql_command[index + 1],
@@ -1417,7 +1414,7 @@ class OrdinaryTableRow(TableRow):
                         Note: When the check is done on the definition, we check the next character is not one of the
                               allowed characters in a column name to make sure the constraint preface is not the
                               beginning of a longer column name where it is not actually a constraint preface
-                              (example: primaryEmail).  The "\w" regular expression when no LOCALE and UNICODE flags
+                              (example: primaryEmail).  The r'\w' regular expression when no LOCALE and UNICODE flags
                               are set will be equivalent to the set: [a-zA-Z0-9_].
 
                         """
@@ -1426,7 +1423,7 @@ class OrdinaryTableRow(TableRow):
                         if definition[:len(table_constraint_preface)].upper() == table_constraint_preface:
 
                             if not (len(table_constraint_preface) + 1 <= len(definition)
-                                    and match("\w", definition[len(table_constraint_preface)])):
+                                    and match(r"\w", definition[len(table_constraint_preface)])):
 
                                 # We have found a table constraint here and make sure this is not the first definition
                                 if definition_index == 0:
@@ -1625,7 +1622,7 @@ class OrdinaryTableRow(TableRow):
             log_message = "A table specified without a row id was found in table row with name: {} and sql: {}.  " \
                           "This use case is not fully implemented."
             log_message = log_message.format(self.name, self.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
     def stringify(self, padding="", print_record_columns=True,
@@ -1861,7 +1858,7 @@ class VirtualTableRow(TableRow):
         log_message = "Virtual table name: {} was found with module name: {} and sql: {}.  Virtual table modules are " \
                       "not fully implemented."
         log_message = log_message.format(self.name, self.module_name, self.sql)
-        logger.warn(log_message)
+        logger.warning(log_message)
         warn(log_message, RuntimeWarning)
 
         """
@@ -1992,7 +1989,7 @@ class IndexRow(MasterSchemaRow):
         if table_row.without_row_id:
             log_message = "Index row with name: {} and table name: {} was found to rely on a table without a row id."
             log_message = log_message.format(self.name, self.table_name)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         """
@@ -2037,7 +2034,7 @@ class IndexRow(MasterSchemaRow):
             log_message = "A index internal schema object found in index row with name: {} " \
                           "and sql: {}.  This is not fully implemented and may cause issues with index pages."
             log_message = log_message.format(self.name, self.sql)
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         else:
@@ -2278,7 +2275,7 @@ class IndexRow(MasterSchemaRow):
                 log_message = "A index specified as a partial index was found in index row with name: {} " \
                               "and sql: {}.  This use case is not fully implemented."
                 log_message = log_message.format(self.name, self.sql)
-                logger.warn(log_message)
+                logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
     def stringify(self, padding="", print_record_columns=True):
@@ -2297,7 +2294,6 @@ class ViewRow(MasterSchemaRow):
 
     def __init__(self, version_interface, b_tree_table_leaf_page_number,
                  b_tree_table_leaf_cell, record_columns, tables):
-
         super(ViewRow, self).__init__(version_interface, b_tree_table_leaf_page_number,
                                       b_tree_table_leaf_cell, record_columns)
 
@@ -2314,7 +2310,6 @@ class TriggerRow(MasterSchemaRow):
 
     def __init__(self, version_interface, b_tree_table_leaf_page_number,
                  b_tree_table_leaf_cell, record_columns, tables, views):
-
         super(TriggerRow, self).__init__(version_interface, b_tree_table_leaf_page_number,
                                          b_tree_table_leaf_cell, record_columns)
 

@@ -2,7 +2,6 @@ from abc import ABCMeta
 from binascii import hexlify
 from logging import getLogger
 from re import compile
-from re import sub
 from struct import error
 from struct import unpack
 from warnings import warn
@@ -12,7 +11,6 @@ from sqlite_dissect.constants import LEAF_PAGE_HEADER_LENGTH
 from sqlite_dissect.constants import LEAF_PAYLOAD_FRACTION
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.constants import MAGIC_HEADER_STRING
-from sqlite_dissect.constants import MAGIC_HEADER_STRING_ENCODING
 from sqlite_dissect.constants import MASTER_PAGE_HEX_ID
 from sqlite_dissect.constants import MAXIMUM_EMBEDDED_PAYLOAD_FRACTION
 from sqlite_dissect.constants import MAXIMUM_PAGE_SIZE
@@ -68,7 +66,7 @@ class DatabaseHeader(SQLiteHeader):
             logger.error("Failed to retrieve the magic header.")
             raise
 
-        if self.magic_header_string != MAGIC_HEADER_STRING.decode(MAGIC_HEADER_STRING_ENCODING):
+        if self.magic_header_string != MAGIC_HEADER_STRING:
             log_message = "The magic header string is invalid."
             logger.error(log_message)
             raise HeaderParsingError(log_message)
@@ -211,7 +209,7 @@ class DatabaseHeader(SQLiteHeader):
             """
 
             log_message = "Schema format number and database text encoding are 0 indicating no schema or data."
-            logger.warn(log_message)
+            logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
         else:
@@ -260,7 +258,7 @@ class DatabaseHeader(SQLiteHeader):
         self.reserved_for_expansion = database_header_byte_array[72:92]
 
         pattern = compile(RESERVED_FOR_EXPANSION_REGEX)
-        reserved_for_expansion_hex = hexlify(self.reserved_for_expansion)
+        reserved_for_expansion_hex = hexlify(self.reserved_for_expansion).decode()
         if not pattern.match(reserved_for_expansion_hex):
             log_message = "Header space reserved for expansion is not zero: {}.".format(reserved_for_expansion_hex)
             logger.error(log_message)
@@ -356,10 +354,10 @@ class BTreePageHeader(object):
         self.md5_hex_digest = get_md5_hash(page[self.offset:self.header_length])
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Contains SQLite Database Header: {}\n" \

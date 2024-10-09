@@ -1,7 +1,6 @@
 from abc import ABCMeta
 from abc import abstractmethod
 from logging import getLogger
-from re import sub
 from sqlite_dissect.constants import LOGGER_NAME
 
 """
@@ -30,10 +29,10 @@ class SQLiteHeader(object):
         self.md5_hex_digest = None
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     @abstractmethod
     def stringify(self, padding=""):

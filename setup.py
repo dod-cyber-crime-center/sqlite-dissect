@@ -47,14 +47,18 @@ setup(name="sqlite_dissect",
                 "sqlite_dissect.carving",
                 "sqlite_dissect.export"],
       classifiers=[
-          "Programming Language :: Python :: 2",
-          "Programming Language :: Python :: 2.7"
+          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.8",
+          "Programming Language :: Python :: 3.9",
+          "Programming Language :: Python :: 3.10",
+          "Programming Language :: Python :: 3.11",
+          "Programming Language :: Python :: 3.12",
       ],
       entry_points={
           'console_scripts': ['sqlite_dissect=sqlite_dissect.entrypoint:cli'],
       },
       install_requires=[
-          "openpyxl==2.6.4",
+          "openpyxl",
           "ConfigArgParse"
       ],
       zip_safe=False

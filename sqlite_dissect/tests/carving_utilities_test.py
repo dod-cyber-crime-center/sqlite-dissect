@@ -1,5 +1,4 @@
 import pytest
-from os.path import abspath, dirname, join
 
 from sqlite_dissect.carving.utilities import decode_varint_in_reverse, generate_regex_for_simplified_serial_type, \
     calculate_body_content_size, calculate_serial_type_definition_content_length_min_max, \
@@ -8,31 +7,7 @@ from sqlite_dissect.carving.utilities import decode_varint_in_reverse, generate_
 from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
 from sqlite_dissect.exception import CarvingError
 from sqlite_dissect.utilities import encode_varint
-from sqlite_dissect.file.database.database import Database
-from sqlite_dissect.version_history import VersionHistory
-from sqlite_dissect.file.wal.wal import WriteAheadLog
-from sqlite_dissect.constants import MASTER_SCHEMA_ROW_TYPE
-from sqlite_dissect.carving.signature import Signature
 
-'''
-def encode_varint(value):
-    bit_length = len(bin(value).strip('0b'))
-    encoded_string = bytearray()
-    if value >> 64:
-        return None
-    elif value >> 56:
-        encoded_string.insert(0, value & 0xFF)
-        value >>= 8
-    else:
-        encoded_string.insert(0, value & 0x7F)
-        value >>= 7
-    while value != 0:
-        byte_to_insert = (value & 0x7F) | 0x80
-        encoded_string.insert(0, byte_to_insert)
-        value >>= 7
-
-    return encoded_string
-'''
 
 varint_tuples = [
     (0x10, encode_varint(0x10)),
@@ -50,7 +25,7 @@ varint_tuples = [
 @pytest.mark.parametrize('value, encoded_value', varint_tuples)
 def test_decode_varint_in_reverse(value, encoded_value):
     with pytest.raises(ValueError):
-        decode_varint_in_reverse(bytearray('0'*9), 11)
+        decode_varint_in_reverse(bytearray(b'0'*9), 11)
 
     assert decode_varint_in_reverse(encoded_value, len(encoded_value))[0] == value
 
@@ -83,7 +58,7 @@ def test_generate_regex_for_simplified_serial_type():
     # hardcoded values for -2 and -1
     # hex string for 0-9
     # CarvingError for anything else
-    assert generate_regex_for_simplified_serial_type(4) == "\x04"
+    assert generate_regex_for_simplified_serial_type(4) == b"\x04"
 
     with pytest.raises(CarvingError):
         generate_regex_for_simplified_serial_type(-10)
@@ -135,11 +110,11 @@ generate_signature_regex_params = [
     ([[1] * 20], False, -1),
     ([[-1, -1]], False, -1),
     ([[-2, -2]], False, -1),
-    ([[-1, -2]], False, '(?:(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])|(?:[\x0C-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
-    ([[0, 1, -1]], False, '(?:[\x00\x01]|(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
-    ([[0, 1, -2]], False, '(?:[\x00\x01]|(?:[\x0C-\x7f]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
-    ([[0, 1, -2], [1, -2]], True, '(?:[\x01]|(?:[\x0C-\x7f]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
-    ([[0, 1]], False, '[\x00\x01]')
+    ([[-1, -2]], False, b'(?:(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])|(?:[\x0C-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
+    ([[0, 1, -1]], False, b'(?:[\x00\x01]|(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
+    ([[0, 1, -2]], False, b'(?:[\x00\x01]|(?:[\x0C-\x7f]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
+    ([[0, 1, -2], [1, -2]], True, b'(?:[\x01]|(?:[\x0C-\x7f]|[\x80-\xFF]{1,7}[\x00-\x7F]))'),
+    ([[0, 1]], False, b'[\x00\x01]')
 ]
 
 

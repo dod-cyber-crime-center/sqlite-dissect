@@ -1,6 +1,5 @@
 from binascii import hexlify
 from logging import getLogger
-from re import sub
 from struct import unpack
 from sqlite_dissect.constants import ENDIANNESS
 from sqlite_dissect.constants import LOGGER_NAME
@@ -235,10 +234,10 @@ class WriteAheadLogIndexCheckpointInfo(object):
         self.md5_hex_digest = get_md5_hash(wal_index_checkpoint_info_byte_array)
 
     def __repr__(self):
-        return self.__str__().encode("hex")
+        return self.__str__()
 
     def __str__(self):
-        return sub("\t", "", sub("\n", " ", self.stringify()))
+        return self.stringify().replace('\t', '').replace('\n', ' ')
 
     def stringify(self, padding=""):
         string = padding + "Endianness: {}\n" \

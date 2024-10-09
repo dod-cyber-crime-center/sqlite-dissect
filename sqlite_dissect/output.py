@@ -1,15 +1,10 @@
 from binascii import hexlify
 from logging import getLogger
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import PAGE_TYPE
-from sqlite_dissect.constants import UTF_8
-from sqlite_dissect.file.database.page import BTreePage
-from sqlite_dissect.file.database.page import IndexInteriorPage
-from sqlite_dissect.file.database.page import IndexLeafPage
-from sqlite_dissect.file.database.page import TableInteriorPage
-from sqlite_dissect.file.database.page import TableLeafPage
+from sqlite_dissect.constants import LOGGER_NAME, PAGE_TYPE, UTF_8
+from sqlite_dissect.file.database.page import BTreePage, IndexInteriorPage, IndexLeafPage, TableInteriorPage, \
+    TableLeafPage
 from sqlite_dissect.exception import OutputError
-from sqlite_dissect.utilities import has_content
+from sqlite_dissect.utilities import has_content, decode_str
 
 """
 
@@ -39,7 +34,7 @@ def get_page_breakdown(pages):
     page_breakdown = {}
     for page_type in PAGE_TYPE:
         page_breakdown[page_type] = []
-    for page_number, page in pages.iteritems():
+    for page_number, page in pages.items():
         page_breakdown[page.page_type].append(page_number)
     return page_breakdown
 
@@ -64,17 +59,17 @@ def get_pointer_map_entries_breakdown(version):
         last_page_number = pointer_map_page.number + 1
         last_entry = None
         for entry in pointer_map_page.pointer_map_entries:
-            if hexlify(last_type_seen) != hexlify(entry.page_type):
+            if hexlify(str.encode(last_type_seen)) != hexlify(str.encode(entry.page_type)):
                 pages = entry.page_number - last_page_number
                 breakdown = (pointer_map_page.number, last_page_number, entry.page_number - 1,
-                             pages, hexlify(last_entry.page_type))
+                             pages, hexlify(str.encode(last_entry.page_type)))
                 pointer_map_entries_breakdown.append(breakdown)
                 last_page_number = entry.page_number
             last_type_seen = entry.page_type
             last_entry = entry
         pages = last_entry.page_number - last_page_number + 1
         breakdown = (pointer_map_page.number, last_page_number, last_entry.page_number,
-                     pages, hexlify(last_entry.page_type))
+                     pages, hexlify(str.encode(last_entry.page_type)))
         pointer_map_entries_breakdown.append(breakdown)
 
     return pointer_map_entries_breakdown
@@ -146,7 +141,8 @@ def stringify_cell_record(cell, database_text_encoding, page_type):
                     column_values.append(str(value))
             else:
                 column_values.append("NULL")
-        content = "(" + ", ".join(column_values) + ")"
+
+        content = "(" + ", ".join(list(map(decode_str, column_values))) + ")"
         return "#{}: {}".format(cell.row_id, content)
 
     elif page_type == PAGE_TYPE.B_TREE_INDEX_LEAF:
@@ -162,6 +158,9 @@ def stringify_cell_record(cell, database_text_encoding, page_type):
                     column_values.append(str(value))
             else:
                 column_values.append("NULL")
+
+        # Convert any binary strings into regular strings else it can't be joined properly
+        column_values = [decode_str(s) for s in column_values]
         content = "(" + ", ".join(column_values) + ")"
         return content
 
@@ -202,14 +201,14 @@ def stringify_master_schema_versions(version_history):
 
     master_schema_entries = {}
 
-    for version_number, version in version_history.versions.iteritems():
+    for version_number, version in version_history.versions.items():
 
         if version.master_schema_modified:
 
             modified_master_schema_entries = dict(map(lambda x: [x.md5_hash_identifier, x],
                                                       version.master_schema.master_schema_entries))
 
-            for md5_hash_identifier, master_schema_entry in modified_master_schema_entries.iteritems():
+            for md5_hash_identifier, master_schema_entry in modified_master_schema_entries.items():
 
                 if md5_hash_identifier not in master_schema_entries:
 
@@ -237,7 +236,7 @@ def stringify_master_schema_versions(version_history):
 
                     master_schema_entries[md5_hash_identifier] = master_schema_entry
 
-            for md5_hash_identifier, master_schema_entry in master_schema_entries.iteritems():
+            for md5_hash_identifier, master_schema_entry in master_schema_entries.items():
 
                 if md5_hash_identifier not in modified_master_schema_entries:
 
@@ -261,7 +260,7 @@ def stringify_page_history(version_history, padding=""):
 
 def stringify_page_information(version, padding=""):
     string = padding + "Page Breakdown:"
-    for page_type, page_array in get_page_breakdown(version.pages).iteritems():
+    for page_type, page_array in get_page_breakdown(version.pages).items():
         page_array_length = len(page_array)
         string += "\n" + padding + "\t" + "{}: {} Page Numbers: {}"
         string = string.format(page_type, page_array_length, page_array)
@@ -313,7 +312,7 @@ def stringify_page_structure(version, padding=""):
 def stringify_unallocated_space(version, padding="", include_empty_space=True):
     string = ""
     calculated_total_fragmented_bytes = 0
-    for page_number, page in version.pages.iteritems():
+    for page_number, page in version.pages.items():
 
         unallocated_content = page.unallocated_content
         if len(unallocated_content):
@@ -358,7 +357,7 @@ def stringify_version_pages(version, padding=""):
                                                                    version.updated_page_numbers)
 
     page_versions = {}
-    for page_number, page_version_number in version.page_version_index.iteritems():
+    for page_number, page_version_number in version.page_version_index.items():
         if page_version_number in page_versions:
             page_versions[page_version_number] = page_versions[page_version_number] + ", " + str(page_number)
         else:

@@ -1,11 +1,7 @@
-from binascii import hexlify
-from binascii import unhexlify
+from binascii import hexlify, unhexlify
 from logging import getLogger
-from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
-from sqlite_dissect.exception import CarvingError
-from sqlite_dissect.exception import InvalidVarIntError
+from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER, LOGGER_NAME, TEXT_SIGNATURE_IDENTIFIER, UTF_8
+from sqlite_dissect.exception import CarvingError, InvalidVarIntError
 from sqlite_dissect.utilities import decode_varint
 
 """
@@ -26,10 +22,9 @@ get_content_size(serial_type)
 """
 
 
-def decode_varint_in_reverse(byte_array, offset, max_varint_length=9):
+def decode_varint_in_reverse(byte_array: bytearray, offset: int, max_varint_length=9):
 
     """
-
     This function will move backwards through a byte array trying to decode a varint in reverse.  A InvalidVarIntError
     will be raised if a varint is not found by this algorithm used in this function.  The calling logic should check
     for this case in case it is encountered which is likely in the context of carving.
@@ -57,7 +52,6 @@ def decode_varint_in_reverse(byte_array, offset, max_varint_length=9):
                                  algorithm in this function.  This error is not logged as an error but rather a
                                  debug statement since it is very likely to occur during carving and should be handled
                                  appropriately.
-
     """
 
     if offset > len(byte_array):
@@ -180,9 +174,9 @@ def generate_regex_for_simplified_serial_type(simplified_serial_type):
     """
 
     if simplified_serial_type == -2:
-        return "(?:[\x0C-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])"
+        return b"(?:[\x0C-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])"
     elif simplified_serial_type == -1:
-        return "(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])"
+        return b"(?:[\x0D-\x7F]|[\x80-\xFF]{1,7}[\x00-\x7F])"
     elif 0 <= simplified_serial_type <= 9:
         return unhexlify("0{}".format(simplified_serial_type))
     else:
@@ -192,7 +186,7 @@ def generate_regex_for_simplified_serial_type(simplified_serial_type):
         raise CarvingError(log_message)
 
 
-def generate_signature_regex(signature, skip_first_serial_type=False):
+def generate_signature_regex(signature: list, skip_first_serial_type: bool = False):
 
     """
 
@@ -217,7 +211,7 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
 
     """
 
-    regex = ""
+    regex = b""
 
     if skip_first_serial_type:
         signature = signature[1:]
@@ -242,9 +236,9 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
 
             """
 
-            basic_serial_type_regex = ""
-            blob_regex = ""
-            text_regex = ""
+            basic_serial_type_regex = b""
+            blob_regex = b""
+            text_regex = b""
 
             for column_serial_type in column_serial_type_array:
                 if column_serial_type == -1:
@@ -257,7 +251,7 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
             if blob_regex or text_regex:
 
                 if basic_serial_type_regex:
-                    basic_serial_type_regex = "[{}]".format(basic_serial_type_regex)
+                    basic_serial_type_regex = b"[%b]" % basic_serial_type_regex
 
                 if blob_regex and not text_regex:
 
@@ -269,7 +263,7 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
                         getLogger(LOGGER_NAME).error(log_message)
                         raise CarvingError(log_message)
 
-                    regex += "(?:{}|{})".format(basic_serial_type_regex, blob_regex)
+                    regex += b"(?:%b|%b)" % (basic_serial_type_regex, blob_regex)
 
                 elif not blob_regex and text_regex:
 
@@ -282,15 +276,15 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
                         getLogger(LOGGER_NAME).error(log_message)
                         raise CarvingError(log_message)
 
-                    regex += "(?:{}|{})".format(basic_serial_type_regex, text_regex)
+                    regex += b"(?:%b|%b)" % (basic_serial_type_regex, text_regex)
 
                 elif blob_regex and text_regex:
 
-                    var_length_regex = blob_regex + "|" + text_regex
+                    var_length_regex = blob_regex + b"|" + text_regex
                     if basic_serial_type_regex:
-                        regex += "(?:{}|{})".format(basic_serial_type_regex, var_length_regex)
+                        regex += b"(?:%b|%b)" % (basic_serial_type_regex, var_length_regex)
                     else:
-                        regex += "(?:{})".format(var_length_regex)
+                        regex += b"(?:%b)" % var_length_regex
 
                 else:
                     log_message = "No appropriate regular expressions were found for basic serial type, blob, or " \
@@ -317,7 +311,7 @@ def generate_signature_regex(signature, skip_first_serial_type=False):
                     getLogger(LOGGER_NAME).error(log_message)
                     raise CarvingError(log_message)
 
-                regex += "[{}]".format(basic_serial_type_regex)
+                regex += b"[%b]" % basic_serial_type_regex
 
         else:
 
@@ -376,9 +370,9 @@ def get_content_size(serial_type):
     elif serial_type >= 12 and serial_type % 2 == 0:
         return (serial_type - 12) / 2
 
-    # A string in the database encoding and is (N-13)/2 bytes in length.  The nul terminator is omitted
+    # A string in the database encoding and is (N-13)/2 bytes in length.  The null terminator is omitted
     elif serial_type >= 13 and serial_type % 2 == 1:
-        return (serial_type - 13) / 2
+        return int((serial_type - 13) / 2)
 
     else:
         log_message = "Invalid serial type: {}."

@@ -26,10 +26,14 @@
 
 # testing
 /sqlite_dissect/tests/log_files/
+/abc
+/xyz
 
 # Other
 /output
 /log
+
+# PyTest and Coverage
 /case
 /.pytest_cache
 /htmlcov

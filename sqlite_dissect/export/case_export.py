@@ -8,6 +8,7 @@ import json
 import uuid
 from datetime import datetime
 from os import path
+from typing import Optional
 
 from sqlite_dissect._version import __version__
 from sqlite_dissect.utilities import hash_file
@@ -201,8 +202,9 @@ class CaseExporter(object):
             return guid
         else:
             self.logger.critical('Attempting to add invalid filepath to CASE Observable export: {}'.format(filepath))
+            return None
 
-    def link_observable_relationship(self, source_guid, target_guid, relationship):
+    def link_observable_relationship(self, source_guid: str, target_guid: str, relationship: str) -> None:
         self.case['@graph'].append({
             "@id": ("kb:export-artifact-relationship-" + str(uuid.uuid4())),
             "@type": "uco-observable:ObservableRelationship",
@@ -219,7 +221,7 @@ class CaseExporter(object):
             "uco-core:isDirectional": True
         })
 
-    def add_export_artifacts(self, export_paths=None):
+    def add_export_artifacts(self, export_paths: list = None):
         """
         Loops through the list of provided export artifact paths and adds them as observables and links them to the
         original observable artifact
@@ -233,7 +235,7 @@ class CaseExporter(object):
             # Add the export result GUID to the list to be extracted
             self.result_guids.append(export_guid)
 
-    def generate_provenance_record(self, description, guids):
+    def generate_provenance_record(self, description: str, guids: list) -> Optional[str]:
         """
         Generates a provenance record for the tool and returns the GUID for the new object
         """
@@ -254,7 +256,7 @@ class CaseExporter(object):
         else:
             return None
 
-    def generate_header(self):
+    def generate_header(self) -> str:
         """
         Generates the header for the tool and returns the GUID for the ObservableRelationships
         """
@@ -293,7 +295,7 @@ class CaseExporter(object):
 
         return tool_guid
 
-    def generate_investigation_action(self, source_guids, tool_guid):
+    def generate_investigation_action(self, source_guids: list, tool_guid: str):
         """
         Builds the investigative action object as defined in the CASE ontology. This also takes in the start and end
         datetimes from the analysis.
@@ -327,7 +329,7 @@ class CaseExporter(object):
             }
         self.case['@graph'].append(action)
 
-    def export_case_file(self, export_path='output/case.json'):
+    def export_case_file(self, export_path: str = 'output/case.json'):
         """
         Exports the built CASE object to the path specified in the export_path parameter.
         """
