@@ -27,7 +27,7 @@ class ColumnDefinition(object):
         logger = getLogger(LOGGER_NAME)
 
         self.index = index
-        self.column_text = sub("\s\s+", " ", column_text.strip())
+        self.column_text = sub(r"\s\s+", " ", column_text.strip())
 
         """
 
@@ -112,7 +112,7 @@ class ColumnDefinition(object):
             raise MasterSchemaRowParsingError(log_message)
 
         # Update the parsed column text replacing any whitespace with a single " " character and stripping it
-        parsed_column_text = sub("\s\s+", " ", parsed_column_text.strip())
+        parsed_column_text = sub(r"\s\s+", " ", parsed_column_text.strip())
 
         # Check the comments sent in for validity
         if comments:
@@ -188,7 +188,7 @@ class ColumnDefinition(object):
             # Get the next segment
             segment = remaining_column_text[:segment_index + 1]
 
-            if (len(segment) == len(remaining_column_text) or match("\w", remaining_column_text[segment_index + 1])) \
+            if (len(segment) == len(remaining_column_text) or match(r"\w", remaining_column_text[segment_index + 1])) \
                 and ColumnDefinition._is_column_constraint_preface(segment):
 
                 """
@@ -222,8 +222,8 @@ class ColumnDefinition(object):
 
                 """
 
-                segment = sub("\s*\(\s*", "(", segment)
-                segment = sub("\s*\)\s*", ")", segment)
+                segment = sub(r"\s*\(\s*", "(", segment)
+                segment = sub(r"\s*\)\s*", ")", segment)
                 segment = segment.strip()
 
                 # Convert it to all uppercase for the derived data type name
@@ -325,7 +325,7 @@ class ColumnDefinition(object):
         elif column_text[0] == "[":
 
             # The column name is surrounded by brackets
-            match_object = match("^\[(.*?)\]", column_text)
+            match_object = match(r"^\[(.*?)\]", column_text)
 
             if not match_object:
                 log_message = "No bracket match found for sql column definition: {} with text: {}."
@@ -427,7 +427,7 @@ class ColumnDefinition(object):
         derived_data_type = derived_data_type.upper()
 
         # Remove any parenthesis along with numerical values
-        derived_data_type = sub("\(.*\)$", "", derived_data_type)
+        derived_data_type = sub(r"\(.*\)$", "", derived_data_type)
 
         # Replace spaces with underscores
         derived_data_type = derived_data_type.replace(" ", "_")
@@ -435,7 +435,7 @@ class ColumnDefinition(object):
         for data_type in DATA_TYPE:
 
             # We remove any numerical values from the end since sqlite does not recognize them in the data types
-            if sub("_\d+.*$", "", data_type) == derived_data_type:
+            if sub(r"_\d+.*$", "", data_type) == derived_data_type:
                 return data_type
 
         # If no data type was found we return an invalid data type
@@ -544,7 +544,7 @@ class ColumnDefinition(object):
             Note: When the check is done on the segment, we check the next character is not one of the allowed
                   characters in a column name, data type, etc. to make sure the constraint preface is not the 
                   beginning of a longer name where it is not actually a constraint preface (example: primaryEmail).
-                  The "\w" regular expression when no LOCALE and UNICODE flags are set will be equivalent to the set:
+                  The r"\w" regular expression when no LOCALE and UNICODE flags are set will be equivalent to the set:
                   [a-zA-Z0-9_].
 
             """
@@ -552,7 +552,7 @@ class ColumnDefinition(object):
             # Check to see if the segment starts with the column constraint preface
             if segment.upper().startswith(column_constraint_preface):
                 if not (len(column_constraint_preface) + 1 <= len(segment)
-                        and match("\w", segment[len(column_constraint_preface)])):
+                        and match(r"\w", segment[len(column_constraint_preface)])):
                     return True
 
         return False
