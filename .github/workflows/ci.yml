@@ -16,7 +16,7 @@ jobs:
         # This allows the pipeline to be run against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9, 3.10]. This results
         # in linting and unit tests running for all listed versions as well as the creation of packages and wheels on
         # creation of a tag in Git.
-        python-version: [ "3.8", "3.10", "3.12" ]
+        python-version: [ "3.9", "3.10", "3.12" ]
 
     steps:
       # Get the code from the repository to be packaged
