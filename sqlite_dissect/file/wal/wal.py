@@ -1,9 +1,12 @@
 from logging import getLogger
 from warnings import warn
-from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import WAL_FRAME_HEADER_LENGTH
-from sqlite_dissect.constants import WAL_HEADER_LENGTH
+
+from sqlite_dissect.constants import (
+    FILE_TYPE,
+    LOGGER_NAME,
+    WAL_FRAME_HEADER_LENGTH,
+    WAL_HEADER_LENGTH,
+)
 from sqlite_dissect.exception import WalParsingError
 from sqlite_dissect.file.file_handle import FileHandle
 from sqlite_dissect.file.wal.frame import WriteAheadLogFrame
@@ -20,10 +23,14 @@ WriteAheadLog(object)
 """
 
 
-class WriteAheadLog(object):
-
-    def __init__(self, file_identifier, store_in_memory=False, file_size=None, strict_format_checking=True):
-
+class WriteAheadLog:
+    def __init__(
+        self,
+        file_identifier,
+        store_in_memory=False,
+        file_size=None,
+        strict_format_checking=True,
+    ):
         """
 
         Constructor.
@@ -35,15 +42,19 @@ class WriteAheadLog(object):
 
         """
 
-        self.file_handle = FileHandle(FILE_TYPE.WAL, file_identifier, file_size=file_size)
+        self.file_handle = FileHandle(
+            FILE_TYPE.WAL, file_identifier, file_size=file_size
+        )
         self.store_in_memory = store_in_memory
         self.strict_format_checking = strict_format_checking
 
         logger = getLogger(LOGGER_NAME)
 
-        frame_size = (WAL_FRAME_HEADER_LENGTH + self.file_handle.header.page_size)
+        frame_size = WAL_FRAME_HEADER_LENGTH + self.file_handle.header.page_size
 
-        self.number_of_frames = int((self.file_handle.file_size - WAL_HEADER_LENGTH) / frame_size)
+        self.number_of_frames = int(
+            (self.file_handle.file_size - WAL_HEADER_LENGTH) / frame_size
+        )
 
         valid_frame_array = []
         invalid_frame_array = []
@@ -79,15 +90,23 @@ class WriteAheadLog(object):
 
         for frame_index in range(int(self.number_of_frames)):
 
-            frame = WriteAheadLogFrame(self.file_handle, frame_index, commit_record_number)
+            frame = WriteAheadLogFrame(
+                self.file_handle, frame_index, commit_record_number
+            )
 
             # Check if the salt 1 values were different (invalid frame)
             if frame.header.salt_1 != self.file_handle.header.salt_1:
 
-                log_message = "Frame index: {} after commit record number: {} has salt 1 of {} when expected to " \
-                              "be: {} and is an invalid frame."
-                log_message = log_message.format(frame_index, commit_record_number - 1, frame.header.salt_1,
-                                                 self.file_handle.header.salt_1)
+                log_message = (
+                    "Frame index: {} after commit record number: {} has salt 1 of {} when expected to "
+                    "be: {} and is an invalid frame."
+                )
+                log_message = log_message.format(
+                    frame_index,
+                    commit_record_number - 1,
+                    frame.header.salt_1,
+                    self.file_handle.header.salt_1,
+                )
                 logger.debug(log_message)
 
                 # Check if this salt value was already put into the invalid frame indices dictionary
@@ -98,22 +117,34 @@ class WriteAheadLog(object):
 
                     # Check to make sure this frame index is the next one in the array
                     if indices[1] + 1 != frame_index:
-                        log_message = "Frame index: {} with salt 1 of {} when expected to be: {} after commit " \
-                                      "record number: {} has a different frame index than the expected: {}."
-                        log_message = log_message.format(frame_index, frame.header.salt_1,
-                                                         self.file_handle.header.salt_1, commit_record_number - 1,
-                                                         indices[1] + 1)
+                        log_message = (
+                            "Frame index: {} with salt 1 of {} when expected to be: {} after commit "
+                            "record number: {} has a different frame index than the expected: {}."
+                        )
+                        log_message = log_message.format(
+                            frame_index,
+                            frame.header.salt_1,
+                            self.file_handle.header.salt_1,
+                            commit_record_number - 1,
+                            indices[1] + 1,
+                        )
                         logger.error(log_message)
                         raise WalParsingError(log_message)
 
                     # Add the updated indices for the WAL value into the invalid frame indices dictionary
-                    self.invalid_frame_indices[frame.header.salt_1] = (indices[0], frame_index)
+                    self.invalid_frame_indices[frame.header.salt_1] = (
+                        indices[0],
+                        frame_index,
+                    )
 
                 # The salt value was not already put into the invalid frame indices dictionary
                 else:
 
                     # Add the indices for the salt value into the invalid frame indices dictionary
-                    self.invalid_frame_indices[frame.header.salt_1] = (frame_index, frame_index)
+                    self.invalid_frame_indices[frame.header.salt_1] = (
+                        frame_index,
+                        frame_index,
+                    )
 
                 # Update the commit record number to None (see above documentation and script header documentation)
                 frame.commit_record_number = None
@@ -124,10 +155,16 @@ class WriteAheadLog(object):
             # Check if the salt 2 values were different if the salt 1 values were the same (error)
             elif frame.header.salt_2 != self.file_handle.header.salt_2:
 
-                log_message = "Frame index: {} after commit record number: {} has salt 2 of {} when expected to " \
-                              "be: {} where the salt 1 values matched."
-                log_message = log_message.format(frame_index, commit_record_number - 1, frame.header.salt_1,
-                                                 self.file_handle.header.salt_1)
+                log_message = (
+                    "Frame index: {} after commit record number: {} has salt 2 of {} when expected to "
+                    "be: {} where the salt 1 values matched."
+                )
+                log_message = log_message.format(
+                    frame_index,
+                    commit_record_number - 1,
+                    frame.header.salt_1,
+                    self.file_handle.header.salt_1,
+                )
                 logger.error(log_message)
                 raise WalParsingError(log_message)
 
@@ -147,32 +184,46 @@ class WriteAheadLog(object):
                     commit_record_number += 1
 
         self.frames = dict(map(lambda x: [x.frame_index, x], valid_frame_array))
-        self.invalid_frames = dict(map(lambda x: [x.frame_index, x], invalid_frame_array))
+        self.invalid_frames = dict(
+            map(lambda x: [x.frame_index, x], invalid_frame_array)
+        )
 
         # Check if we had invalid frames
         if self.invalid_frames:
 
             # Print debug log messages on the WAL frame details
-            log_message = "The number of frames found in the wal file are: {} with {} valid frames between frame" \
-                          "indices {} and {} and {} invalid frames between frame indices {} and {}"
-            log_message = log_message.format(self.number_of_frames, len(self.frames), min(self.frames.keys()),
-                                             max(self.frames.keys()), len(self.invalid_frames),
-                                             min(self.invalid_frames.keys()), max(self.invalid_frames.keys()))
+            log_message = (
+                "The number of frames found in the wal file are: {} with {} valid frames between frame"
+                "indices {} and {} and {} invalid frames between frame indices {} and {}"
+            )
+            log_message = log_message.format(
+                self.number_of_frames,
+                len(self.frames),
+                min(self.frames.keys()),
+                max(self.frames.keys()),
+                len(self.invalid_frames),
+                min(self.invalid_frames.keys()),
+                max(self.invalid_frames.keys()),
+            )
             logger.debug(log_message)
 
-            log_message = "The invalid frame indices pertaining to salt 1 values are: {}."
+            log_message = (
+                "The invalid frame indices pertaining to salt 1 values are: {}."
+            )
             log_message = log_message.format(self.invalid_frame_indices)
             logger.debug(log_message)
 
             """
 
-            Below we output a warning and a log message warning that implementation for invalid frames is not 
+            Below we output a warning and a log message warning that implementation for invalid frames is not
             handled or parsed yet.
 
             """
 
-            log_message = "The wal file contains {} invalid frames.  Invalid frames are currently skipped and not " \
-                          "implemented which may cause loss in possible carved data at this time until implemented."
+            log_message = (
+                "The wal file contains {} invalid frames.  Invalid frames are currently skipped and not "
+                "implemented which may cause loss in possible carved data at this time until implemented."
+            )
             log_message = log_message.format(len(self.invalid_frames))
             logger.warning(log_message)
             warn(log_message, RuntimeWarning)
@@ -189,8 +240,15 @@ class WriteAheadLog(object):
 
             """
 
-            if self.frames[last_wal_frame_commit_record_index].header.page_size_after_commit != 0:
-                self.last_frame_commit_record = self.frames[last_wal_frame_commit_record_index]
+            if (
+                self.frames[
+                    last_wal_frame_commit_record_index
+                ].header.page_size_after_commit
+                != 0
+            ):
+                self.last_frame_commit_record = self.frames[
+                    last_wal_frame_commit_record_index
+                ]
                 break
             else:
                 last_wal_frame_commit_record_index -= 1
@@ -206,7 +264,9 @@ class WriteAheadLog(object):
             """
 
             log_message = "The last wal frame commit record index: {} was not the last committed frame of in {} frames."
-            log_message = log_message.format(last_wal_frame_commit_record_index, len(self.frames))
+            log_message = log_message.format(
+                last_wal_frame_commit_record_index, len(self.frames)
+            )
             logger.error(log_message)
             raise NotImplementedError(log_message)
 
@@ -214,26 +274,45 @@ class WriteAheadLog(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_frames=True):
         string = padding + "File Handle:\n{}"
         string = string.format(self.file_handle.stringify(padding + "\t"))
-        string += "\n" \
-                  + padding + "Number of Frames: {}\n" \
-                  + padding + "Number of Valid Frames: {}\n" \
-                  + padding + "Number of Invalid Frames: {}\n" \
-                  + padding + "Invalid Frames Indices: {}\n" \
-                  + padding + "Last Frame Commit Record Number: {}"
-        string = string.format(self.number_of_frames,
-                               len(self.frames),
-                               len(self.invalid_frames),
-                               self.invalid_frame_indices,
-                               self.last_frame_commit_record.frame_index + 1)
+        string += (
+            "\n"
+            + padding
+            + "Number of Frames: {}\n"
+            + padding
+            + "Number of Valid Frames: {}\n"
+            + padding
+            + "Number of Invalid Frames: {}\n"
+            + padding
+            + "Invalid Frames Indices: {}\n"
+            + padding
+            + "Last Frame Commit Record Number: {}"
+        )
+        string = string.format(
+            self.number_of_frames,
+            len(self.frames),
+            len(self.invalid_frames),
+            self.invalid_frame_indices,
+            self.last_frame_commit_record.frame_index + 1,
+        )
         if print_frames:
             for frame in self.frames.values():
-                string += "\n" + padding + "Frame:\n{}".format(frame.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Frame:\n{}".format(frame.stringify(padding + "\t"))
+                )
         if print_frames and self.invalid_frames:
             for invalid_frame in self.invalid_frames.values():
-                string += "\n" + padding + "Invalid Frame:\n{}".format(invalid_frame.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Invalid Frame:\n{}".format(
+                        invalid_frame.stringify(padding + "\t")
+                    )
+                )
         return string

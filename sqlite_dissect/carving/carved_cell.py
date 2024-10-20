@@ -1,23 +1,29 @@
 from struct import unpack
 from warnings import warn
-from sqlite_dissect.carving.utilities import calculate_body_content_size
-from sqlite_dissect.carving.utilities import calculate_serial_type_definition_content_length_min_max
-from sqlite_dissect.carving.utilities import decode_varint_in_reverse
-from sqlite_dissect.carving.utilities import get_content_size
-from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER
-from sqlite_dissect.constants import CELL_LOCATION
-from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.constants import TEXT_SIGNATURE_IDENTIFIER
-from sqlite_dissect.exception import CellCarvingError
-from sqlite_dissect.exception import InvalidVarIntError
+
+from sqlite_dissect.carving.utilities import (
+    calculate_body_content_size,
+    calculate_serial_type_definition_content_length_min_max,
+    decode_varint_in_reverse,
+    get_content_size,
+)
+from sqlite_dissect.constants import (
+    BLOB_SIGNATURE_IDENTIFIER,
+    CELL_LOCATION,
+    FILE_TYPE,
+    TEXT_SIGNATURE_IDENTIFIER,
+)
+from sqlite_dissect.exception import CellCarvingError, InvalidVarIntError
 from sqlite_dissect.file.database.page import BTreeCell
-from sqlite_dissect.file.database.payload import Payload
-from sqlite_dissect.file.database.payload import RecordColumn
-from sqlite_dissect.utilities import decode_varint, append_byte_strings
-from sqlite_dissect.utilities import encode_varint
-from sqlite_dissect.utilities import get_md5_hash
-from sqlite_dissect.utilities import get_record_content
-from sqlite_dissect.utilities import get_serial_type_signature
+from sqlite_dissect.file.database.payload import Payload, RecordColumn
+from sqlite_dissect.utilities import (
+    append_byte_strings,
+    decode_varint,
+    encode_varint,
+    get_md5_hash,
+    get_record_content,
+    get_serial_type_signature,
+)
 
 """
 
@@ -36,7 +42,6 @@ CarvedRecordColumn(RecordColumn)
 
 
 class CarvedBTreeCell(BTreeCell):
-
     """
 
     This class will be responsible for carving a b-tree cell to the best it can out of a block of data either from
@@ -57,10 +62,23 @@ class CarvedBTreeCell(BTreeCell):
 
     """
 
-    def __init__(self, version, file_offset, source, page_number, location, index, data,
-                 serial_type_definition_start_offset, serial_type_definition_end_offset, cutoff_offset,
-                 number_of_columns, signature, first_column_serial_types=None, freeblock_size=None):
-
+    def __init__(
+        self,
+        version,
+        file_offset,
+        source,
+        page_number,
+        location,
+        index,
+        data,
+        serial_type_definition_start_offset,
+        serial_type_definition_end_offset,
+        cutoff_offset,
+        number_of_columns,
+        signature,
+        first_column_serial_types=None,
+        freeblock_size=None,
+    ):
         """
 
 
@@ -108,24 +126,41 @@ class CarvedBTreeCell(BTreeCell):
 
         """
 
-        super(CarvedBTreeCell, self).__init__(version, version.version_number, file_offset, page_number,
-                                              index, serial_type_definition_start_offset, source, location)
+        super().__init__(
+            version,
+            version.version_number,
+            file_offset,
+            page_number,
+            index,
+            serial_type_definition_start_offset,
+            source,
+            location,
+        )
 
         """
-        
+
         Since versioning is not implemented for rollback journal files we are going to set the version number to -1
         here.  This is done since rollback journals store previous data to what is in the SQLite database file as
         opposed to the WAL file where the most recent data in the WAL file reflects the most current state.
-        
+
         """
 
         if source is FILE_TYPE.ROLLBACK_JOURNAL:
             self.version_number = -1
             self.page_version_number = -1
 
-        self.payload = CarvedRecord(location, data, serial_type_definition_start_offset,
-                                    serial_type_definition_end_offset, cutoff_offset, number_of_columns, signature,
-                                    first_column_serial_types, freeblock_size, version.page_size)
+        self.payload = CarvedRecord(
+            location,
+            data,
+            serial_type_definition_start_offset,
+            serial_type_definition_end_offset,
+            cutoff_offset,
+            number_of_columns,
+            signature,
+            first_column_serial_types,
+            freeblock_size,
+            version.page_size,
+        )
 
         """
 
@@ -147,7 +182,7 @@ class CarvedBTreeCell(BTreeCell):
         self.end_offset = int(self.payload.cell_end_offset)
 
         self.byte_size = self.end_offset - self.start_offset
-        self.md5_hex_digest = get_md5_hash(data[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(data[self.start_offset : self.end_offset])
 
         """
 
@@ -162,21 +197,33 @@ class CarvedBTreeCell(BTreeCell):
         self.row_id = "Unknown"
 
     def stringify(self, padding=""):
-        string = "\n"\
-                 + padding + "Truncated Beginning: {}\n" \
-                 + padding + "Truncated Ending: {}"
-        string = string.format(self.truncated_beginning,
-                               self.truncated_ending)
-        return super(CarvedBTreeCell, self).stringify(padding) + string
+        string = (
+            "\n"
+            + padding
+            + "Truncated Beginning: {}\n"
+            + padding
+            + "Truncated Ending: {}"
+        )
+        string = string.format(self.truncated_beginning, self.truncated_ending)
+        return super().stringify(padding) + string
 
 
 class CarvedRecord(Payload):
+    def __init__(
+        self,
+        location,
+        data,
+        serial_type_definition_start_offset,
+        serial_type_definition_end_offset,
+        cutoff_offset,
+        number_of_columns,
+        signature,
+        first_column_serial_types=None,
+        freeblock_size=None,
+        page_size=None,
+    ):
 
-    def __init__(self, location, data, serial_type_definition_start_offset, serial_type_definition_end_offset,
-                 cutoff_offset, number_of_columns, signature, first_column_serial_types=None,
-                 freeblock_size=None, page_size=None):
-
-        super(CarvedRecord, self).__init__()
+        super().__init__()
 
         """
 
@@ -214,8 +261,10 @@ class CarvedRecord(Payload):
         self.number_of_columns = number_of_columns
         self.first_column_serial_types = first_column_serial_types
         self.freeblock_size = freeblock_size
-        self.serial_type_definition_size = \
-            self.serial_type_definition_end_offset - self.serial_type_definition_start_offset
+        self.serial_type_definition_size = (
+            self.serial_type_definition_end_offset
+            - self.serial_type_definition_start_offset
+        )
 
         self.cutoff_offset = cutoff_offset
         self.truncated_beginning = False
@@ -227,7 +276,10 @@ class CarvedRecord(Payload):
         body_byte_size = 0
 
         serial_type_definition_content_size = calculate_body_content_size(
-            data[self.serial_type_definition_start_offset:self.serial_type_definition_end_offset])
+            data[
+                self.serial_type_definition_start_offset : self.serial_type_definition_end_offset
+            ]
+        )
 
         if self.serial_type_definition_start_offset == 0:
 
@@ -235,33 +287,43 @@ class CarvedRecord(Payload):
                 warn("unsupported", RuntimeWarning)
 
                 """
-                
+
                 We do not know what the header amount could have been here.  We could check in reference to the
                 header + byte array ( == 10 for table leaf cell) but we do not seem to gain a lot from this.
-                
+
                 We could also use probability on row and columns to figure out what the first column type is here
                 (using a row signatures) or apply probability on the record and record column.
-                
+
                 """
 
             elif self.location == CELL_LOCATION.FREEBLOCK:
 
                 # All 4 fields are 1 byte
                 header_byte_size_varint_length = 1
-                header_byte_size = header_byte_size_varint_length + self.serial_type_definition_size + 1
+                header_byte_size = (
+                    header_byte_size_varint_length
+                    + self.serial_type_definition_size
+                    + 1
+                )
                 payload_byte_size = self.freeblock_size - 2
                 body_content_size = payload_byte_size - header_byte_size
 
                 first_serial_type_varint_length = 1
-                first_serial_type_content_size = body_content_size - serial_type_definition_content_size
+                first_serial_type_content_size = (
+                    body_content_size - serial_type_definition_content_size
+                )
 
-                if first_serial_type_content_size > int('1111111', 2):
+                if first_serial_type_content_size > int("1111111", 2):
                     warn("first serial type too big", RuntimeWarning)
 
                 matching_serial_types = []
                 for serial_type in self.first_column_serial_types:
-                    if get_content_size(serial_type) == first_serial_type_content_size or serial_type in \
-                            [BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER]:
+                    if get_content_size(
+                        serial_type
+                    ) == first_serial_type_content_size or serial_type in [
+                        BLOB_SIGNATURE_IDENTIFIER,
+                        TEXT_SIGNATURE_IDENTIFIER,
+                    ]:
                         matching_serial_types.append(serial_type)
 
                 if len(matching_serial_types) > 1:
@@ -271,15 +333,20 @@ class CarvedRecord(Payload):
 
                     first_serial_type = matching_serial_types[0]
 
-                    self.serial_type_signature += str(get_serial_type_signature(first_serial_type))
+                    self.serial_type_signature += str(
+                        get_serial_type_signature(first_serial_type)
+                    )
 
                     record_column_md5_hash_strings[column_index] = ""
 
                     self.serial_type_definition_size += first_serial_type_varint_length
 
-                    first_carved_record_column = CarvedRecordColumn(column_index, first_serial_type,
-                                                                    first_serial_type_varint_length,
-                                                                    first_serial_type_content_size)
+                    first_carved_record_column = CarvedRecordColumn(
+                        column_index,
+                        first_serial_type,
+                        first_serial_type_varint_length,
+                        first_serial_type_content_size,
+                    )
                     first_carved_record_column.truncated_first_serial_type = True
                     self.truncated_beginning = True
                     self.record_columns.append(first_carved_record_column)
@@ -298,31 +365,35 @@ class CarvedRecord(Payload):
                 warn("unsupported", RuntimeWarning)
 
                 """
-                
-                A way to address this may be checking if the signature does not have a -1 or -2 (blob or string), then 
-                check the single byte to get the serial type and then check this against the signatures.  If it does 
+
+                A way to address this may be checking if the signature does not have a -1 or -2 (blob or string), then
+                check the single byte to get the serial type and then check this against the signatures.  If it does
                 not, then use the probability but we will not know hte length of the type unless the cutoff is
                 correctly implemented.  Freeblocks do not count since the size may not match (since they need two bytes)
                 but you may be able to check on one byte.
-                
+
                 """
 
             elif self.location == CELL_LOCATION.FREEBLOCK:
 
                 """
-                
-                The row id was 2 varint length in bytes 128 <= x <= 16383 or payload >= 2 varint bytes (or both) 
+
+                The row id was 2 varint length in bytes 128 <= x <= 16383 or payload >= 2 varint bytes (or both)
                 or header size.  Use cases for this need to be investigated further.
-                
+
                 """
 
-                first_serial_type, first_serial_type_varint_length = \
-                    decode_varint(data, self.serial_type_definition_start_offset - 1)
+                first_serial_type, first_serial_type_varint_length = decode_varint(
+                    data, self.serial_type_definition_start_offset - 1
+                )
 
                 if first_serial_type_varint_length != 1:
                     raise CellCarvingError()
 
-                if get_serial_type_signature(first_serial_type) in self.first_column_serial_types:
+                if (
+                    get_serial_type_signature(first_serial_type)
+                    in self.first_column_serial_types
+                ):
 
                     self.serial_type_definition_size += first_serial_type_varint_length
 
@@ -330,25 +401,38 @@ class CarvedRecord(Payload):
 
                     header_byte_size_varint_length = 1
 
-                    if self.serial_type_definition_size >= int('1111111' * 1, 2):
+                    if self.serial_type_definition_size >= int("1111111" * 1, 2):
                         header_byte_size_varint_length += 1
-                    elif self.serial_type_definition_size >= int('1111111' * 2, 2):
+                    elif self.serial_type_definition_size >= int("1111111" * 2, 2):
                         header_byte_size_varint_length += 2
 
-                    header_byte_size = self.serial_type_definition_size + header_byte_size_varint_length
+                    header_byte_size = (
+                        self.serial_type_definition_size
+                        + header_byte_size_varint_length
+                    )
 
-                    body_content_size = serial_type_definition_content_size + first_serial_type_content_size
+                    body_content_size = (
+                        serial_type_definition_content_size
+                        + first_serial_type_content_size
+                    )
 
                     payload_byte_size = header_byte_size + body_content_size
 
-                    self.serial_type_signature += str(get_serial_type_signature(first_serial_type))
+                    self.serial_type_signature += str(
+                        get_serial_type_signature(first_serial_type)
+                    )
 
-                    record_column_md5_hash_strings[column_index] = data[self.serial_type_definition_start_offset - 1:
-                                                                        self.serial_type_definition_start_offset]
+                    record_column_md5_hash_strings[column_index] = data[
+                        self.serial_type_definition_start_offset
+                        - 1 : self.serial_type_definition_start_offset
+                    ]
 
-                    first_carved_record_column = CarvedRecordColumn(column_index, first_serial_type,
-                                                                    first_serial_type_varint_length,
-                                                                    first_serial_type_content_size)
+                    first_carved_record_column = CarvedRecordColumn(
+                        column_index,
+                        first_serial_type,
+                        first_serial_type_varint_length,
+                        first_serial_type_content_size,
+                    )
 
                     self.record_columns.append(first_carved_record_column)
                     column_index += 1
@@ -363,50 +447,82 @@ class CarvedRecord(Payload):
         elif self.serial_type_definition_start_offset >= 2:
 
             if self.location == CELL_LOCATION.UNALLOCATED_SPACE:
-                warn("unsupported unallocated space with serial type definition start offset >= 2", RuntimeWarning)
+                warn(
+                    "unsupported unallocated space with serial type definition start offset >= 2",
+                    RuntimeWarning,
+                )
 
             elif self.location == CELL_LOCATION.FREEBLOCK:
 
                 """
-                
+
                 There are three use cases that can occur here:
                 1.) Everything was overwritten up to this point and there is nothing more to carve
                 2.) Freeblock cutting off beginning with size up to the first serial type
                 3.) Freeblock cutting off beginning but not the first serial type and the header size/row id may still
                     be in tact somewhat (payload must be overwritten partially in best case)
-                
+
                 """
 
                 # First check first byte against serial types but also parse freeblock size and check which is best
-                freeblock_size = unpack(b">H", data[self.serial_type_definition_start_offset - 2:
-                                                    self.serial_type_definition_start_offset])[0]
-                freeblock_first_serial_type_min, freeblock_first_serial_type_max = \
-                    calculate_serial_type_definition_content_length_min_max(None, 1)
+                freeblock_size = unpack(
+                    b">H",
+                    data[
+                        self.serial_type_definition_start_offset
+                        - 2 : self.serial_type_definition_start_offset
+                    ],
+                )[0]
+                (
+                    freeblock_first_serial_type_min,
+                    freeblock_first_serial_type_max,
+                ) = calculate_serial_type_definition_content_length_min_max(None, 1)
 
                 header_byte_size_varint_length = 1
-                header_byte_size = header_byte_size_varint_length + self.serial_type_definition_size + 1
+                header_byte_size = (
+                    header_byte_size_varint_length
+                    + self.serial_type_definition_size
+                    + 1
+                )
 
-                body_content_size_min = serial_type_definition_content_size + freeblock_first_serial_type_min
-                body_content_size_max = serial_type_definition_content_size + freeblock_first_serial_type_max
+                body_content_size_min = (
+                    serial_type_definition_content_size
+                    + freeblock_first_serial_type_min
+                )
+                body_content_size_max = (
+                    serial_type_definition_content_size
+                    + freeblock_first_serial_type_max
+                )
 
                 payload_size_min = header_byte_size + body_content_size_min
                 payload_size_max = header_byte_size + body_content_size_max
 
                 freeblock_size_valid = False
-                if freeblock_size >= payload_size_min and freeblock_size <= payload_size_max:
+                if (
+                    freeblock_size >= payload_size_min
+                    and freeblock_size <= payload_size_max
+                ):
                     freeblock_size_valid = True
 
                 next_free_block_offset = None
-                if freeblock_size_valid and self.serial_type_definition_start_offset >= 4:
-                    next_free_block_offset = unpack(b">H", data[self.serial_type_definition_start_offset - 4:
-                                                                self.serial_type_definition_start_offset - 2])[0]
+                if (
+                    freeblock_size_valid
+                    and self.serial_type_definition_start_offset >= 4
+                ):
+                    next_free_block_offset = unpack(
+                        b">H",
+                        data[
+                            self.serial_type_definition_start_offset
+                            - 4 : self.serial_type_definition_start_offset
+                            - 2
+                        ],
+                    )[0]
                     if next_free_block_offset >= page_size:
                         freeblock_size_valid = False
 
                 """
-                
+
                 Check first serial types not in freeblock size first byte.
-                
+
                 """
 
                 # Check freeblock size valid over first serial type
@@ -414,20 +530,30 @@ class CarvedRecord(Payload):
 
                     # All 4 fields are 1 byte
                     header_byte_size_varint_length = 1
-                    header_byte_size = header_byte_size_varint_length + self.serial_type_definition_size + 1
+                    header_byte_size = (
+                        header_byte_size_varint_length
+                        + self.serial_type_definition_size
+                        + 1
+                    )
                     payload_byte_size = freeblock_size - 2
                     body_content_size = payload_byte_size - header_byte_size
 
                     first_serial_type_varint_length = 1
-                    first_serial_type_content_size = body_content_size - serial_type_definition_content_size
+                    first_serial_type_content_size = (
+                        body_content_size - serial_type_definition_content_size
+                    )
 
-                    if first_serial_type_content_size > int('1111111', 2):
+                    if first_serial_type_content_size > int("1111111", 2):
                         warn("first serial type too big", RuntimeWarning)
 
                     matching_serial_types = []
                     for serial_type in self.first_column_serial_types:
-                        if get_content_size(serial_type) == first_serial_type_content_size or serial_type in \
-                                [BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER]:
+                        if get_content_size(
+                            serial_type
+                        ) == first_serial_type_content_size or serial_type in [
+                            BLOB_SIGNATURE_IDENTIFIER,
+                            TEXT_SIGNATURE_IDENTIFIER,
+                        ]:
                             matching_serial_types.append(serial_type)
 
                     if len(matching_serial_types) > 1:
@@ -437,15 +563,22 @@ class CarvedRecord(Payload):
 
                         first_serial_type = matching_serial_types[0]
 
-                        self.serial_type_signature += str(get_serial_type_signature(first_serial_type))
+                        self.serial_type_signature += str(
+                            get_serial_type_signature(first_serial_type)
+                        )
 
                         record_column_md5_hash_strings[column_index] = ""
 
-                        self.serial_type_definition_size += first_serial_type_varint_length
+                        self.serial_type_definition_size += (
+                            first_serial_type_varint_length
+                        )
 
-                        first_carved_record_column = CarvedRecordColumn(column_index, first_serial_type,
-                                                                        first_serial_type_varint_length,
-                                                                        first_serial_type_content_size)
+                        first_carved_record_column = CarvedRecordColumn(
+                            column_index,
+                            first_serial_type,
+                            first_serial_type_varint_length,
+                            first_serial_type_content_size,
+                        )
                         first_carved_record_column.truncated_first_serial_type = True
                         self.truncated_beginning = True
                         self.record_columns.append(first_carved_record_column)
@@ -458,18 +591,23 @@ class CarvedRecord(Payload):
                 else:
 
                     """
-                    
+
                     There are two main use cases here:
                     1.) single byte varint 00-09
                     2.) multi byte varint (if in signature)
-                    
+
                     A possible third use case may be a inner freeblock.
-                    
+
                     """
 
-                    simplified_variable_length_serial_types = [BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER]
-                    text_or_blob_serial_type = \
-                        any(i in first_column_serial_types for i in simplified_variable_length_serial_types)
+                    simplified_variable_length_serial_types = [
+                        BLOB_SIGNATURE_IDENTIFIER,
+                        TEXT_SIGNATURE_IDENTIFIER,
+                    ]
+                    text_or_blob_serial_type = any(
+                        i in first_column_serial_types
+                        for i in simplified_variable_length_serial_types
+                    )
 
                     if not text_or_blob_serial_type:
 
@@ -477,49 +615,78 @@ class CarvedRecord(Payload):
 
                         # Check the previous two bytes if they exist:
                         if self.serial_type_definition_start_offset >= 3:
-                            freeblock_size = unpack(b">H", data[self.serial_type_definition_start_offset - 3:
-                                                                self.serial_type_definition_start_offset - 1])[0]
+                            freeblock_size = unpack(
+                                b">H",
+                                data[
+                                    self.serial_type_definition_start_offset
+                                    - 3 : self.serial_type_definition_start_offset
+                                    - 1
+                                ],
+                            )[0]
 
                         """
 
-                        The row id was 2 varint length in bytes 128 <= x <= 16383 or payload >= 2 varint bytes (or both) 
+                        The row id was 2 varint length in bytes 128 <= x <= 16383 or payload >= 2 varint bytes (or both)
                         or header size.  Use cases for this need to be investigated further.
 
                         """
 
-                        first_serial_type, first_serial_type_varint_length = \
-                            decode_varint(data, self.serial_type_definition_start_offset - 1)
+                        (
+                            first_serial_type,
+                            first_serial_type_varint_length,
+                        ) = decode_varint(
+                            data, self.serial_type_definition_start_offset - 1
+                        )
 
                         if first_serial_type_varint_length != 1:
 
                             """
-                            
-                            Note:  Issues can occur here where the pattern matches something not in a serial type 
-                            header that is a serial type.  For instance: 000000900302 will match a simple signature 
-                            (freeblock) of [[02], [03]] which will result in [03] will match the 03 and detect 90 
+
+                            Note:  Issues can occur here where the pattern matches something not in a serial type
+                            header that is a serial type.  For instance: 000000900302 will match a simple signature
+                            (freeblock) of [[02], [03]] which will result in [03] will match the 03 and detect 90
                             as the first serial type where it could be the size of the freeblock in the form of 0090.
-                            
+
                             """
 
-                            raise CellCarvingError("Invalid first serial type varint size determined.  "
-                                                   "Unable to carve due to probable false positive.")
+                            raise CellCarvingError(
+                                "Invalid first serial type varint size determined.  "
+                                "Unable to carve due to probable false positive."
+                            )
 
-                        if get_serial_type_signature(first_serial_type) in self.first_column_serial_types:
+                        if (
+                            get_serial_type_signature(first_serial_type)
+                            in self.first_column_serial_types
+                        ):
 
-                            self.serial_type_definition_size += first_serial_type_varint_length
+                            self.serial_type_definition_size += (
+                                first_serial_type_varint_length
+                            )
 
-                            first_serial_type_content_size = get_content_size(first_serial_type)
+                            first_serial_type_content_size = get_content_size(
+                                first_serial_type
+                            )
 
                             header_byte_size_varint_length = 1
 
-                            if self.serial_type_definition_size >= int('1111111' * 1, 2):
+                            if self.serial_type_definition_size >= int(
+                                "1111111" * 1, 2
+                            ):
                                 header_byte_size_varint_length += 1
-                            elif self.serial_type_definition_size >= int('1111111' * 2, 2):
+                            elif self.serial_type_definition_size >= int(
+                                "1111111" * 2, 2
+                            ):
                                 header_byte_size_varint_length += 2
 
-                            header_byte_size = self.serial_type_definition_size + header_byte_size_varint_length
+                            header_byte_size = (
+                                self.serial_type_definition_size
+                                + header_byte_size_varint_length
+                            )
 
-                            body_content_size = serial_type_definition_content_size + first_serial_type_content_size
+                            body_content_size = (
+                                serial_type_definition_content_size
+                                + first_serial_type_content_size
+                            )
 
                             payload_byte_size = header_byte_size + body_content_size
 
@@ -530,29 +697,46 @@ class CarvedRecord(Payload):
                                 freeblock_size_valid = True
 
                             next_free_block_offset = None
-                            if freeblock_size_valid and self.serial_type_definition_start_offset >= 5:
-                                next_free_block_offset = unpack(b">H",
-                                                                data[self.serial_type_definition_start_offset - 5:
-                                                                     self.serial_type_definition_start_offset - 3])[0]
+                            if (
+                                freeblock_size_valid
+                                and self.serial_type_definition_start_offset >= 5
+                            ):
+                                next_free_block_offset = unpack(
+                                    b">H",
+                                    data[
+                                        self.serial_type_definition_start_offset
+                                        - 5 : self.serial_type_definition_start_offset
+                                        - 3
+                                    ],
+                                )[0]
                                 if next_free_block_offset >= page_size:
                                     freeblock_size_valid = False
 
-                            self.serial_type_signature += str(get_serial_type_signature(first_serial_type))
+                            self.serial_type_signature += str(
+                                get_serial_type_signature(first_serial_type)
+                            )
 
-                            record_column_md5_hash_strings[column_index] = \
-                                data[self.serial_type_definition_start_offset - 1:
-                                     self.serial_type_definition_start_offset]
+                            record_column_md5_hash_strings[column_index] = data[
+                                self.serial_type_definition_start_offset
+                                - 1 : self.serial_type_definition_start_offset
+                            ]
 
-                            first_carved_record_column = CarvedRecordColumn(column_index, first_serial_type,
-                                                                            first_serial_type_varint_length,
-                                                                            first_serial_type_content_size)
+                            first_carved_record_column = CarvedRecordColumn(
+                                column_index,
+                                first_serial_type,
+                                first_serial_type_varint_length,
+                                first_serial_type_content_size,
+                            )
                             self.record_columns.append(first_carved_record_column)
 
                             column_index += 1
                             body_byte_size += first_serial_type_content_size
 
                         else:
-                            warn("unable to find serial type with 1 preceding", RuntimeWarning)
+                            warn(
+                                "unable to find serial type with 1 preceding",
+                                RuntimeWarning,
+                            )
 
                     else:
 
@@ -560,8 +744,12 @@ class CarvedRecord(Payload):
                         first_serial_type_varint_length = None
                         try:
 
-                            first_serial_type, first_serial_type_varint_length = \
-                                decode_varint_in_reverse(data, self.serial_type_definition_start_offset, 5)
+                            (
+                                first_serial_type,
+                                first_serial_type_varint_length,
+                            ) = decode_varint_in_reverse(
+                                data, self.serial_type_definition_start_offset, 5
+                            )
 
                         except InvalidVarIntError:
                             pass
@@ -573,24 +761,36 @@ class CarvedRecord(Payload):
                 # Set as null for now
                 first_serial_type = 0
             if len(first_column_serial_types) != 1:
-                simplified_probabilistic_signature = signature.simplified_probabilistic_signature
+                simplified_probabilistic_signature = (
+                    signature.simplified_probabilistic_signature
+                )
                 if simplified_probabilistic_signature:
                     # Found probability otherwise it is a schema without probability
-                    first_probabilistic_column_serial_types = simplified_probabilistic_signature[0]
-                    first_serial_type = max(first_probabilistic_column_serial_types,
-                                            key=lambda first_probabilistic_column_serial_type:
-                                            first_probabilistic_column_serial_type[1])[0]
+                    first_probabilistic_column_serial_types = (
+                        simplified_probabilistic_signature[0]
+                    )
+                    first_serial_type = max(
+                        first_probabilistic_column_serial_types,
+                        key=lambda first_probabilistic_column_serial_type: first_probabilistic_column_serial_type[
+                            1
+                        ],
+                    )[0]
             first_serial_type_varint_length = 1
-            self.serial_type_signature += str(get_serial_type_signature(first_serial_type))
+            self.serial_type_signature += str(
+                get_serial_type_signature(first_serial_type)
+            )
             self.serial_type_definition_size += first_serial_type_varint_length
             if first_serial_type == TEXT_SIGNATURE_IDENTIFIER:
                 first_serial_type = 12
             if first_serial_type == BLOB_SIGNATURE_IDENTIFIER:
                 first_serial_type = 13
             first_serial_type_content_size = get_content_size(first_serial_type)
-            first_carved_record_column = CarvedRecordColumn(column_index, first_serial_type,
-                                                            first_serial_type_varint_length,
-                                                            first_serial_type_content_size)
+            first_carved_record_column = CarvedRecordColumn(
+                column_index,
+                first_serial_type,
+                first_serial_type_varint_length,
+                first_serial_type_content_size,
+            )
             first_carved_record_column.probabilistic_first_serial_type = True
             first_carved_record_column.truncated_first_serial_type = True
             self.truncated_beginning = True
@@ -611,21 +811,28 @@ class CarvedRecord(Payload):
         current_header_offset = self.serial_type_definition_start_offset
         while current_header_offset < self.serial_type_definition_end_offset:
 
-            serial_type, serial_type_varint_length = decode_varint(data, current_header_offset)
+            serial_type, serial_type_varint_length = decode_varint(
+                data, current_header_offset
+            )
 
-            serial_type_varint_end_offset = current_header_offset + serial_type_varint_length
+            serial_type_varint_end_offset = (
+                current_header_offset + serial_type_varint_length
+            )
 
             if serial_type_varint_end_offset > self.serial_type_definition_end_offset:
                 raise CellCarvingError()
 
             self.serial_type_signature += str(get_serial_type_signature(serial_type))
 
-            record_column_md5_hash_strings[column_index] = data[current_header_offset:serial_type_varint_end_offset]
+            record_column_md5_hash_strings[column_index] = data[
+                current_header_offset:serial_type_varint_end_offset
+            ]
 
             content_size = get_content_size(serial_type)
 
-            carved_record_column = CarvedRecordColumn(column_index, serial_type, serial_type_varint_length,
-                                                      content_size)
+            carved_record_column = CarvedRecordColumn(
+                column_index, serial_type, serial_type_varint_length, content_size
+            )
             self.record_columns.append(carved_record_column)
 
             current_header_offset += serial_type_varint_length
@@ -642,9 +849,9 @@ class CarvedRecord(Payload):
             self.truncated_ending = True
 
         """
-        
+
         Note:  This does not currently work for multiple options in the first or variable length serial types.
-        
+
         """
 
         # First truncated column field
@@ -658,27 +865,41 @@ class CarvedRecord(Payload):
                 carved_record_column.truncated_value = True
                 if current_body_offset < len(data):
                     carved_record_column.value = data[current_body_offset:]
-                    record_column_md5_hash_strings[carved_record_column.index] += data[current_body_offset:]
-                    carved_record_column.md5_hex_digest = \
-                        get_md5_hash(record_column_md5_hash_strings[carved_record_column.index])
+                    record_column_md5_hash_strings[carved_record_column.index] += data[
+                        current_body_offset:
+                    ]
+                    carved_record_column.md5_hex_digest = get_md5_hash(
+                        record_column_md5_hash_strings[carved_record_column.index]
+                    )
 
             else:
 
                 """
-                
+
                 This means that: offset + content_size <= len(data)
-                
+
                 """
 
-                value_data = data[current_body_offset:current_body_offset + carved_record_column.content_size]
-                content_size, value = get_record_content(carved_record_column.serial_type, value_data)
+                value_data = data[
+                    current_body_offset : current_body_offset
+                    + carved_record_column.content_size
+                ]
+                content_size, value = get_record_content(
+                    carved_record_column.serial_type, value_data
+                )
 
                 if content_size != carved_record_column.content_size:
                     raise CellCarvingError()
                 carved_record_column.value = value
-                record_column_md5_hash_strings[carved_record_column.index] = append_byte_strings(record_column_md5_hash_strings[carved_record_column.index], value_data)
-                carved_record_column.md5_hex_digest = \
-                    get_md5_hash(record_column_md5_hash_strings[carved_record_column.index])
+                record_column_md5_hash_strings[carved_record_column.index] = (
+                    append_byte_strings(
+                        record_column_md5_hash_strings[carved_record_column.index],
+                        value_data,
+                    )
+                )
+                carved_record_column.md5_hex_digest = get_md5_hash(
+                    record_column_md5_hash_strings[carved_record_column.index]
+                )
 
             current_body_offset += carved_record_column.content_size
 
@@ -697,15 +918,18 @@ class CarvedRecord(Payload):
         self.payload_byte_size_varint_length = len(self.payload_byte_size_varint)
 
         # Below is relative to the unallocated space.  The "-1" is to account for the row id.
-        self.cell_start_offset = self.serial_type_definition_start_offset - self.record_columns[0].\
-            serial_type_varint_length - self.header_byte_size_varint_length - 1 - self.payload_byte_size_varint_length
+        self.cell_start_offset = (
+            self.serial_type_definition_start_offset
+            - self.record_columns[0].serial_type_varint_length
+            - self.header_byte_size_varint_length
+            - 1
+            - self.payload_byte_size_varint_length
+        )
         self.cell_end_offset = self.body_end_offset
 
 
 class CarvedRecordColumn(RecordColumn):
-
     def __init__(self, index, serial_type, serial_type_varint_length, content_size):
-
         """
 
         Constructor.
@@ -752,8 +976,9 @@ class CarvedRecordColumn(RecordColumn):
 
         """
 
-        super(CarvedRecordColumn, self).__init__(index, serial_type, serial_type_varint_length, content_size,
-                                                 None, None)
+        super().__init__(
+            index, serial_type, serial_type_varint_length, content_size, None, None
+        )
 
         self.simplified_serial_type = self.serial_type
         if self.serial_type >= 12 and self.serial_type % 2 == 0:
@@ -775,16 +1000,24 @@ class CarvedRecordColumn(RecordColumn):
         self.probabilistic = False
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Simplified Serial Type: {}\n" \
-                 + padding + "Truncated First Serial Type: {}\n" \
-                 + padding + "Truncated Value: {}\n" \
-                 + padding + "Probabilistic: {}"
-        string = string.format(self.simplified_serial_type,
-                               self.truncated_first_serial_type,
-                               self.truncated_value,
-                               self.probabilistic)
-        return super(CarvedRecordColumn, self).stringify(padding) + string
+        string = (
+            "\n"
+            + padding
+            + "Simplified Serial Type: {}\n"
+            + padding
+            + "Truncated First Serial Type: {}\n"
+            + padding
+            + "Truncated Value: {}\n"
+            + padding
+            + "Probabilistic: {}"
+        )
+        string = string.format(
+            self.simplified_serial_type,
+            self.truncated_first_serial_type,
+            self.truncated_value,
+            self.probabilistic,
+        )
+        return super().stringify(padding) + string
 
     """
 

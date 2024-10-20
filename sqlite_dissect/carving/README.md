@@ -26,7 +26,7 @@ This script holds the following object(s):
 - CarvedRecord(Payload)
 - CarvedRecordColumn(RecordColumn)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -52,7 +52,7 @@ TODO:
     - [ ] Remove the first column serial types now that the signature is sent in?
     - [ ] handle the version and page version number correctly in reference to journal file parsing.
     ##### CarvedRecord Class
-      - [ ] See if basing the first_serial_type off of other carved cells if found before redoing unallocated/freeblocks if possible. 
+      - [ ] See if basing the first_serial_type off of other carved cells if found before redoing unallocated/freeblocks if possible.
     - [ ] When checking the signature, see if is there a better way to utilize it if there are no entries like switching to the schema signature (b-tree leaf?).
     - [ ] Address the truncated record column index/column name.
     - [ ] Handle cutoff_offset relation to truncated and indexing.
@@ -95,7 +95,7 @@ freeblock space in SQLite b-tree pages.
 This script holds the following object(s):
 - SignatureCarver(Carver)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -126,7 +126,7 @@ TODO:
     - [ ] carve_unallocated_space: Update partial carving indices (see documentation in section of code).
     - [ ] carve_unallocated_space: Have an option for partial/freeblock carving of unallocated space?
     - [ ] carve_unallocated_space: Revise the partial carving algorithm.
-  
+
 <br>
 
 ### rollback_journal_carver.py
@@ -136,7 +136,7 @@ This script carves through a journal file with the specified master schema entry
 This script holds the following object(s):
 - RollBackJournalCarver(Carver)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Investigate possible alternatives to computing or reading the database page size from the journal file.
@@ -158,7 +158,7 @@ This script holds the following object(s):
 - ColumnReducedVariableLengthSignature(ColumnVariableLengthSignature)
 - ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -211,7 +211,7 @@ This script holds the following object(s):
 - generate_signature_regex(signature, skip_first_serial_type=False)
 - get_content_size(serial_type)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.

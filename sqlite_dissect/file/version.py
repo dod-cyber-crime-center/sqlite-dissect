@@ -1,23 +1,27 @@
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from binascii import hexlify
 from logging import getLogger
-from sqlite_dissect.constants import INDEX_INTERIOR_PAGE_HEX_ID
-from sqlite_dissect.constants import INDEX_LEAF_PAGE_HEX_ID
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import MASTER_PAGE_HEX_ID
-from sqlite_dissect.constants import PAGE_TYPE
-from sqlite_dissect.constants import PAGE_TYPE_LENGTH
-from sqlite_dissect.constants import SQLITE_DATABASE_HEADER_LENGTH
-from sqlite_dissect.constants import SQLITE_MASTER_SCHEMA_ROOT_PAGE
-from sqlite_dissect.constants import TABLE_INTERIOR_PAGE_HEX_ID
-from sqlite_dissect.constants import TABLE_LEAF_PAGE_HEX_ID
+
+from sqlite_dissect.constants import (
+    INDEX_INTERIOR_PAGE_HEX_ID,
+    INDEX_LEAF_PAGE_HEX_ID,
+    LOGGER_NAME,
+    MASTER_PAGE_HEX_ID,
+    PAGE_TYPE,
+    PAGE_TYPE_LENGTH,
+    SQLITE_DATABASE_HEADER_LENGTH,
+    SQLITE_MASTER_SCHEMA_ROOT_PAGE,
+    TABLE_INTERIOR_PAGE_HEX_ID,
+    TABLE_LEAF_PAGE_HEX_ID,
+)
 from sqlite_dissect.exception import VersionParsingError
 from sqlite_dissect.file.database.header import DatabaseHeader
-from sqlite_dissect.file.database.page import IndexInteriorPage
-from sqlite_dissect.file.database.page import IndexLeafPage
-from sqlite_dissect.file.database.page import TableInteriorPage
-from sqlite_dissect.file.database.page import TableLeafPage
+from sqlite_dissect.file.database.page import (
+    IndexInteriorPage,
+    IndexLeafPage,
+    TableInteriorPage,
+    TableLeafPage,
+)
 from sqlite_dissect.file.database.utilities import get_pages_from_b_tree_page
 from sqlite_dissect.file.schema.master import MasterSchema
 
@@ -33,11 +37,13 @@ Version(object)
 """
 
 
-class Version(object):
+class Version:
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, file_handle, version_number, store_in_memory, strict_format_checking):
+    def __init__(
+        self, file_handle, version_number, store_in_memory, strict_format_checking
+    ):
 
         self._logger = getLogger(LOGGER_NAME)
 
@@ -141,51 +147,80 @@ class Version(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_pages=True, print_schema=True):
-        string = padding + "File Type: {}\n" \
-                 + padding + "Version Number: {}\n" \
-                 + padding + "Store in Memory: {}\n" \
-                 + padding + "Strict Format Checking: {}\n" \
-                 + padding + "Page Size: {}\n" \
-                 + padding + "File Handle:\n{}\n" \
-                 + padding + "Database Header:\n{}\n" \
-                 + padding + "Database Size in Pages: {}\n" \
-                 + padding + "Freelist Page Numbers: {}\n" \
-                 + padding + "Pointer Map Page Numbers: {}\n" \
-                 + padding + "Updated Page Numbers: {}\n" \
-                 + padding + "Page Version Index: {}\n" \
-                 + padding + "Database Header Modified: {}\n" \
-                 + padding + "Root B-Tree Page Modified: {}\n" \
-                 + padding + "Master Schema Modified: {}\n" \
-                 + padding + "Freelist Pages Modified: {}\n" \
-                 + padding + "Pointer Map Pages Modified: {}\n" \
-                 + padding + "Updated B-Tree Page Numbers: {}"
-        string = string.format(self.file_type,
-                               self.version_number,
-                               self.store_in_memory,
-                               self.strict_format_checking,
-                               self.page_size,
-                               self.file_handle.stringify(padding + "\t"),
-                               self.database_header.stringify(padding + "\t"),
-                               self.database_size_in_pages,
-                               self.freelist_page_numbers,
-                               self.pointer_map_page_numbers,
-                               self.updated_page_numbers,
-                               self.page_version_index,
-                               self.database_header_modified,
-                               self.root_b_tree_page_modified,
-                               self.master_schema_modified,
-                               self.freelist_pages_modified,
-                               self.pointer_map_pages_modified,
-                               self.updated_b_tree_page_numbers)
+        string = (
+            padding
+            + "File Type: {}\n"
+            + padding
+            + "Version Number: {}\n"
+            + padding
+            + "Store in Memory: {}\n"
+            + padding
+            + "Strict Format Checking: {}\n"
+            + padding
+            + "Page Size: {}\n"
+            + padding
+            + "File Handle:\n{}\n"
+            + padding
+            + "Database Header:\n{}\n"
+            + padding
+            + "Database Size in Pages: {}\n"
+            + padding
+            + "Freelist Page Numbers: {}\n"
+            + padding
+            + "Pointer Map Page Numbers: {}\n"
+            + padding
+            + "Updated Page Numbers: {}\n"
+            + padding
+            + "Page Version Index: {}\n"
+            + padding
+            + "Database Header Modified: {}\n"
+            + padding
+            + "Root B-Tree Page Modified: {}\n"
+            + padding
+            + "Master Schema Modified: {}\n"
+            + padding
+            + "Freelist Pages Modified: {}\n"
+            + padding
+            + "Pointer Map Pages Modified: {}\n"
+            + padding
+            + "Updated B-Tree Page Numbers: {}"
+        )
+        string = string.format(
+            self.file_type,
+            self.version_number,
+            self.store_in_memory,
+            self.strict_format_checking,
+            self.page_size,
+            self.file_handle.stringify(padding + "\t"),
+            self.database_header.stringify(padding + "\t"),
+            self.database_size_in_pages,
+            self.freelist_page_numbers,
+            self.pointer_map_page_numbers,
+            self.updated_page_numbers,
+            self.page_version_index,
+            self.database_header_modified,
+            self.root_b_tree_page_modified,
+            self.master_schema_modified,
+            self.freelist_pages_modified,
+            self.pointer_map_pages_modified,
+            self.updated_b_tree_page_numbers,
+        )
         if print_pages:
             for page in self.pages.values():
-                string += "\n" + padding + "Page:\n{}".format(page.stringify(padding + "\t"))
+                string += (
+                    "\n" + padding + "Page:\n{}".format(page.stringify(padding + "\t"))
+                )
         if print_schema:
-            string += "\n" \
-                      + padding + "Master Schema:\n{}".format(self.master_schema.stringify(padding + "\t", print_pages))
+            string += (
+                "\n"
+                + padding
+                + "Master Schema:\n{}".format(
+                    self.master_schema.stringify(padding + "\t", print_pages)
+                )
+            )
         return string
 
     @property
@@ -203,7 +238,11 @@ class Version(object):
     @property
     def database_header(self):
         if not self._database_header:
-            return DatabaseHeader(self.get_page_data(SQLITE_MASTER_SCHEMA_ROOT_PAGE)[:SQLITE_DATABASE_HEADER_LENGTH])
+            return DatabaseHeader(
+                self.get_page_data(SQLITE_MASTER_SCHEMA_ROOT_PAGE)[
+                    :SQLITE_DATABASE_HEADER_LENGTH
+                ]
+            )
         return self._database_header
 
     @property
@@ -253,7 +292,9 @@ class Version(object):
             pages[master_schema_page.number] = master_schema_page
 
         # Populate the b-trees from the master schema including the root page
-        for b_tree_root_page_number in master_schema.master_schema_b_tree_root_page_numbers:
+        for (
+            b_tree_root_page_number
+        ) in master_schema.master_schema_b_tree_root_page_numbers:
             b_tree_root_page = self.get_b_tree_root_page(b_tree_root_page_number)
             for b_tree_page in get_pages_from_b_tree_page(b_tree_root_page):
                 pages[b_tree_page.number] = b_tree_page
@@ -263,14 +304,22 @@ class Version(object):
 
         if number_of_pages != self.database_size_in_pages:
             log_message = "The number of pages: {} did not match the database size in pages: {} for version: {}."
-            log_message = log_message.format(number_of_pages, self.database_size_in_pages, self.version_number)
+            log_message = log_message.format(
+                number_of_pages, self.database_size_in_pages, self.version_number
+            )
             self._logger.error(log_message)
             raise VersionParsingError(log_message)
 
-        for page_number in [page_index + 1 for page_index in range(int(self.database_size_in_pages))]:
+        for page_number in [
+            page_index + 1 for page_index in range(int(self.database_size_in_pages))
+        ]:
             if page_number not in pages:
-                log_message = "Page number: {} was not found in the pages: {} for version: {}."
-                log_message = log_message.format(page_number, pages.keys(), self.version_number)
+                log_message = (
+                    "Page number: {} was not found in the pages: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    page_number, pages.keys(), self.version_number
+                )
                 self._logger.error(log_message)
                 raise VersionParsingError(log_message)
 
@@ -289,7 +338,6 @@ class Version(object):
         raise NotImplementedError(log_message)
 
     def get_b_tree_root_page(self, b_tree_page_number):
-
         """
 
 
@@ -310,10 +358,16 @@ class Version(object):
             b_tree_root_page = self._pages[b_tree_page_number]
 
             # Make sure the page is a b-tree page
-            if b_tree_root_page.page_type not in [PAGE_TYPE.B_TREE_TABLE_INTERIOR, PAGE_TYPE.B_TREE_TABLE_LEAF,
-                                                  PAGE_TYPE.B_TREE_INDEX_INTERIOR, PAGE_TYPE.B_TREE_INDEX_LEAF]:
+            if b_tree_root_page.page_type not in [
+                PAGE_TYPE.B_TREE_TABLE_INTERIOR,
+                PAGE_TYPE.B_TREE_TABLE_LEAF,
+                PAGE_TYPE.B_TREE_INDEX_INTERIOR,
+                PAGE_TYPE.B_TREE_INDEX_LEAF,
+            ]:
                 log_message = "The b-tree page number: {} is not a b-tree page but instead has a type of: {}."
-                log_message = log_message.format(b_tree_page_number, b_tree_root_page.page_type)
+                log_message = log_message.format(
+                    b_tree_page_number, b_tree_root_page.page_type
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
 
@@ -331,13 +385,22 @@ class Version(object):
                 self._logger.error(log_message)
                 raise VersionParsingError(log_message)
 
-            page_hex_type = self.get_page_data(b_tree_page_number, SQLITE_DATABASE_HEADER_LENGTH, PAGE_TYPE_LENGTH)
+            page_hex_type = self.get_page_data(
+                b_tree_page_number, SQLITE_DATABASE_HEADER_LENGTH, PAGE_TYPE_LENGTH
+            )
 
             # If this is the sqlite master schema root page then this page has to be a table interior or leaf page
-            if page_hex_type not in [TABLE_INTERIOR_PAGE_HEX_ID, TABLE_LEAF_PAGE_HEX_ID]:
-                log_message = "The b-tree page number: {} contains the master page hex but has hex type: {} which " \
-                              "is not the expected table interior or table leaf page hex."
-                log_message = log_message.format(b_tree_page_number, hexlify(page_hex_type))
+            if page_hex_type not in [
+                TABLE_INTERIOR_PAGE_HEX_ID,
+                TABLE_LEAF_PAGE_HEX_ID,
+            ]:
+                log_message = (
+                    "The b-tree page number: {} contains the master page hex but has hex type: {} which "
+                    "is not the expected table interior or table leaf page hex."
+                )
+                log_message = log_message.format(
+                    b_tree_page_number, hexlify(page_hex_type)
+                )
                 self._logger.error(log_message)
                 raise VersionParsingError(log_message)
 
@@ -382,6 +445,8 @@ class Version(object):
         except KeyError:
 
             log_message = "The page number: {} was not found in the page version index: {} for version: {}."
-            log_message = log_message.format(page_number, self.page_version_index, self.version_number)
+            log_message = log_message.format(
+                page_number, self.page_version_index, self.version_number
+            )
             self._logger.error(log_message)
             raise

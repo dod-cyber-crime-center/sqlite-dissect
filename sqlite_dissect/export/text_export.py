@@ -2,6 +2,7 @@ from logging import getLogger
 from os import rename
 from os.path import exists, sep
 from uuid import uuid4
+
 from sqlite_dissect.constants import LOGGER_NAME, PAGE_TYPE, UTF_8
 from sqlite_dissect.exception import ExportError
 from sqlite_dissect.output import stringify_cell_record
@@ -19,16 +20,16 @@ CommitTextExporter(object)
 """
 
 
-class CommitConsoleExporter(object):
-
+class CommitConsoleExporter:
     @staticmethod
     def write_header(master_schema_entry, page_type):
-        print(f"\nMaster schema entry: {master_schema_entry.name} row type: {master_schema_entry.row_type} on page "
-              f"type: {page_type} with sql: {master_schema_entry.sql}.")
+        print(
+            f"\nMaster schema entry: {master_schema_entry.name} row type: {master_schema_entry.row_type} on page "
+            f"type: {page_type} with sql: {master_schema_entry.sql}."
+        )
 
     @staticmethod
     def write_commit(commit):
-
         """
 
 
@@ -47,48 +48,103 @@ class CommitConsoleExporter(object):
         logger = getLogger(LOGGER_NAME)
 
         commit_header = "Commit: {} updated in version: {} with root page number: {} on b-tree page numbers: {}."
-        print(commit_header.format(commit.name, commit.version_number,
-                                   commit.root_page_number, commit.b_tree_page_numbers))
+        print(
+            commit_header.format(
+                commit.name,
+                commit.version_number,
+                commit.root_page_number,
+                commit.b_tree_page_numbers,
+            )
+        )
 
         if commit.page_type == PAGE_TYPE.B_TREE_INDEX_LEAF:
 
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               commit.added_cells.values(), "Added")
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               commit.updated_cells.values(), "Updated")
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               commit.deleted_cells.values(), "Deleted")
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               commit.carved_cells.values(), "Carved")
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.added_cells.values(),
+                "Added",
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.updated_cells.values(),
+                "Updated",
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.deleted_cells.values(),
+                "Deleted",
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         elif commit.page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
 
             # Sort the added, updated, and deleted cells by the row id
-            sorted_added_cells = sorted(commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               sorted_added_cells, "Added")
-            sorted_updated_cells = sorted(commit.updated_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               sorted_updated_cells, "Updated")
-            sorted_deleted_cells = sorted(commit.deleted_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               sorted_deleted_cells, "Deleted")
+            sorted_added_cells = sorted(
+                commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_added_cells,
+                "Added",
+            )
+            sorted_updated_cells = sorted(
+                commit.updated_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_updated_cells,
+                "Updated",
+            )
+            sorted_deleted_cells = sorted(
+                commit.deleted_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_deleted_cells,
+                "Deleted",
+            )
 
             # We will not sort the carved cells since row ids are not deterministic even if parsed
-            CommitConsoleExporter._write_cells(commit.file_type, commit.database_text_encoding, commit.page_type,
-                                               commit.carved_cells.values(), "Carved")
+            CommitConsoleExporter._write_cells(
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         else:
 
-            log_message = "Invalid commit page type: {} found for text export on master " \
-                          "schema entry name: {} while writing to sqlite file name: {}."
+            log_message = (
+                "Invalid commit page type: {} found for text export on master "
+                "schema entry name: {} while writing to sqlite file name: {}."
+            )
             log_message = log_message.format(commit.page_type, commit.name)
             logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
     def _write_cells(file_type, database_text_encoding, page_type, cells, operation):
-
         """
 
         This function will write the list of cells sent in to the connection under the table name specified including
@@ -106,21 +162,28 @@ class CommitConsoleExporter(object):
 
         """
 
-        base_string = "File Type: {} Version Number: {} Page Version Number: {} Source: {} " \
-                      "Page Number: {} Location: {} Operation: {} File Offset: {}"
+        base_string = (
+            "File Type: {} Version Number: {} Page Version Number: {} Source: {} "
+            "Page Number: {} Location: {} Operation: {} File Offset: {}"
+        )
         for cell in cells:
-            preface = base_string.format(file_type, cell.version_number, cell.page_version_number, cell.source,
-                                         cell.page_number, cell.location, operation, cell.file_offset)
+            preface = base_string.format(
+                file_type,
+                cell.version_number,
+                cell.page_version_number,
+                cell.source,
+                cell.page_number,
+                cell.location,
+                operation,
+                cell.file_offset,
+            )
             row_values = stringify_cell_record(cell, database_text_encoding, page_type)
             row_value = preface + " " + row_values + "."
             print(row_value)
 
 
-
-class CommitTextExporter(object):
-
+class CommitTextExporter:
     def __init__(self, export_directory, file_name):
-
         """
 
 
@@ -148,9 +211,13 @@ class CommitTextExporter(object):
             # Rename the existing file
             rename(self._text_file_name, new_file_name_for_existing_file)
 
-            log_message = "File: {} already existing when creating the file for commit text exporting.  The " \
-                          "file was renamed to: {} and new data will be written to the file name specified."
-            log_message = log_message.format(self._text_file_name, new_file_name_for_existing_file)
+            log_message = (
+                "File: {} already existing when creating the file for commit text exporting.  The "
+                "file was renamed to: {} and new data will be written to the file name specified."
+            )
+            log_message = log_message.format(
+                self._text_file_name, new_file_name_for_existing_file
+            )
             getLogger(LOGGER_NAME).debug(log_message)
 
         self._file_handle = open(self._text_file_name, "wb")
@@ -161,14 +228,17 @@ class CommitTextExporter(object):
 
     def write_header(self, master_schema_entry, page_type):
         header = "\nMaster schema entry: {} row type: {} on page type: {} with sql: {}."
-        header = header.format(master_schema_entry.name, master_schema_entry.row_type,
-                               page_type, master_schema_entry.sql)
+        header = header.format(
+            master_schema_entry.name,
+            master_schema_entry.row_type,
+            page_type,
+            master_schema_entry.sql,
+        )
         header += "\n"
         encoded = header.encode(UTF_8)
         self._file_handle.write(encoded)
 
     def write_commit(self, commit):
-
         """
 
 
@@ -186,49 +256,116 @@ class CommitTextExporter(object):
 
         logger = getLogger(LOGGER_NAME)
 
-        commit_header = 'Commit: {} updated in version: {} with root page number: {} on b-tree page numbers: {}.\n'
-        self._file_handle.write(commit_header.format(commit.name, commit.version_number,
-                                                     commit.root_page_number, commit.b_tree_page_numbers).encode(UTF_8))
+        commit_header = "Commit: {} updated in version: {} with root page number: {} on b-tree page numbers: {}.\n"
+        self._file_handle.write(
+            commit_header.format(
+                commit.name,
+                commit.version_number,
+                commit.root_page_number,
+                commit.b_tree_page_numbers,
+            ).encode(UTF_8)
+        )
 
         if commit.page_type == PAGE_TYPE.B_TREE_INDEX_LEAF:
 
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, commit.added_cells.values(), "Added")
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, commit.updated_cells.values(), "Updated")
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, commit.deleted_cells.values(), "Deleted")
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, commit.carved_cells.values(), "Carved")
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.added_cells.values(),
+                "Added",
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.updated_cells.values(),
+                "Updated",
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.deleted_cells.values(),
+                "Deleted",
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         elif commit.page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
 
             # Sort the added, updated, and deleted cells by the row id
-            sorted_added_cells = sorted(commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, sorted_added_cells, "Added")
-            sorted_updated_cells = sorted(commit.updated_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, sorted_updated_cells, "Updated")
-            sorted_deleted_cells = sorted(commit.deleted_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, sorted_deleted_cells, "Deleted")
+            sorted_added_cells = sorted(
+                commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_added_cells,
+                "Added",
+            )
+            sorted_updated_cells = sorted(
+                commit.updated_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_updated_cells,
+                "Updated",
+            )
+            sorted_deleted_cells = sorted(
+                commit.deleted_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_deleted_cells,
+                "Deleted",
+            )
 
             # We will not sort the carved cells since row ids are not deterministic even if parsed
-            CommitTextExporter._write_cells(self._file_handle, commit.file_type, commit.database_text_encoding,
-                                            commit.page_type, commit.carved_cells.values(), "Carved")
+            CommitTextExporter._write_cells(
+                self._file_handle,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         else:
 
-            log_message = "Invalid commit page type: {} found for text export on master " \
-                          "schema entry name: {}."
-            log_message = log_message.format(commit.page_type, commit.name, self._text_file_name)
+            log_message = (
+                "Invalid commit page type: {} found for text export on master "
+                "schema entry name: {}."
+            )
+            log_message = log_message.format(
+                commit.page_type, commit.name, self._text_file_name
+            )
             logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
-    def _write_cells(file_handle, file_type, database_text_encoding, page_type, cells, operation):
-
+    def _write_cells(
+        file_handle, file_type, database_text_encoding, page_type, cells, operation
+    ):
         """
 
         This function will write the list of cells sent in to the connection under the table name specified including
@@ -247,11 +384,21 @@ class CommitTextExporter(object):
 
         """
 
-        base_string = "File Type: {} Version Number: {} Page Version Number: {} Source: {} " \
-                      "Page Number: {} Location: {} Operation: {} File Offset: {}"
+        base_string = (
+            "File Type: {} Version Number: {} Page Version Number: {} Source: {} "
+            "Page Number: {} Location: {} Operation: {} File Offset: {}"
+        )
         for cell in cells:
-            preface = base_string.format(file_type, cell.version_number, cell.page_version_number, cell.source,
-                                         cell.page_number, cell.location, operation, cell.file_offset)
+            preface = base_string.format(
+                file_type,
+                cell.version_number,
+                cell.page_version_number,
+                cell.source,
+                cell.page_number,
+                cell.location,
+                operation,
+                cell.file_offset,
+            )
             row_values = stringify_cell_record(cell, database_text_encoding, page_type)
             full_str = preface + " " + row_values + ".\n"
             encoded_str = full_str.encode(UTF_8)
