@@ -7,7 +7,7 @@ on:
 env:
   # The Python version for the build jobs as well as the primary one for the test and artifact generation. This MUST be
   # in the python-version matrix in the `test` job.
-  PYTHON_VERSION: "3.12"  
+  PYTHON_VERSION: "3.13"  
 jobs:
   test:      
     runs-on: ubuntu-latest
@@ -16,7 +16,7 @@ jobs:
         # This allows the pipeline to be run against multiple Python versions. eg. [3.6, 3.7, 3.8, 3.9, 3.10]. This results
         # in linting and unit tests running for all listed versions as well as the creation of packages and wheels on
         # creation of a tag in Git.
-        python-version: [ "3.8", "3.10", "3.12" ]
+        python-version: [ "3.8", "3.10", "3.12", "3.13" ]
 
     steps:
       # Get the code from the repository to be packaged

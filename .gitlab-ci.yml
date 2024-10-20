@@ -10,7 +10,7 @@ default:
   tags:
     - docker
     - devnet
-  image: python:3.11
+  image: python:3.13
 
 stages:
   - Lint
