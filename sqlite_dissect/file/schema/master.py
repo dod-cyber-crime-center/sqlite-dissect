@@ -1414,7 +1414,7 @@ class OrdinaryTableRow(TableRow):
                         Note: When the check is done on the definition, we check the next character is not one of the
                               allowed characters in a column name to make sure the constraint preface is not the
                               beginning of a longer column name where it is not actually a constraint preface
-                              (example: primaryEmail).  The r'\w' regular expression when no LOCALE and UNICODE flags
+                              (example: primaryEmail).  The regular expression when no LOCALE and UNICODE flags
                               are set will be equivalent to the set: [a-zA-Z0-9_].
 
                         """
