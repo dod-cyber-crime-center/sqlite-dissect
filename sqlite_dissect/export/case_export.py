@@ -24,12 +24,12 @@ def guid_list_to_objects(guids):
         return list(map(lambda g: {"@id": g}, guids))
 
 
-class CaseExporter(object):
+class CaseExporter:
     # Define the formatted logger that is provided by the main.py execution path
     logger = None
 
     result_guids = []
-    
+
     configuration_guid = ""
 
     # Defines the initial structure for the CASE export. This will be supplemented with various methods that get called
@@ -49,16 +49,16 @@ class CaseExporter(object):
             "uco-tool": "https://ontology.unifiedcyberontology.org/uco/tool/",
             "uco-types": "https://ontology.unifiedcyberontology.org/uco/types/",
             "uco-vocabulary": "https://ontology.unifiedcyberontology.org/uco/vocabulary/",
-            "xsd": "http://www.w3.org/2001/XMLSchema#"
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
         },
-        "@graph": []
+        "@graph": [],
     }
     start_datetime = None
     end_datetime = None
 
     def __init__(self, logger):
         self.logger = logger
-        self.configuration_guid = ("kb:configuration-" + str(uuid.uuid4()))
+        self.configuration_guid = "kb:configuration-" + str(uuid.uuid4())
 
     def register_options(self, options):
         """
@@ -74,24 +74,31 @@ class CaseExporter(object):
 
         # Loop through the list of provided options and add each configuration option to the CASE output
         for option in vars(options):
-            if getattr(options, option) is not None and len(str(getattr(options, option))) > 0:
-                configuration_options.append({
-                    "@id": ("kb:configuration-entry-" + str(uuid.uuid4())),
-                    "@type": "uco-configuration:ConfigurationEntry",
-                    "uco-configuration:itemName": option,
-                    "uco-configuration:itemValue": str(getattr(options, option)),
-                    "uco-configuration:itemType": str(type(getattr(options, option)).__name__)
-                })
+            if (
+                getattr(options, option) is not None
+                and len(str(getattr(options, option))) > 0
+            ):
+                configuration_options.append(
+                    {
+                        "@id": ("kb:configuration-entry-" + str(uuid.uuid4())),
+                        "@type": "uco-configuration:ConfigurationEntry",
+                        "uco-configuration:itemName": option,
+                        "uco-configuration:itemValue": str(getattr(options, option)),
+                        "uco-configuration:itemType": str(
+                            type(getattr(options, option)).__name__
+                        ),
+                    }
+                )
 
         # Build the configuration wrapper which includes the facet for the configuration
         configuration = {
             "@id": self.configuration_guid,
             "@type": "uco-configuration:Configuration",
-            "uco-configuration:configurationEntry": configuration_options
+            "uco-configuration:configurationEntry": configuration_options,
         }
 
         # Add the configuration object to the in progress CASE object
-        self.case['@graph'].append(configuration)
+        self.case["@graph"].append(configuration)
 
     def add_observable_file(self, filepath, filetype=None):
         """
@@ -111,115 +118,125 @@ class CaseExporter(object):
 
             # Generate the UUID which will be returned as a reference
             if filetype is None:
-                guid = ("kb:" + str(uuid.uuid4()))
+                guid = "kb:" + str(uuid.uuid4())
             else:
-                guid = ("kb:" + filetype + "-" + str(uuid.uuid4()))
+                guid = "kb:" + filetype + "-" + str(uuid.uuid4())
 
             # Parse the file and get the attributes we need
-            self.case['@graph'].append({
-                "@id": guid,
-                "@type": "uco-observable:File",
-                "uco-observable:hasChanged": False,
-                "uco-core:hasFacet": [
-                    {
-                        "@id": ("kb:file-facet-" + str(uuid.uuid4())),
-                        "@type": "uco-observable:FileFacet",
-                        "uco-observable:observableCreatedTime": {
-                            "@type": "xsd:dateTime",
-                            "@value": datetime.fromtimestamp(path.getctime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                        },
-                        "uco-observable:modifiedTime": {
-                            "@type": "xsd:dateTime",
-                            "@value": datetime.fromtimestamp(path.getmtime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                        },
-                        "uco-observable:accessedTime": {
-                            "@type": "xsd:dateTime",
-                            "@value": datetime.fromtimestamp(path.getatime(filepath)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                        },
-                        "uco-observable:extension": extension,
-                        "uco-observable:fileName": path.basename(filepath),
-                        "uco-observable:filePath": filepath,
-                        "uco-observable:isDirectory": False,
-                        "uco-observable:sizeInBytes": path.getsize(filepath)
-                    },
-                    {
-                        "@id": ("kb:content-data-facet-" + str(uuid.uuid4())),
-                        "@type": "uco-observable:ContentDataFacet",
-                        "uco-observable:hash": [
-                            {
-                                "@id": ("kb:md5-hash-" + str(uuid.uuid4())),
-                                "@type": "uco-types:Hash",
-                                "uco-types:hashMethod": {
-                                    "@type": "uco-vocabulary:HashNameVocab",
-                                    "@value": "MD5"
-                                },
-                                "uco-types:hashValue": {
-                                    "@type": "xsd:hexBinary",
-                                    "@value": hash_file(filepath, hashlib.md5())
-                                }
+            self.case["@graph"].append(
+                {
+                    "@id": guid,
+                    "@type": "uco-observable:File",
+                    "uco-observable:hasChanged": False,
+                    "uco-core:hasFacet": [
+                        {
+                            "@id": ("kb:file-facet-" + str(uuid.uuid4())),
+                            "@type": "uco-observable:FileFacet",
+                            "uco-observable:observableCreatedTime": {
+                                "@type": "xsd:dateTime",
+                                "@value": datetime.fromtimestamp(
+                                    path.getctime(filepath)
+                                ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                             },
-                            {
-                                "@id": ("kb:sha1-hash-" + str(uuid.uuid4())),
-                                "@type": "uco-types:Hash",
-                                "uco-types:hashMethod": {
-                                    "@type": "uco-vocabulary:HashNameVocab",
-                                    "@value": "SHA1"
-                                },
-                                "uco-types:hashValue": {
-                                    "@type": "xsd:hexBinary",
-                                    "@value": hash_file(filepath, hashlib.sha1())
-                                }
+                            "uco-observable:modifiedTime": {
+                                "@type": "xsd:dateTime",
+                                "@value": datetime.fromtimestamp(
+                                    path.getmtime(filepath)
+                                ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                             },
-                            {
-                                "@id": ("kb:sha256-hash-" + str(uuid.uuid4())),
-                                "@type": "uco-types:Hash",
-                                "uco-types:hashMethod": {
-                                    "@type": "uco-vocabulary:HashNameVocab",
-                                    "@value": "SHA256"
-                                },
-                                "uco-types:hashValue": {
-                                    "@type": "xsd:hexBinary",
-                                    "@value": hash_file(filepath, hashlib.sha256())
-                                }
+                            "uco-observable:accessedTime": {
+                                "@type": "xsd:dateTime",
+                                "@value": datetime.fromtimestamp(
+                                    path.getatime(filepath)
+                                ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                             },
-                            {
-                                "@id": ("kb:sha512-hash-" + str(uuid.uuid4())),
-                                "@type": "uco-types:Hash",
-                                "uco-types:hashMethod": {
-                                    "@type": "uco-vocabulary:HashNameVocab",
-                                    "@value": "SHA512"
+                            "uco-observable:extension": extension,
+                            "uco-observable:fileName": path.basename(filepath),
+                            "uco-observable:filePath": filepath,
+                            "uco-observable:isDirectory": False,
+                            "uco-observable:sizeInBytes": path.getsize(filepath),
+                        },
+                        {
+                            "@id": ("kb:content-data-facet-" + str(uuid.uuid4())),
+                            "@type": "uco-observable:ContentDataFacet",
+                            "uco-observable:hash": [
+                                {
+                                    "@id": ("kb:md5-hash-" + str(uuid.uuid4())),
+                                    "@type": "uco-types:Hash",
+                                    "uco-types:hashMethod": {
+                                        "@type": "uco-vocabulary:HashNameVocab",
+                                        "@value": "MD5",
+                                    },
+                                    "uco-types:hashValue": {
+                                        "@type": "xsd:hexBinary",
+                                        "@value": hash_file(filepath, hashlib.md5()),
+                                    },
                                 },
-                                "uco-types:hashValue": {
-                                    "@type": "xsd:hexBinary",
-                                    "@value": hash_file(filepath, hashlib.sha512())
-                                }
-                            }
-                        ]
-                    }
-                ]
-            })
+                                {
+                                    "@id": ("kb:sha1-hash-" + str(uuid.uuid4())),
+                                    "@type": "uco-types:Hash",
+                                    "uco-types:hashMethod": {
+                                        "@type": "uco-vocabulary:HashNameVocab",
+                                        "@value": "SHA1",
+                                    },
+                                    "uco-types:hashValue": {
+                                        "@type": "xsd:hexBinary",
+                                        "@value": hash_file(filepath, hashlib.sha1()),
+                                    },
+                                },
+                                {
+                                    "@id": ("kb:sha256-hash-" + str(uuid.uuid4())),
+                                    "@type": "uco-types:Hash",
+                                    "uco-types:hashMethod": {
+                                        "@type": "uco-vocabulary:HashNameVocab",
+                                        "@value": "SHA256",
+                                    },
+                                    "uco-types:hashValue": {
+                                        "@type": "xsd:hexBinary",
+                                        "@value": hash_file(filepath, hashlib.sha256()),
+                                    },
+                                },
+                                {
+                                    "@id": ("kb:sha512-hash-" + str(uuid.uuid4())),
+                                    "@type": "uco-types:Hash",
+                                    "uco-types:hashMethod": {
+                                        "@type": "uco-vocabulary:HashNameVocab",
+                                        "@value": "SHA512",
+                                    },
+                                    "uco-types:hashValue": {
+                                        "@type": "xsd:hexBinary",
+                                        "@value": hash_file(filepath, hashlib.sha512()),
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                }
+            )
 
             return guid
         else:
-            self.logger.critical('Attempting to add invalid filepath to CASE Observable export: {}'.format(filepath))
+            self.logger.critical(
+                f"Attempting to add invalid filepath to CASE Observable export: {filepath}"
+            )
             return None
 
-    def link_observable_relationship(self, source_guid: str, target_guid: str, relationship: str) -> None:
-        self.case['@graph'].append({
-            "@id": ("kb:export-artifact-relationship-" + str(uuid.uuid4())),
-            "@type": "uco-observable:ObservableRelationship",
-            "uco-core:source": {
-                "@id": source_guid
-            },
-            "uco-core:target": {
-                "@id": target_guid
-            },
-            "uco-core:kindOfRelationship": {
-                "@type": "uco-vocabulary:ObservableObjectRelationshipVocab",
-                "@value": relationship
-            },
-            "uco-core:isDirectional": True
-        })
+    def link_observable_relationship(
+        self, source_guid: str, target_guid: str, relationship: str
+    ) -> None:
+        self.case["@graph"].append(
+            {
+                "@id": ("kb:export-artifact-relationship-" + str(uuid.uuid4())),
+                "@type": "uco-observable:ObservableRelationship",
+                "uco-core:source": {"@id": source_guid},
+                "uco-core:target": {"@id": target_guid},
+                "uco-core:kindOfRelationship": {
+                    "@type": "uco-vocabulary:ObservableObjectRelationshipVocab",
+                    "@value": relationship,
+                },
+                "uco-core:isDirectional": True,
+            }
+        )
 
     def add_export_artifacts(self, export_paths: list = None):
         """
@@ -235,7 +252,9 @@ class CaseExporter(object):
             # Add the export result GUID to the list to be extracted
             self.result_guids.append(export_guid)
 
-    def generate_provenance_record(self, description: str, guids: list) -> Optional[str]:
+    def generate_provenance_record(
+        self, description: str, guids: list
+    ) -> Optional[str]:
         """
         Generates a provenance record for the tool and returns the GUID for the new object
         """
@@ -243,15 +262,15 @@ class CaseExporter(object):
         # Ensure there is at least one GUID else don't add anything
         if len(guids) > 0:
             # Generate the UUID which will be returned as a reference
-            guid = ("kb:provenance-record-" + str(uuid.uuid4()))
+            guid = "kb:provenance-record-" + str(uuid.uuid4())
 
             record = {
                 "@id": guid,
                 "@type": "case-investigation:ProvenanceRecord",
                 "uco-core:description": description,
-                "uco-core:object": guid_list_to_objects(guids)
+                "uco-core:object": guid_list_to_objects(guids),
             }
-            self.case['@graph'].append(record)
+            self.case["@graph"].append(record)
             return guid
         else:
             return None
@@ -261,37 +280,37 @@ class CaseExporter(object):
         Generates the header for the tool and returns the GUID for the ObservableRelationships
         """
         # Generate the UUID which will be returned as a reference
-        org_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
-        self.case['@graph'].append({
-            "@id": org_guid,
-            "@type": "uco-identity:Organization",
-            "uco-core:name": "DoD Cyber Crime Center (DC3)",
-            "uco-core:description": "The DoD Cyber Crime Center (DC3) provides digital and multimedia (D/MM) forensics,"
-                                    " specialized cyber training, technical solutions development, and cyber analytics"
-                                    " for the following DoD mission areas: cybersecurity (CS) and critical"
-                                    " infrastructure protection (CIP); law enforcement and counterintelligence (LE/CI);"
-                                    " document and media exploitation (DOMEX), counterterrorism (CT) and safety"
-                                    " inquiries."
-        })
+        org_guid = "kb:sqlite-dissect-" + str(uuid.uuid4())
+        self.case["@graph"].append(
+            {
+                "@id": org_guid,
+                "@type": "uco-identity:Organization",
+                "uco-core:name": "DoD Cyber Crime Center (DC3)",
+                "uco-core:description": "The DoD Cyber Crime Center (DC3) provides digital and multimedia (D/MM) forensics,"
+                " specialized cyber training, technical solutions development, and cyber analytics"
+                " for the following DoD mission areas: cybersecurity (CS) and critical"
+                " infrastructure protection (CIP); law enforcement and counterintelligence (LE/CI);"
+                " document and media exploitation (DOMEX), counterterrorism (CT) and safety"
+                " inquiries.",
+            }
+        )
 
         # Generate the UUID which will be returned as a reference
-        tool_guid = ("kb:sqlite-dissect-" + str(uuid.uuid4()))
-        self.case['@graph'].append({
-            "@id": tool_guid,
-            "@type": "uco-tool:ConfiguredTool",
-            "uco-core:name": "SQLite Dissect",
-            "uco-core:description": "A SQLite parser with recovery abilities over SQLite databases and their "
-                                    "accompanying journal files. https://github.com/dod-cyber-crime-center/sqlite"
-                                    "-dissect",
-            "uco-tool:toolType": "Extraction",
-            "uco-tool:creator": {
-                "@id": org_guid
-            },
-            "uco-configuration:usesConfiguration": {
-                "@id": self.configuration_guid
-            },
-            "uco-tool:version": __version__,
-        })
+        tool_guid = "kb:sqlite-dissect-" + str(uuid.uuid4())
+        self.case["@graph"].append(
+            {
+                "@id": tool_guid,
+                "@type": "uco-tool:ConfiguredTool",
+                "uco-core:name": "SQLite Dissect",
+                "uco-core:description": "A SQLite parser with recovery abilities over SQLite databases and their "
+                "accompanying journal files. https://github.com/dod-cyber-crime-center/sqlite"
+                "-dissect",
+                "uco-tool:toolType": "Extraction",
+                "uco-tool:creator": {"@id": org_guid},
+                "uco-configuration:usesConfiguration": {"@id": self.configuration_guid},
+                "uco-tool:version": __version__,
+            }
+        )
 
         return tool_guid
 
@@ -302,10 +321,14 @@ class CaseExporter(object):
 
         Ontology source: https://github.com/casework/CASE/blob/master/ontology/investigation/investigation.ttl
         """
-        source_provenance_guid = self.generate_provenance_record("SQLite source artifacts", source_guids)
+        source_provenance_guid = self.generate_provenance_record(
+            "SQLite source artifacts", source_guids
+        )
         if source_provenance_guid is not None:
             source_guids.append(source_provenance_guid)
-        result_provenance_guid = self.generate_provenance_record("SQLite Dissect output artifacts", self.result_guids)
+        result_provenance_guid = self.generate_provenance_record(
+            "SQLite Dissect output artifacts", self.result_guids
+        )
         if result_provenance_guid is not None:
             self.result_guids.append(result_provenance_guid)
 
@@ -314,27 +337,27 @@ class CaseExporter(object):
             "@type": "case-investigation:InvestigativeAction",
             "uco-action:instrument": guid_list_to_objects([tool_guid]),
             "uco-action:object": guid_list_to_objects(source_guids),
-            "uco-action:result": guid_list_to_objects(self.result_guids)
+            "uco-action:result": guid_list_to_objects(self.result_guids),
         }
 
         if self.start_datetime:
             action["uco-action:startTime"] = {
                 "@type": "xsd:dateTime",
-                "@value": self.start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                "@value": self.start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             }
         if self.end_datetime:
             action["uco-action:endTime"] = {
                 "@type": "xsd:dateTime",
-                "@value": self.end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                "@value": self.end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             }
-        self.case['@graph'].append(action)
+        self.case["@graph"].append(action)
 
-    def export_case_file(self, export_path: str = 'output/case.json'):
+    def export_case_file(self, export_path: str = "output/case.json"):
         """
         Exports the built CASE object to the path specified in the export_path parameter.
         """
 
         # Write the CASE export to the filesystem
-        with open(export_path, 'w') as f:
+        with open(export_path, "w") as f:
             json.dump(self.case, f, ensure_ascii=False, indent=4)
-            self.logger.info('CASE formatted file has been exported to {}'.format(export_path))
+            self.logger.info(f"CASE formatted file has been exported to {export_path}")

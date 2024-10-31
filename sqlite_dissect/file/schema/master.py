@@ -1,39 +1,46 @@
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from binascii import hexlify
 from collections import namedtuple
 from logging import getLogger
-from re import match
-from re import sub
+from re import match, sub
 from warnings import warn
-from sqlite_dissect.constants import CREATE_TABLE_CLAUSE
-from sqlite_dissect.constants import CREATE_VIRTUAL_TABLE_CLAUSE
-from sqlite_dissect.constants import CREATE_INDEX_CLAUSE
-from sqlite_dissect.constants import CREATE_UNIQUE_INDEX_CLAUSE
-from sqlite_dissect.constants import INDEX_ON_COMMAND
-from sqlite_dissect.constants import INDEX_WHERE_CLAUSE
-from sqlite_dissect.constants import INTERNAL_SCHEMA_OBJECT_INDEX_PREFIX
-from sqlite_dissect.constants import INTERNAL_SCHEMA_OBJECT_PREFIX
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import MASTER_PAGE_HEX_ID
-from sqlite_dissect.constants import MASTER_SCHEMA_COLUMN
-from sqlite_dissect.constants import MASTER_SCHEMA_NUMBER_OF_COLUMNS
-from sqlite_dissect.constants import MASTER_SCHEMA_ROW_TYPE
-from sqlite_dissect.constants import ORDINARY_TABLE_AS_CLAUSE
-from sqlite_dissect.constants import SQLITE_MASTER_SCHEMA_ROOT_PAGE
-from sqlite_dissect.constants import TABLE_CONSTRAINT_PREFACES
-from sqlite_dissect.constants import VIRTUAL_TABLE_USING_CLAUSE
-from sqlite_dissect.exception import MasterSchemaParsingError
-from sqlite_dissect.exception import MasterSchemaRowParsingError
+
+from sqlite_dissect.constants import (
+    CREATE_INDEX_CLAUSE,
+    CREATE_TABLE_CLAUSE,
+    CREATE_UNIQUE_INDEX_CLAUSE,
+    CREATE_VIRTUAL_TABLE_CLAUSE,
+    INDEX_ON_COMMAND,
+    INDEX_WHERE_CLAUSE,
+    INTERNAL_SCHEMA_OBJECT_INDEX_PREFIX,
+    INTERNAL_SCHEMA_OBJECT_PREFIX,
+    LOGGER_NAME,
+    MASTER_PAGE_HEX_ID,
+    MASTER_SCHEMA_COLUMN,
+    MASTER_SCHEMA_NUMBER_OF_COLUMNS,
+    MASTER_SCHEMA_ROW_TYPE,
+    ORDINARY_TABLE_AS_CLAUSE,
+    SQLITE_MASTER_SCHEMA_ROOT_PAGE,
+    TABLE_CONSTRAINT_PREFACES,
+    VIRTUAL_TABLE_USING_CLAUSE,
+)
+from sqlite_dissect.exception import (
+    MasterSchemaParsingError,
+    MasterSchemaRowParsingError,
+)
 from sqlite_dissect.file.database.header import InteriorPageHeader
-from sqlite_dissect.file.database.page import TableInteriorPage
-from sqlite_dissect.file.database.page import TableLeafCell
-from sqlite_dissect.file.database.page import TableLeafPage
+from sqlite_dissect.file.database.page import (
+    TableInteriorPage,
+    TableLeafCell,
+    TableLeafPage,
+)
 from sqlite_dissect.file.database.utilities import get_pages_from_b_tree_page
 from sqlite_dissect.file.schema.column import ColumnDefinition
-from sqlite_dissect.file.schema.utilities import parse_comment_from_sql_segment
 from sqlite_dissect.file.schema.table import TableConstraint
-from sqlite_dissect.file.schema.utilities import get_index_of_closing_parenthesis
+from sqlite_dissect.file.schema.utilities import (
+    get_index_of_closing_parenthesis,
+    parse_comment_from_sql_segment,
+)
 from sqlite_dissect.utilities import get_md5_hash
 
 """
@@ -55,9 +62,11 @@ TriggerRow(MasterSchemaRow)
 """
 
 
-class MasterSchema(object):
-    MasterSchemaEntryData = namedtuple("MasterSchemaEntryData",
-                                       "record_columns row_type sql b_tree_table_leaf_page_number cell")
+class MasterSchema:
+    MasterSchemaEntryData = namedtuple(
+        "MasterSchemaEntryData",
+        "record_columns row_type sql b_tree_table_leaf_page_number cell",
+    )
 
     def __init__(self, version_interface, root_page):
 
@@ -65,20 +74,28 @@ class MasterSchema(object):
 
         if root_page.number != SQLITE_MASTER_SCHEMA_ROOT_PAGE:
             log_message = "The root page number: {} is not the expected sqlite master schema root page number: {}."
-            log_message = log_message.format(root_page.number, SQLITE_MASTER_SCHEMA_ROOT_PAGE)
+            log_message = log_message.format(
+                root_page.number, SQLITE_MASTER_SCHEMA_ROOT_PAGE
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
         if root_page.hex_type != MASTER_PAGE_HEX_ID:
-            log_message = "The root page hex type: {} is not the expected master page hex: {}."
-            log_message = log_message.format(hexlify(root_page.hex_type), hexlify(MASTER_PAGE_HEX_ID))
+            log_message = (
+                "The root page hex type: {} is not the expected master page hex: {}."
+            )
+            log_message = log_message.format(
+                hexlify(root_page.hex_type), hexlify(MASTER_PAGE_HEX_ID)
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
         self._version_interface = version_interface
 
         self.version_number = self._version_interface.version_number
-        self.page_version_number = self._version_interface.get_page_version(root_page.number)
+        self.page_version_number = self._version_interface.get_page_version(
+            root_page.number
+        )
         self.root_page = root_page
         self.master_schema_entries = []
 
@@ -94,11 +111,15 @@ class MasterSchema(object):
 
         if isinstance(self.root_page, TableInteriorPage):
 
-            master_schema_entry_data = MasterSchema._parse_table_interior(self.root_page, database_text_encoding)
+            master_schema_entry_data = MasterSchema._parse_table_interior(
+                self.root_page, database_text_encoding
+            )
 
         elif isinstance(self.root_page, TableLeafPage):
 
-            master_schema_entry_data = MasterSchema._parse_table_leaf(self.root_page, database_text_encoding)
+            master_schema_entry_data = MasterSchema._parse_table_leaf(
+                self.root_page, database_text_encoding
+            )
 
         else:
 
@@ -110,7 +131,9 @@ class MasterSchema(object):
 
             """
 
-            log_message = "The root page is not a table page but is a: {}.".format(type(self.root_page))
+            log_message = (
+                f"The root page is not a table page but is a: {type(self.root_page)}."
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -130,23 +153,37 @@ class MasterSchema(object):
             b_tree_root_page_header = self.root_page.header
 
             if b_tree_root_page_header.number_of_cells_on_page != 0:
-                log_message = "The b-tree root page header has a cell count of: {} where the master schema entry " \
-                              "data was not set in version: {}."
-                log_message = log_message.format(b_tree_root_page_header.number_of_cells_on_page, self.version_number)
+                log_message = (
+                    "The b-tree root page header has a cell count of: {} where the master schema entry "
+                    "data was not set in version: {}."
+                )
+                log_message = log_message.format(
+                    b_tree_root_page_header.number_of_cells_on_page, self.version_number
+                )
                 logger.error(log_message)
                 raise MasterSchemaParsingError(log_message)
 
-            if b_tree_root_page_header.cell_content_offset != self._version_interface.page_size:
-                log_message = "The b-tree root page cell content offset is: {} when it should match the page " \
-                              "size: {} where the master schema entry data was not set in version: {}."
-                log_message = log_message.format(b_tree_root_page_header.cell_content_offset,
-                                                 self._version_interface.page_size, self.version_number)
+            if (
+                b_tree_root_page_header.cell_content_offset
+                != self._version_interface.page_size
+            ):
+                log_message = (
+                    "The b-tree root page cell content offset is: {} when it should match the page "
+                    "size: {} where the master schema entry data was not set in version: {}."
+                )
+                log_message = log_message.format(
+                    b_tree_root_page_header.cell_content_offset,
+                    self._version_interface.page_size,
+                    self.version_number,
+                )
                 logger.error(log_message)
                 raise MasterSchemaParsingError(log_message)
 
             if isinstance(b_tree_root_page_header, InteriorPageHeader):
-                log_message = "The b-tree root page is an interior table page where the master schema entry data " \
-                              "was not set in version: {}."
+                log_message = (
+                    "The b-tree root page is an interior table page where the master schema entry data "
+                    "was not set in version: {}."
+                )
                 log_message = log_message.format(self.version_number)
                 logger.error(log_message)
                 raise MasterSchemaParsingError(log_message)
@@ -176,8 +213,10 @@ class MasterSchema(object):
 
             # Make sure the database text encoding is set.
             if not self._version_interface.database_text_encoding:
-                log_message = "Master schema entries were found, however no database text encoding as been set yet " \
-                              "as expected in version: {}."
+                log_message = (
+                    "Master schema entries were found, however no database text encoding as been set yet "
+                    "as expected in version: {}."
+                )
                 log_message = log_message.format(self.version_number)
                 logger.error(log_message)
                 raise MasterSchemaParsingError(log_message)
@@ -206,7 +245,9 @@ class MasterSchema(object):
 
             # Account for table master schema rows
             if MASTER_SCHEMA_ROW_TYPE.TABLE in master_schema_entry_data:
-                for row_type_data in master_schema_entry_data[MASTER_SCHEMA_ROW_TYPE.TABLE]:
+                for row_type_data in master_schema_entry_data[
+                    MASTER_SCHEMA_ROW_TYPE.TABLE
+                ]:
 
                     """
 
@@ -224,13 +265,19 @@ class MasterSchema(object):
                     """
 
                     if row_type_data.sql.startswith(CREATE_TABLE_CLAUSE):
-                        table_row = OrdinaryTableRow(self._version_interface,
-                                                     row_type_data.b_tree_table_leaf_page_number,
-                                                     row_type_data.cell, row_type_data.record_columns)
+                        table_row = OrdinaryTableRow(
+                            self._version_interface,
+                            row_type_data.b_tree_table_leaf_page_number,
+                            row_type_data.cell,
+                            row_type_data.record_columns,
+                        )
                     elif row_type_data.sql.startswith(CREATE_VIRTUAL_TABLE_CLAUSE):
-                        table_row = VirtualTableRow(self._version_interface,
-                                                    row_type_data.b_tree_table_leaf_page_number,
-                                                    row_type_data.cell, row_type_data.record_columns)
+                        table_row = VirtualTableRow(
+                            self._version_interface,
+                            row_type_data.b_tree_table_leaf_page_number,
+                            row_type_data.cell,
+                            row_type_data.record_columns,
+                        )
                     else:
                         log_message = "Master schema table row with table name: {} has invalid sql: {}."
                         log_message = log_message.format(row_type_data.sql)
@@ -252,19 +299,30 @@ class MasterSchema(object):
 
             # Account for index master schema rows
             if MASTER_SCHEMA_ROW_TYPE.INDEX in master_schema_entry_data:
-                for row_type_data in master_schema_entry_data[MASTER_SCHEMA_ROW_TYPE.INDEX]:
-                    index_row = IndexRow(self._version_interface, row_type_data.b_tree_table_leaf_page_number,
-                                         row_type_data.cell, row_type_data.record_columns, master_schema_tables)
+                for row_type_data in master_schema_entry_data[
+                    MASTER_SCHEMA_ROW_TYPE.INDEX
+                ]:
+                    index_row = IndexRow(
+                        self._version_interface,
+                        row_type_data.b_tree_table_leaf_page_number,
+                        row_type_data.cell,
+                        row_type_data.record_columns,
+                        master_schema_tables,
+                    )
                     self.master_schema_entries.append(index_row)
 
             # Account for view master schema rows
             if MASTER_SCHEMA_ROW_TYPE.VIEW in master_schema_entry_data:
-                for row_type_data in master_schema_entry_data[MASTER_SCHEMA_ROW_TYPE.VIEW]:
-                    view_row = ViewRow(self._version_interface,
-                                       row_type_data.b_tree_table_leaf_page_number,
-                                       row_type_data.cell,
-                                       row_type_data.record_columns,
-                                       master_schema_tables)
+                for row_type_data in master_schema_entry_data[
+                    MASTER_SCHEMA_ROW_TYPE.VIEW
+                ]:
+                    view_row = ViewRow(
+                        self._version_interface,
+                        row_type_data.b_tree_table_leaf_page_number,
+                        row_type_data.cell,
+                        row_type_data.record_columns,
+                        master_schema_tables,
+                    )
                     self.master_schema_entries.append(view_row)
                     if view_row.table_name in master_schema_tables:
                         log_message = "Master schema view row with table name: {} was already specified in table rows."
@@ -280,45 +338,70 @@ class MasterSchema(object):
 
             # Account for trigger master schema rows
             if MASTER_SCHEMA_ROW_TYPE.TRIGGER in master_schema_entry_data:
-                for row_type_data in master_schema_entry_data[MASTER_SCHEMA_ROW_TYPE.TRIGGER]:
-                    trigger_row = TriggerRow(self._version_interface, row_type_data.b_tree_table_leaf_page_number,
-                                             row_type_data.cell, row_type_data.record_columns, master_schema_tables,
-                                             master_schema_views)
+                for row_type_data in master_schema_entry_data[
+                    MASTER_SCHEMA_ROW_TYPE.TRIGGER
+                ]:
+                    trigger_row = TriggerRow(
+                        self._version_interface,
+                        row_type_data.b_tree_table_leaf_page_number,
+                        row_type_data.cell,
+                        row_type_data.record_columns,
+                        master_schema_tables,
+                        master_schema_views,
+                    )
                     self.master_schema_entries.append(trigger_row)
 
         self.master_schema_pages = get_pages_from_b_tree_page(self.root_page)
-        self.master_schema_page_numbers = [master_schema_page.number for master_schema_page in self.master_schema_pages]
+        self.master_schema_page_numbers = [
+            master_schema_page.number for master_schema_page in self.master_schema_pages
+        ]
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
-    def stringify(self, padding="", print_master_schema_root_page=True,
-                  print_master_schema_entries=True, print_b_tree_root_pages=True):
-        string = padding + "Version Number: {}\n" \
-                 + padding + "Page Version Number: {}\n" \
-                 + padding + "Master Schema Page Numbers: {}\n" \
-                 + padding + "Master Schema Entries Length: {}\n" \
-                 + padding + "Master Schema B-Tree Root Page Numbers: {}"
-        string = string.format(self.version_number,
-                               self.page_version_number,
-                               self.master_schema_page_numbers,
-                               len(self.master_schema_entries),
-                               self.master_schema_b_tree_root_page_numbers)
+    def stringify(
+        self,
+        padding="",
+        print_master_schema_root_page=True,
+        print_master_schema_entries=True,
+        print_b_tree_root_pages=True,
+    ):
+        string = (
+            padding
+            + "Version Number: {}\n"
+            + padding
+            + "Page Version Number: {}\n"
+            + padding
+            + "Master Schema Page Numbers: {}\n"
+            + padding
+            + "Master Schema Entries Length: {}\n"
+            + padding
+            + "Master Schema B-Tree Root Page Numbers: {}"
+        )
+        string = string.format(
+            self.version_number,
+            self.page_version_number,
+            self.master_schema_page_numbers,
+            len(self.master_schema_entries),
+            self.master_schema_b_tree_root_page_numbers,
+        )
         if print_master_schema_root_page:
             string += "\n" + padding + "Master Schema Root Page:\n{}"
             string = string.format(self.root_page.stringify(padding + "\t"))
         if print_master_schema_entries:
             for master_schema_entry in self.master_schema_entries:
                 string += "\n" + padding + "Master Schema Entry:\n{}"
-                string = string.format(master_schema_entry.stringify(padding + "\t"), print_b_tree_root_pages)
+                string = string.format(
+                    master_schema_entry.stringify(padding + "\t"),
+                    print_b_tree_root_pages,
+                )
         return string
 
     @property
     def master_schema_b_tree_root_page_numbers(self):
-
         """
 
         This property will return a list of all of the root page numbers obtained from all master schema entries but
@@ -347,30 +430,46 @@ class MasterSchema(object):
 
         """
 
-        return [entry.root_page_number for entry in self.master_schema_entries if entry.root_page_number]
+        return [
+            entry.root_page_number
+            for entry in self.master_schema_entries
+            if entry.root_page_number
+        ]
 
     @staticmethod
-    def _create_master_schema_entry_data_named_tuple(b_tree_table_leaf_page_number, cell, database_text_encoding):
+    def _create_master_schema_entry_data_named_tuple(
+        b_tree_table_leaf_page_number, cell, database_text_encoding
+    ):
 
         logger = getLogger(LOGGER_NAME)
 
         record_columns = dict(map(lambda x: [x.index, x], cell.payload.record_columns))
 
         if MASTER_SCHEMA_COLUMN.TYPE not in record_columns:
-            log_message = "No type column found in record columns for cell index: {}.".format(cell.index)
+            log_message = (
+                f"No type column found in record columns for cell index: {cell.index}."
+            )
             logger.error(log_message)
             raise MasterSchemaParsingError(log_message)
 
         if not record_columns[MASTER_SCHEMA_COLUMN.TYPE].value:
-            log_message = "No type value set in type record column index: {} for cell index: {}."
-            log_message = log_message.format(record_columns[MASTER_SCHEMA_COLUMN.TYPE].index, cell.index)
+            log_message = (
+                "No type value set in type record column index: {} for cell index: {}."
+            )
+            log_message = log_message.format(
+                record_columns[MASTER_SCHEMA_COLUMN.TYPE].index, cell.index
+            )
             logger.error(log_message)
             raise MasterSchemaParsingError(log_message)
 
-        row_type = record_columns[MASTER_SCHEMA_COLUMN.TYPE].value.decode(database_text_encoding)
+        row_type = record_columns[MASTER_SCHEMA_COLUMN.TYPE].value.decode(
+            database_text_encoding
+        )
 
         if MASTER_SCHEMA_COLUMN.SQL not in record_columns:
-            log_message = "No sql column found in record columns for cell index: {}.".format(cell.index)
+            log_message = (
+                f"No sql column found in record columns for cell index: {cell.index}."
+            )
             logger.error(log_message)
             raise MasterSchemaParsingError(log_message)
 
@@ -383,7 +482,9 @@ class MasterSchema(object):
         sql_value = record_columns[MASTER_SCHEMA_COLUMN.SQL].value
         sql = sql_value.decode(database_text_encoding) if sql_value else None
 
-        return MasterSchema.MasterSchemaEntryData(record_columns, row_type, sql, b_tree_table_leaf_page_number, cell)
+        return MasterSchema.MasterSchemaEntryData(
+            record_columns, row_type, sql, b_tree_table_leaf_page_number, cell
+        )
 
     @staticmethod
     def _parse_table_interior(b_tree_table_interior_page, database_text_encoding):
@@ -407,9 +508,13 @@ class MasterSchema(object):
         for page in pages:
 
             if isinstance(page, TableInteriorPage):
-                returned_master_schema_entry_data = MasterSchema._parse_table_interior(page, database_text_encoding)
+                returned_master_schema_entry_data = MasterSchema._parse_table_interior(
+                    page, database_text_encoding
+                )
             elif isinstance(page, TableLeafPage):
-                returned_master_schema_entry_data = MasterSchema._parse_table_leaf(page, database_text_encoding)
+                returned_master_schema_entry_data = MasterSchema._parse_table_leaf(
+                    page, database_text_encoding
+                )
             else:
                 log_message = "Invalid page type found: {} when expecting TableInteriorPage or TableLeafPage."
                 log_message = log_message.format(type(page))
@@ -441,7 +546,10 @@ class MasterSchema(object):
 
         """
 
-        if len(b_tree_table_leaf_page.cells) == 0 and b_tree_table_leaf_page.number != SQLITE_MASTER_SCHEMA_ROOT_PAGE:
+        if (
+            len(b_tree_table_leaf_page.cells) == 0
+            and b_tree_table_leaf_page.number != SQLITE_MASTER_SCHEMA_ROOT_PAGE
+        ):
             log_message = "Length of cells on leaf page is 0 and page number is: {}."
             log_message = log_message.format(b_tree_table_leaf_page.number)
             logger.error(log_message)
@@ -458,8 +566,9 @@ class MasterSchema(object):
         master_schema_entry_data = {}
 
         for cell in b_tree_table_leaf_page.cells:
-            entry_data = MasterSchema._create_master_schema_entry_data_named_tuple(b_tree_table_leaf_page.number, cell,
-                                                                                   database_text_encoding)
+            entry_data = MasterSchema._create_master_schema_entry_data_named_tuple(
+                b_tree_table_leaf_page.number, cell, database_text_encoding
+            )
             if entry_data.row_type not in master_schema_entry_data:
                 master_schema_entry_data[entry_data.row_type] = [entry_data]
             else:
@@ -468,11 +577,17 @@ class MasterSchema(object):
         return master_schema_entry_data
 
 
-class MasterSchemaRow(object):
+class MasterSchemaRow:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def __init__(self, version_interface, b_tree_table_leaf_page_number, b_tree_table_leaf_cell, record_columns):
+    def __init__(
+        self,
+        version_interface,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+    ):
 
         logger = getLogger(LOGGER_NAME)
 
@@ -486,7 +601,9 @@ class MasterSchemaRow(object):
 
         self.b_tree_table_leaf_page_number = b_tree_table_leaf_page_number
         self.version_number = self._version_interface.version_number
-        self.page_version_number = self._version_interface.get_page_version(self.b_tree_table_leaf_page_number)
+        self.page_version_number = self._version_interface.get_page_version(
+            self.b_tree_table_leaf_page_number
+        )
 
         self.row_id = b_tree_table_leaf_cell.row_id
         self.row_md5_hex_digest = b_tree_table_leaf_cell.md5_hex_digest
@@ -495,26 +612,37 @@ class MasterSchemaRow(object):
 
         if len(self.record_columns) != MASTER_SCHEMA_NUMBER_OF_COLUMNS:
             log_message = "Invalid number of columns: {} when expected {} for row id: {} of row type: {} on page: {}."
-            log_message = log_message.format(len(self.record_columns), MASTER_SCHEMA_NUMBER_OF_COLUMNS,
-                                             self.row_id, self.row_type, self.b_tree_table_leaf_page_number)
+            log_message = log_message.format(
+                len(self.record_columns),
+                MASTER_SCHEMA_NUMBER_OF_COLUMNS,
+                self.row_id,
+                self.row_type,
+                self.b_tree_table_leaf_page_number,
+            )
             logger.error(log_message)
             MasterSchemaRowParsingError(log_message)
 
         if not self.record_columns[MASTER_SCHEMA_COLUMN.TYPE].value:
             log_message = "No master schema column row type value found for row id: {} of row type: {} on page: {}."
-            log_message = log_message.format(self.row_id, self.row_type, self.b_tree_table_leaf_page_number)
+            log_message = log_message.format(
+                self.row_id, self.row_type, self.b_tree_table_leaf_page_number
+            )
             logger.error(log_message)
             MasterSchemaRowParsingError(log_message)
 
         if not self.record_columns[MASTER_SCHEMA_COLUMN.NAME].value:
             log_message = "No master schema column name value found for row id: {} of row type: {} on page: {}."
-            log_message = log_message.format(self.row_id, self.row_type, self.b_tree_table_leaf_page_number)
+            log_message = log_message.format(
+                self.row_id, self.row_type, self.b_tree_table_leaf_page_number
+            )
             logger.error(log_message)
             MasterSchemaRowParsingError(log_message)
 
         if not self.record_columns[MASTER_SCHEMA_COLUMN.TABLE_NAME].value:
             log_message = "No master schema column table name value found for row id: {} of row type: {} on page: {}."
-            log_message = log_message.format(self.row_id, self.row_type, self.b_tree_table_leaf_page_number)
+            log_message = log_message.format(
+                self.row_id, self.row_type, self.b_tree_table_leaf_page_number
+            )
             logger.error(log_message)
             MasterSchemaRowParsingError(log_message)
 
@@ -523,10 +651,18 @@ class MasterSchemaRow(object):
 
         # The fields are read out as strings for better incorporation with calling classes when hashing since
         # if this is not done they are bytearray types and will be unhashable possibly throwing an exception.
-        self.row_type = self.record_columns[MASTER_SCHEMA_COLUMN.TYPE].value.decode(database_text_encoding)
-        self.name = self.record_columns[MASTER_SCHEMA_COLUMN.NAME].value.decode(database_text_encoding)
-        self.table_name = self.record_columns[MASTER_SCHEMA_COLUMN.TABLE_NAME].value.decode(database_text_encoding)
-        self.root_page_number = self.record_columns[MASTER_SCHEMA_COLUMN.ROOT_PAGE].value
+        self.row_type = self.record_columns[MASTER_SCHEMA_COLUMN.TYPE].value.decode(
+            database_text_encoding
+        )
+        self.name = self.record_columns[MASTER_SCHEMA_COLUMN.NAME].value.decode(
+            database_text_encoding
+        )
+        self.table_name = self.record_columns[
+            MASTER_SCHEMA_COLUMN.TABLE_NAME
+        ].value.decode(database_text_encoding)
+        self.root_page_number = self.record_columns[
+            MASTER_SCHEMA_COLUMN.ROOT_PAGE
+        ].value
 
         sql_value = self.record_columns[MASTER_SCHEMA_COLUMN.SQL].value
         self.sql = sql_value.decode(database_text_encoding) if sql_value else None
@@ -587,53 +723,78 @@ class MasterSchemaRow(object):
 
         """
 
-        master_schema_entry_identifier_string = "{}{}{}{}{}".format(self.row_id, self.row_type, self.name,
-                                                                  self.table_name, self.sql)
+        master_schema_entry_identifier_string = "{}{}{}{}{}".format(
+            self.row_id, self.row_type, self.name, self.table_name, self.sql
+        )
         self.md5_hash_identifier = get_md5_hash(master_schema_entry_identifier_string)
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_record_columns=True):
-        string = padding + "Version Number: {}\n" \
-                 + padding + "Page Version Number: {}\n" \
-                 + padding + "B-Tree Table Leaf Page Number: {}\n" \
-                 + padding + "Row ID: {}\n" \
-                 + padding + "Row MD5 Hex Digest: {}\n" \
-                 + padding + "Record MD5 Hex Digest: {}\n" \
-                 + padding + "Row Type: {}\n" \
-                 + padding + "Name: {}\n" \
-                 + padding + "Table Name: {}\n" \
-                 + padding + "Root Page Number: {}\n" \
-                 + padding + "SQL: {}\n" \
-                 + padding + "SQL Has Comments: {}\n" \
-                 + padding + "MD5 Hash Identifier: {}"
-        string = string.format(self.version_number,
-                               self.page_version_number,
-                               self.b_tree_table_leaf_page_number,
-                               self.row_id,
-                               self.row_md5_hex_digest,
-                               self.record_md5_hex_digest,
-                               self.row_type,
-                               self.name,
-                               self.table_name,
-                               self.root_page_number,
-                               self.sql,
-                               self.sql_has_comments,
-                               self.md5_hash_identifier)
+        string = (
+            padding
+            + "Version Number: {}\n"
+            + padding
+            + "Page Version Number: {}\n"
+            + padding
+            + "B-Tree Table Leaf Page Number: {}\n"
+            + padding
+            + "Row ID: {}\n"
+            + padding
+            + "Row MD5 Hex Digest: {}\n"
+            + padding
+            + "Record MD5 Hex Digest: {}\n"
+            + padding
+            + "Row Type: {}\n"
+            + padding
+            + "Name: {}\n"
+            + padding
+            + "Table Name: {}\n"
+            + padding
+            + "Root Page Number: {}\n"
+            + padding
+            + "SQL: {}\n"
+            + padding
+            + "SQL Has Comments: {}\n"
+            + padding
+            + "MD5 Hash Identifier: {}"
+        )
+        string = string.format(
+            self.version_number,
+            self.page_version_number,
+            self.b_tree_table_leaf_page_number,
+            self.row_id,
+            self.row_md5_hex_digest,
+            self.record_md5_hex_digest,
+            self.row_type,
+            self.name,
+            self.table_name,
+            self.root_page_number,
+            self.sql,
+            self.sql_has_comments,
+            self.md5_hash_identifier,
+        )
         for comment in self.comments:
-            string += "\n" + padding + "Comment: {}".format(comment)
+            string += "\n" + padding + f"Comment: {comment}"
         if print_record_columns:
             for index, record_column in self.record_columns.items():
-                string += "\n" \
-                          + padding + "Record Column {}:\n{}:".format(index, record_column.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Record Column {}:\n{}:".format(
+                        index, record_column.stringify(padding + "\t")
+                    )
+                )
         return string
 
     @staticmethod
-    def _get_master_schema_row_name_and_remaining_sql(row_type, name, sql, remaining_sql_command):
+    def _get_master_schema_row_name_and_remaining_sql(
+        row_type, name, sql, remaining_sql_command
+    ):
 
         # Initialize the logger
         logger = getLogger(LOGGER_NAME)
@@ -645,10 +806,17 @@ class MasterSchemaRow(object):
         """
 
         if row_type not in [MASTER_SCHEMA_ROW_TYPE.TABLE, MASTER_SCHEMA_ROW_TYPE.INDEX]:
-            log_message = "Invalid row type: {} defined when parsing master schema row name: {} from sql: {} when " \
-                          "type {} or {} was expected."
-            log_message = log_message.format(row_type, name, sql,
-                                             MASTER_SCHEMA_ROW_TYPE.TABLE, MASTER_SCHEMA_ROW_TYPE.INDEX)
+            log_message = (
+                "Invalid row type: {} defined when parsing master schema row name: {} from sql: {} when "
+                "type {} or {} was expected."
+            )
+            log_message = log_message.format(
+                row_type,
+                name,
+                sql,
+                MASTER_SCHEMA_ROW_TYPE.TABLE,
+                MASTER_SCHEMA_ROW_TYPE.INDEX,
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -684,10 +852,12 @@ class MasterSchemaRow(object):
                 raise MasterSchemaRowParsingError(log_message)
 
             # Set the parsed name and strip the brackets
-            parsed_name = remaining_sql_command[match_object.start():match_object.end()].strip("[]")
+            parsed_name = remaining_sql_command[
+                match_object.start() : match_object.end()
+            ].strip("[]")
 
             # Set the remaining sql
-            remaining_sql_command = remaining_sql_command[match_object.end():]
+            remaining_sql_command = remaining_sql_command[match_object.end() :]
 
             # Return the parsed name and remaining sql command
             return parsed_name, remaining_sql_command
@@ -704,18 +874,20 @@ class MasterSchemaRow(object):
                 raise MasterSchemaRowParsingError(log_message)
 
             # Set the parsed name and strip the backticks
-            parsed_name = remaining_sql_command[match_object.start():match_object.end()].strip("`")
+            parsed_name = remaining_sql_command[
+                match_object.start() : match_object.end()
+            ].strip("`")
 
             # Set the remaining sql
-            remaining_sql_command = remaining_sql_command[match_object.end():]
+            remaining_sql_command = remaining_sql_command[match_object.end() :]
 
             # Return the parsed name and remaining sql command
             return parsed_name, remaining_sql_command
 
-        elif remaining_sql_command[0] == "\'":
+        elif remaining_sql_command[0] == "'":
 
             # The table name or index name is surrounded by single quotes
-            match_object = match("^\'(.*?)\'", remaining_sql_command)
+            match_object = match("^'(.*?)'", remaining_sql_command)
 
             if not match_object:
                 log_message = "No single quote match found for {} name in sql for {} row name: {} and sql: {}."
@@ -724,18 +896,20 @@ class MasterSchemaRow(object):
                 raise MasterSchemaRowParsingError(log_message)
 
             # Set the parsed name and strip the single quotes
-            parsed_name = remaining_sql_command[match_object.start():match_object.end()].strip("\'")
+            parsed_name = remaining_sql_command[
+                match_object.start() : match_object.end()
+            ].strip("'")
 
             # Set the remaining sql
-            remaining_sql_command = remaining_sql_command[match_object.end():]
+            remaining_sql_command = remaining_sql_command[match_object.end() :]
 
             # Return the parsed name and remaining sql command
             return parsed_name, remaining_sql_command
 
-        elif remaining_sql_command[0] == "\"":
+        elif remaining_sql_command[0] == '"':
 
             # The table name or index name is surrounded by double quotes
-            match_object = match("^\"(.*?)\"", remaining_sql_command)
+            match_object = match('^"(.*?)"', remaining_sql_command)
 
             if not match_object:
                 log_message = "No double quote match found for {} name in sql for {} row name: {} and sql: {}."
@@ -744,10 +918,12 @@ class MasterSchemaRow(object):
                 raise MasterSchemaRowParsingError(log_message)
 
             # Set the parsed name and strip the double quotes
-            parsed_name = remaining_sql_command[match_object.start():match_object.end()].strip("\"")
+            parsed_name = remaining_sql_command[
+                match_object.start() : match_object.end()
+            ].strip('"')
 
             # Set the remaining sql
-            remaining_sql_command = remaining_sql_command[match_object.end():]
+            remaining_sql_command = remaining_sql_command[match_object.end() :]
 
             # Return the parsed name and remaining sql command
             return parsed_name, remaining_sql_command
@@ -777,15 +953,30 @@ class MasterSchemaRow(object):
                 """
 
                 # See if the character is a single space or an opening parenthesis, or comment indicator
-                if character == '\n' or character == ' ' or character == '(' or character == '-' or character == '/':
+                if (
+                    character == "\n"
+                    or character == " "
+                    or character == "("
+                    or character == "-"
+                    or character == "/"
+                ):
 
                     # Check to make sure the full comment indicators were found for "--" and "/*"
-                    if (character == '-' and remaining_sql_command[index + 1] != '-') or \
-                            (character == '/' and remaining_sql_command[index + 1] != '*'):
-                        log_message = "Comment indicator '{}' found followed by an invalid secondary comment " \
-                                      "indicator: {} found in {} name in sql for {} row name: {} and sql: {}."
-                        log_message = log_message.format(character, remaining_sql_command[index + 1],
-                                                         row_type, row_type, name, sql)
+                    if (
+                        character == "-" and remaining_sql_command[index + 1] != "-"
+                    ) or (character == "/" and remaining_sql_command[index + 1] != "*"):
+                        log_message = (
+                            "Comment indicator '{}' found followed by an invalid secondary comment "
+                            "indicator: {} found in {} name in sql for {} row name: {} and sql: {}."
+                        )
+                        log_message = log_message.format(
+                            character,
+                            remaining_sql_command[index + 1],
+                            row_type,
+                            row_type,
+                            name,
+                            sql,
+                        )
                         logger.error(log_message)
                         raise MasterSchemaRowParsingError(log_message)
 
@@ -793,16 +984,22 @@ class MasterSchemaRow(object):
                     parsed_name = remaining_sql_command[:index]
 
                     # Set the remaining sql
-                    remaining_sql_command_start_offset = remaining_sql_command.index(parsed_name) + len(parsed_name)
-                    remaining_sql_command = remaining_sql_command[remaining_sql_command_start_offset:]
+                    remaining_sql_command_start_offset = remaining_sql_command.index(
+                        parsed_name
+                    ) + len(parsed_name)
+                    remaining_sql_command = remaining_sql_command[
+                        remaining_sql_command_start_offset:
+                    ]
 
                     # Return the parsed name and remaining sql command
                     return parsed_name, remaining_sql_command
 
                 # See if the character is a "." since this would apply a schema name which we know shouldn't exist.
-                elif character == '.':
-                    log_message = "Invalid \'.\' character found in {} name in sql for " \
-                                  "{} row name: {} and sql: {}."
+                elif character == ".":
+                    log_message = (
+                        "Invalid '.' character found in {} name in sql for "
+                        "{} row name: {} and sql: {}."
+                    )
                     log_message = log_message.format(row_type, row_type, name, sql)
                     logger.error(log_message)
                     raise MasterSchemaRowParsingError(log_message)
@@ -821,11 +1018,21 @@ class MasterSchemaRow(object):
 
 
 class TableRow(MasterSchemaRow):
-
-    def __init__(self, version, b_tree_table_leaf_page_number, b_tree_table_leaf_cell, record_columns):
+    def __init__(
+        self,
+        version,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+    ):
 
         # Call the superclass to initialize this object
-        super(TableRow, self).__init__(version, b_tree_table_leaf_page_number, b_tree_table_leaf_cell, record_columns)
+        super().__init__(
+            version,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         # Initialize the logger
         logger = getLogger(LOGGER_NAME)
@@ -833,7 +1040,9 @@ class TableRow(MasterSchemaRow):
         # Make sure this is the table row type after initialized by it's superclass
         if self.row_type != MASTER_SCHEMA_ROW_TYPE.TABLE:
             log_message = "Invalid row type: {} when expecting: {} with name: {}."
-            log_message = log_message.format(self.row_type, MASTER_SCHEMA_ROW_TYPE.TABLE, self.name)
+            log_message = log_message.format(
+                self.row_type, MASTER_SCHEMA_ROW_TYPE.TABLE, self.name
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -853,28 +1062,40 @@ class TableRow(MasterSchemaRow):
             raise ValueError(log_message)
 
     def stringify(self, padding="", print_record_columns=True):
-        return super(TableRow, self).stringify(padding, print_record_columns)
+        return super().stringify(padding, print_record_columns)
 
     @staticmethod
     def _get_module_name_and_remaining_sql(name, sql, remaining_sql_command):
-        return MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(MASTER_SCHEMA_ROW_TYPE.TABLE, name, sql,
-                                                                             remaining_sql_command)
+        return MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(
+            MASTER_SCHEMA_ROW_TYPE.TABLE, name, sql, remaining_sql_command
+        )
 
 
 class OrdinaryTableRow(TableRow):
-
-    def __init__(self, version, b_tree_table_leaf_page_number, b_tree_table_leaf_cell, record_columns):
+    def __init__(
+        self,
+        version,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+    ):
 
         # Call the superclass to initialize this object
-        super(OrdinaryTableRow, self).__init__(version, b_tree_table_leaf_page_number,
-                                               b_tree_table_leaf_cell, record_columns)
+        super().__init__(
+            version,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         # Initialize the logger
         logger = getLogger(LOGGER_NAME)
 
         # Make sure this is a create table statement
         if not self.sql.startswith(CREATE_TABLE_CLAUSE):
-            log_message = "Invalid sql for create ordinary table statement: {} with name: {}."
+            log_message = (
+                "Invalid sql for create ordinary table statement: {} with name: {}."
+            )
             log_message = log_message.format(self.sql, self.name)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -947,9 +1168,12 @@ class OrdinaryTableRow(TableRow):
         """
 
         # Retrieve the table name and remaining sql after the table name is removed
-        table_name, remaining_sql_command = \
-            MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(self.row_type, self.name, self.sql,
-                                                                          remaining_sql_command)
+        (
+            table_name,
+            remaining_sql_command,
+        ) = MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(
+            self.row_type, self.name, self.sql, remaining_sql_command
+        )
 
         # Left strip the remaining sql command
         remaining_sql_command = remaining_sql_command.lstrip()
@@ -964,17 +1188,25 @@ class OrdinaryTableRow(TableRow):
 
         # Check the table name is equal to the name as specified in the sqlite documentation
         if table_name.lower() != self.name.lower():
-            log_message = "For table master schema row: {}, the derived table name: {} from the sql: {} " \
-                          "does not match the name: {},"
-            log_message = log_message.format(self.row_id, table_name, self.sql, self.name)
+            log_message = (
+                "For table master schema row: {}, the derived table name: {} from the sql: {} "
+                "does not match the name: {},"
+            )
+            log_message = log_message.format(
+                self.row_id, table_name, self.sql, self.name
+            )
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
         # Check the table name is equal to the table name as specified in the sqlite documentation
         if table_name.lower() != self.table_name.lower():
-            log_message = "For table master schema row: {}, the derived table name: {} from the sql: {} " \
-                          "does not match the table name: {},"
-            log_message = log_message.format(self.row_id, table_name, self.sql, self.table_name)
+            log_message = (
+                "For table master schema row: {}, the derived table name: {} from the sql: {} "
+                "does not match the table name: {},"
+            )
+            log_message = log_message.format(
+                self.row_id, table_name, self.sql, self.table_name
+            )
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
@@ -990,8 +1222,10 @@ class OrdinaryTableRow(TableRow):
         if self.table_name.startswith(INTERNAL_SCHEMA_OBJECT_PREFIX):
             self.internal_schema_object = True
 
-            log_message = "Master schema ordinary table row found as internal schema object with name: {}, " \
-                          "table name: {} and sql: {} and may have use cases that still need to be addressed."
+            log_message = (
+                "Master schema ordinary table row found as internal schema object with name: {}, "
+                "table name: {} and sql: {} and may have use cases that still need to be addressed."
+            )
             log_message = log_message.format(self.name, self.table_name, self.sql)
             logger.info(log_message)
 
@@ -1014,7 +1248,9 @@ class OrdinaryTableRow(TableRow):
 
         # Check for comments after the table name, before the column definitions
         while remaining_sql_command.startswith(("--", "/*")):
-            comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+            comment, remaining_sql_command = parse_comment_from_sql_segment(
+                remaining_sql_command
+            )
             self.comments.append(comment.rstrip())
             remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -1022,17 +1258,24 @@ class OrdinaryTableRow(TableRow):
         if remaining_sql_command.find("(") != 0:
 
             # Check if this remaining sql statement starts with "AS"
-            if remaining_sql_command[:len(ORDINARY_TABLE_AS_CLAUSE)].upper() == ORDINARY_TABLE_AS_CLAUSE:
-                log_message = "Create table statement has an \"AS\" clause for master schema table row with " \
-                              "name: {} and sql: {} and is not implemented."
+            if (
+                remaining_sql_command[: len(ORDINARY_TABLE_AS_CLAUSE)].upper()
+                == ORDINARY_TABLE_AS_CLAUSE
+            ):
+                log_message = (
+                    'Create table statement has an "AS" clause for master schema table row with '
+                    "name: {} and sql: {} and is not implemented."
+                )
                 log_message = log_message.format(self.name, self.sql)
                 logger.error(log_message)
                 raise NotImplementedError(log_message)
 
             # If the remaining sql statement does not hit the above two use cases then this is an erroneous statement
             else:
-                log_message = "Create table statement has an unknown clause for master schema table row with " \
-                              "name: {} and sql: {}."
+                log_message = (
+                    "Create table statement has an unknown clause for master schema table row with "
+                    "name: {} and sql: {}."
+                )
                 log_message = log_message.format(self.name, self.sql)
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
@@ -1054,15 +1297,19 @@ class OrdinaryTableRow(TableRow):
         """
 
         # The first thing is to get the closing parenthesis index to the column definitions and table constraints
-        closing_parenthesis_index = get_index_of_closing_parenthesis(remaining_sql_command)
+        closing_parenthesis_index = get_index_of_closing_parenthesis(
+            remaining_sql_command
+        )
 
         # Declare the definitions to be the "(...)" section of the "(...) ..." explained above
-        definitions = remaining_sql_command[:closing_parenthesis_index + 1]
+        definitions = remaining_sql_command[: closing_parenthesis_index + 1]
 
         # Double check the definitions has a beginning opening parenthesis and ends with a closing parenthesis
         if definitions.find("(") != 0 or definitions.rfind(")") != len(definitions) - 1:
-            log_message = "The definitions are not surrounded by parenthesis as expected for table row with name: {}" \
-                          "and sql: {} with definitions: {}."
+            log_message = (
+                "The definitions are not surrounded by parenthesis as expected for table row with name: {}"
+                "and sql: {} with definitions: {}."
+            )
             log_message = log_message.format(self.name, self.sql, definitions)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -1070,7 +1317,7 @@ class OrdinaryTableRow(TableRow):
         # Remove the beginning and ending parenthesis and left strip the string in case single whitespace characters
         # appear directly after the opening parenthesis and set it back to the definitions.  The characters before
         # the ending parenthesis are allowed since there could be a "\n" character corresponding to a "--" comment.
-        definitions = definitions[1:len(definitions) - 1].lstrip()
+        definitions = definitions[1 : len(definitions) - 1].lstrip()
 
         """
 
@@ -1131,7 +1378,9 @@ class OrdinaryTableRow(TableRow):
 
         # Make sure the definitions is not an empty string
         if not definitions:
-            log_message = "No definitions parsed for the table row name: {} and sql: {}."
+            log_message = (
+                "No definitions parsed for the table row name: {} and sql: {}."
+            )
             log_message = log_message.format(self.name, self.sql)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -1174,9 +1423,13 @@ class OrdinaryTableRow(TableRow):
 
                 # Check to make sure the full comment indicator was found for "/*"
                 if definitions[character_index + 1] != "*":
-                    log_message = "Comment indicator '{}' found followed by an invalid secondary comment " \
-                                  "indicator: {} found in {}."
-                    log_message = log_message.format(character, definitions[character_index + 1], definitions)
+                    log_message = (
+                        "Comment indicator '{}' found followed by an invalid secondary comment "
+                        "indicator: {} found in {}."
+                    )
+                    log_message = log_message.format(
+                        character, definitions[character_index + 1], definitions
+                    )
                     logger.error(log_message)
                     raise MasterSchemaParsingError(log_message)
 
@@ -1204,9 +1457,16 @@ class OrdinaryTableRow(TableRow):
 
                 except ValueError:
 
-                    log_message = "No ending \"]\" character found in the definitions: {} starting from index: {} " \
-                                  "while parsing the remaining sql: {} for the table row name: {}."
-                    log_message = log_message.format(definitions, character_index + 1, remaining_sql_command, self.name)
+                    log_message = (
+                        'No ending "]" character found in the definitions: {} starting from index: {} '
+                        "while parsing the remaining sql: {} for the table row name: {}."
+                    )
+                    log_message = log_message.format(
+                        definitions,
+                        character_index + 1,
+                        remaining_sql_command,
+                        self.name,
+                    )
                     logger.error(log_message)
                     raise
 
@@ -1220,9 +1480,16 @@ class OrdinaryTableRow(TableRow):
 
                 except ValueError:
 
-                    log_message = "No ending \"`\" character found in the definitions: {} starting from index: {} " \
-                                  "while parsing the remaining sql: {} for the table row name: {}."
-                    log_message = log_message.format(definitions, character_index + 1, remaining_sql_command, self.name)
+                    log_message = (
+                        'No ending "`" character found in the definitions: {} starting from index: {} '
+                        "while parsing the remaining sql: {} for the table row name: {}."
+                    )
+                    log_message = log_message.format(
+                        definitions,
+                        character_index + 1,
+                        remaining_sql_command,
+                        self.name,
+                    )
                     logger.error(log_message)
                     raise
 
@@ -1236,25 +1503,39 @@ class OrdinaryTableRow(TableRow):
 
                 except ValueError:
 
-                    log_message = "No ending \"'\" character found in the definitions: {} starting from index: {} " \
-                                  "while parsing the remaining sql: {} for the table row name: {}."
-                    log_message = log_message.format(definitions, character_index + 1, remaining_sql_command, self.name)
+                    log_message = (
+                        'No ending "\'" character found in the definitions: {} starting from index: {} '
+                        "while parsing the remaining sql: {} for the table row name: {}."
+                    )
+                    log_message = log_message.format(
+                        definitions,
+                        character_index + 1,
+                        remaining_sql_command,
+                        self.name,
+                    )
                     logger.error(log_message)
                     raise
 
             # Check if the character is an opening double quote, ", and skip to the closing double quote if so
-            if character == "\"":
+            if character == '"':
 
                 try:
 
                     # Set the character index to the closing double quote to this opening one
-                    character_index = definitions.index("\"", character_index + 1)
+                    character_index = definitions.index('"', character_index + 1)
 
                 except ValueError:
 
-                    log_message = "No ending \"\"\" character found in the definitions: {} starting from index: {} " \
-                                  "while parsing the remaining sql: {} for the table row name: {}."
-                    log_message = log_message.format(definitions, character_index + 1, remaining_sql_command, self.name)
+                    log_message = (
+                        'No ending """ character found in the definitions: {} starting from index: {} '
+                        "while parsing the remaining sql: {} for the table row name: {}."
+                    )
+                    log_message = log_message.format(
+                        definitions,
+                        character_index + 1,
+                        remaining_sql_command,
+                        self.name,
+                    )
                     logger.error(log_message)
                     raise
 
@@ -1262,7 +1543,9 @@ class OrdinaryTableRow(TableRow):
             if character == "(":
 
                 # Set the character index to the closing parenthesis to this opening one and increment the index
-                character_index = get_index_of_closing_parenthesis(definitions, character_index)
+                character_index = get_index_of_closing_parenthesis(
+                    definitions, character_index
+                )
 
             # If we find a closing parenthesis character than something went wrong and an exception is thrown
             elif character == ")":
@@ -1361,27 +1644,37 @@ class OrdinaryTableRow(TableRow):
                     """
 
                     # Get the remaining definition past the comma
-                    remaining_definition = definitions[character_index + 1:]
+                    remaining_definition = definitions[character_index + 1 :]
                     left_stripped_character_length = len(remaining_definition)
-                    remaining_definition = sub("^[\t\r\f\v ]+", "", remaining_definition)
+                    remaining_definition = sub(
+                        "^[\t\r\f\v ]+", "", remaining_definition
+                    )
                     left_stripped_character_length -= len(remaining_definition)
 
                     # See if any comments in the form "/* ... */" exist and remove them if so (there may be 0 ... *)
                     while remaining_definition.startswith("/*"):
-                        comment, remaining_definition = parse_comment_from_sql_segment(remaining_definition)
+                        comment, remaining_definition = parse_comment_from_sql_segment(
+                            remaining_definition
+                        )
                         left_stripped_character_length += len(remaining_definition)
                         remaining_definition = remaining_definition.lstrip(" ")
                         left_stripped_character_length -= len(remaining_definition)
-                        ending_comments_length += len(comment) + left_stripped_character_length
+                        ending_comments_length += (
+                            len(comment) + left_stripped_character_length
+                        )
                         column_definition_comments.append(comment)
 
                     # See if any comments in the form "-- ... \n" exist and remove them if so (there may be 0 ... 1)
                     if remaining_definition.startswith("--"):
-                        comment, remaining_definition = parse_comment_from_sql_segment(remaining_definition)
+                        comment, remaining_definition = parse_comment_from_sql_segment(
+                            remaining_definition
+                        )
                         left_stripped_character_length += len(remaining_definition)
                         remaining_definition = remaining_definition.lstrip(" ")
                         left_stripped_character_length -= len(remaining_definition)
-                        ending_comments_length += len(comment) + left_stripped_character_length
+                        ending_comments_length += (
+                            len(comment) + left_stripped_character_length
+                        )
                         column_definition_comments.append(comment)
 
                 # Initialize a current definition index to validate against later
@@ -1390,11 +1683,15 @@ class OrdinaryTableRow(TableRow):
                 # Get the definition string and strip the beginning characters since we do not need any
                 # default whitespace characters there, but may need them at the end (for example in the case
                 # of a "--" comment that ends in "\n".
-                definition = definitions[beginning_definition_index:character_index].lstrip()
+                definition = definitions[
+                    beginning_definition_index:character_index
+                ].lstrip()
 
                 # Check for comments after the beginning of the definition
                 while definition.startswith(("--", "/*")):
-                    comment, remaining_definition = parse_comment_from_sql_segment(definition)
+                    comment, remaining_definition = parse_comment_from_sql_segment(
+                        definition
+                    )
                     column_definition_comments.append(comment.rstrip())
                     definition = remaining_definition.lstrip()
 
@@ -1404,7 +1701,7 @@ class OrdinaryTableRow(TableRow):
                     # Make sure the length of the definition is at least as long as the table constraint preface
                     if len(definition) >= len(table_constraint_preface):
 
-                        """
+                        r"""
 
                         Note: Even though the column and table constraint share some of the same prefaces for
                               their constraints, this check is safe since the column definitions will never
@@ -1420,19 +1717,31 @@ class OrdinaryTableRow(TableRow):
                         """
 
                         # Check to see if the definition starts with the table constraint preface
-                        if definition[:len(table_constraint_preface)].upper() == table_constraint_preface:
+                        if (
+                            definition[: len(table_constraint_preface)].upper()
+                            == table_constraint_preface
+                        ):
 
-                            if not (len(table_constraint_preface) + 1 <= len(definition)
-                                    and match(r"\w", definition[len(table_constraint_preface)])):
+                            if not (
+                                len(table_constraint_preface) + 1 <= len(definition)
+                                and match(
+                                    r"\w", definition[len(table_constraint_preface)]
+                                )
+                            ):
 
                                 # We have found a table constraint here and make sure this is not the first definition
                                 if definition_index == 0:
 
                                     # The first definition is a table constraint which should not occur
-                                    log_message = "First definition found: {} in table row with name: {} and sql: {} " \
-                                                  "is a table constraint."
-                                    log_message = log_message.format(definition[:len(table_constraint_preface)],
-                                                                     self.name, self.sql)
+                                    log_message = (
+                                        "First definition found: {} in table row with name: {} and sql: {} "
+                                        "is a table constraint."
+                                    )
+                                    log_message = log_message.format(
+                                        definition[: len(table_constraint_preface)],
+                                        self.name,
+                                        self.sql,
+                                    )
                                     logger.error(log_message)
                                     raise MasterSchemaRowParsingError(log_message)
 
@@ -1449,8 +1758,13 @@ class OrdinaryTableRow(TableRow):
                                     """
 
                                     # Create the table constraint
-                                    self.table_constraints.append(TableConstraint(definition_index, definition,
-                                                                                  column_definition_comments))
+                                    self.table_constraints.append(
+                                        TableConstraint(
+                                            definition_index,
+                                            definition,
+                                            column_definition_comments,
+                                        )
+                                    )
 
                                     # Set the table constraints found variable to true now
                                     table_constraints_found = True
@@ -1483,17 +1797,26 @@ class OrdinaryTableRow(TableRow):
 
                     # Make sure the definition index has not changed
                     if current_definition_index != definition_index:
-                        log_message = "The definition index: {} was updated indicating a table constraint was " \
-                                      "made when it should be: {} for a column definition in table row with " \
-                                      "name: {} and sql: {}."
-                        log_message = log_message.format(definition_index, current_definition_index,
-                                                         self.name, self.sql)
+                        log_message = (
+                            "The definition index: {} was updated indicating a table constraint was "
+                            "made when it should be: {} for a column definition in table row with "
+                            "name: {} and sql: {}."
+                        )
+                        log_message = log_message.format(
+                            definition_index,
+                            current_definition_index,
+                            self.name,
+                            self.sql,
+                        )
                         logger.error(log_message)
                         raise MasterSchemaRowParsingError(log_message)
 
                     # Create the column definition
-                    self.column_definitions.append(ColumnDefinition(definition_index, definition,
-                                                                    column_definition_comments))
+                    self.column_definitions.append(
+                        ColumnDefinition(
+                            definition_index, definition, column_definition_comments
+                        )
+                    )
 
                     # Reinitialize the comments to the next segments columns
                     column_definition_comments = []
@@ -1514,11 +1837,17 @@ class OrdinaryTableRow(TableRow):
 
                     # Check that the definition index was incremented meaning a table constraint was made
                     if current_definition_index + 1 != definition_index:
-                        log_message = "The definition index: {} was not updated indicating a column definition was " \
-                                      "made when it should be: {} for a table constraint in table row with " \
-                                      "name: {} and sql: {}."
-                        log_message = log_message.format(definition_index, current_definition_index + 1,
-                                                         self.name, self.sql)
+                        log_message = (
+                            "The definition index: {} was not updated indicating a column definition was "
+                            "made when it should be: {} for a table constraint in table row with "
+                            "name: {} and sql: {}."
+                        )
+                        log_message = log_message.format(
+                            definition_index,
+                            current_definition_index + 1,
+                            self.name,
+                            self.sql,
+                        )
                         logger.error(log_message)
                         raise MasterSchemaRowParsingError(log_message)
 
@@ -1541,7 +1870,9 @@ class OrdinaryTableRow(TableRow):
         """
 
         # Last get the remaining sql command to check for the "without rowid" use case
-        remaining_sql_command = remaining_sql_command[closing_parenthesis_index + 1:].lstrip()
+        remaining_sql_command = remaining_sql_command[
+            closing_parenthesis_index + 1 :
+        ].lstrip()
 
         # See if the remaining sql command has any content left
         if len(remaining_sql_command) != 0:
@@ -1558,46 +1889,62 @@ class OrdinaryTableRow(TableRow):
 
             # Check for comments after the end of the column definitions before the "without rowid"
             while remaining_sql_command.startswith(("--", "/*")):
-                comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                comment, remaining_sql_command = parse_comment_from_sql_segment(
+                    remaining_sql_command
+                )
                 self.comments.append(comment.rstrip())
                 remaining_sql_command = remaining_sql_command.lstrip()
 
             # If there is content left, check if it is the "without rowid" string by seeing if it starts with "without"
             if remaining_sql_command.upper().startswith("WITHOUT"):
 
-                remaining_sql_command = remaining_sql_command[len("WITHOUT"):].lstrip()
+                remaining_sql_command = remaining_sql_command[len("WITHOUT") :].lstrip()
 
                 # Check for comments after the end of the column definitions before the "without rowid"
                 while remaining_sql_command.startswith(("--", "/*")):
-                    comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                    comment, remaining_sql_command = parse_comment_from_sql_segment(
+                        remaining_sql_command
+                    )
                     self.comments.append(comment.rstrip())
                     remaining_sql_command = remaining_sql_command.lstrip()
 
                 if remaining_sql_command.upper().startswith("ROWID"):
 
-                    remaining_sql_command = remaining_sql_command[len("ROWID"):].lstrip()
+                    remaining_sql_command = remaining_sql_command[
+                        len("ROWID") :
+                    ].lstrip()
 
                     # Set the without row id variable to true
                     self.without_row_id = True
 
                     # Check for comments at the end
                     while remaining_sql_command.startswith(("--", "/*")):
-                        comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                        comment, remaining_sql_command = parse_comment_from_sql_segment(
+                            remaining_sql_command
+                        )
                         self.comments.append(comment.rstrip())
                         remaining_sql_command = remaining_sql_command.lstrip()
 
                     # Make sure we are at the end
                     if len(remaining_sql_command) != 0:
-                        log_message = "Invalid sql ending: {} found when nothing more expected in " \
-                                      "table row with name: {} and sql: {}."
-                        log_message = log_message.format(remaining_sql_command, self.name, self.sql)
+                        log_message = (
+                            "Invalid sql ending: {} found when nothing more expected in "
+                            "table row with name: {} and sql: {}."
+                        )
+                        log_message = log_message.format(
+                            remaining_sql_command, self.name, self.sql
+                        )
                         logger.error(log_message)
                         raise MasterSchemaRowParsingError(log_message)
 
                 else:
-                    log_message = "Invalid sql ending: {} found after \"WITHOUT\" when \"ROWID\" expected in " \
-                                  "table row with name: {} and sql: {}."
-                    log_message = log_message.format(remaining_sql_command, self.name, self.sql)
+                    log_message = (
+                        'Invalid sql ending: {} found after "WITHOUT" when "ROWID" expected in '
+                        "table row with name: {} and sql: {}."
+                    )
+                    log_message = log_message.format(
+                        remaining_sql_command, self.name, self.sql
+                    )
                     logger.error(log_message)
                     raise MasterSchemaRowParsingError(log_message)
 
@@ -1605,7 +1952,9 @@ class OrdinaryTableRow(TableRow):
             # should not occur
             else:
                 log_message = "Invalid sql ending: {} found in table row with name: {} and sql: {}."
-                log_message = log_message.format(remaining_sql_command, self.name, self.sql)
+                log_message = log_message.format(
+                    remaining_sql_command, self.name, self.sql
+                )
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
 
@@ -1619,49 +1968,85 @@ class OrdinaryTableRow(TableRow):
         """
 
         if self.without_row_id:
-            log_message = "A table specified without a row id was found in table row with name: {} and sql: {}.  " \
-                          "This use case is not fully implemented."
+            log_message = (
+                "A table specified without a row id was found in table row with name: {} and sql: {}.  "
+                "This use case is not fully implemented."
+            )
             log_message = log_message.format(self.name, self.sql)
             logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
-    def stringify(self, padding="", print_record_columns=True,
-                  print_column_definitions=True, print_table_constraints=True):
-        string = "\n" \
-                 + padding + "Without Row ID: {}\n" \
-                 + padding + "Internal Schema Object: {}\n" \
-                 + padding + "Column Definitions Length: {}\n" \
-                 + padding + "Table Constraints Length: {}"
-        string = string.format(self.without_row_id,
-                               self.internal_schema_object,
-                               len(self.column_definitions),
-                               len(self.table_constraints))
-        string = super(OrdinaryTableRow, self).stringify(padding, print_record_columns) + string
+    def stringify(
+        self,
+        padding="",
+        print_record_columns=True,
+        print_column_definitions=True,
+        print_table_constraints=True,
+    ):
+        string = (
+            "\n"
+            + padding
+            + "Without Row ID: {}\n"
+            + padding
+            + "Internal Schema Object: {}\n"
+            + padding
+            + "Column Definitions Length: {}\n"
+            + padding
+            + "Table Constraints Length: {}"
+        )
+        string = string.format(
+            self.without_row_id,
+            self.internal_schema_object,
+            len(self.column_definitions),
+            len(self.table_constraints),
+        )
+        string = super().stringify(padding, print_record_columns) + string
         if print_column_definitions:
             for column_definition in self.column_definitions:
-                string += "\n" \
-                          + padding + "Column Definition:\n{}".format(column_definition.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Column Definition:\n{}".format(
+                        column_definition.stringify(padding + "\t")
+                    )
+                )
         if print_table_constraints:
             for table_constraint in self.table_constraints:
-                string += "\n" \
-                          + padding + "Table Constraint:\n{}".format(table_constraint.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Table Constraint:\n{}".format(
+                        table_constraint.stringify(padding + "\t")
+                    )
+                )
         return string
 
 
 class VirtualTableRow(TableRow):
-
-    def __init__(self, version, b_tree_table_leaf_page_number, b_tree_table_leaf_cell, record_columns):
+    def __init__(
+        self,
+        version,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+    ):
 
         # Call the superclass to initialize this object
-        super(VirtualTableRow, self).__init__(version, b_tree_table_leaf_page_number,
-                                              b_tree_table_leaf_cell, record_columns)
+        super().__init__(
+            version,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         # Initialize the logger
         logger = getLogger(LOGGER_NAME)
 
         # Make sure this is a create virtual table statement
         if not self.sql.startswith(CREATE_VIRTUAL_TABLE_CLAUSE):
-            log_message = "Invalid sql for create virtual table statement: {} with name: {}."
+            log_message = (
+                "Invalid sql for create virtual table statement: {} with name: {}."
+            )
             log_message = log_message.format(self.sql, self.name)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -1722,39 +2107,52 @@ class VirtualTableRow(TableRow):
         """
 
         # Retrieve the table name and remaining sql after the table name is removed
-        table_name, remaining_sql_command = \
-            MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(self.row_type, self.name, self.sql,
-                                                                          remaining_sql_command)
+        (
+            table_name,
+            remaining_sql_command,
+        ) = MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(
+            self.row_type, self.name, self.sql, remaining_sql_command
+        )
 
         # Left strip the remaining sql command
         remaining_sql_command = remaining_sql_command.lstrip()
 
         # Check the table name is equal to the name as specified in the sqlite documentation
         if table_name.lower() != self.name.lower():
-            log_message = "For virtual table master schema row: {}, the derived table name: {} from the sql: {} " \
-                          "does not match the name: {},"
-            log_message = log_message.format(self.row_id, table_name, self.sql, self.name)
+            log_message = (
+                "For virtual table master schema row: {}, the derived table name: {} from the sql: {} "
+                "does not match the name: {},"
+            )
+            log_message = log_message.format(
+                self.row_id, table_name, self.sql, self.name
+            )
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
         # Check the table name is equal to the table name as specified in the sqlite documentation
         if table_name.lower() != self.table_name.lower():
-            log_message = "For virtual table master schema row: {}, the derived table name: {} from the sql: {} " \
-                          "does not match the table name: {},"
-            log_message = log_message.format(self.row_id, table_name, self.sql, self.table_name)
+            log_message = (
+                "For virtual table master schema row: {}, the derived table name: {} from the sql: {} "
+                "does not match the table name: {},"
+            )
+            log_message = log_message.format(
+                self.row_id, table_name, self.sql, self.table_name
+            )
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
         """
 
-        Check the virtual table name to see if it is a internal schema object starting with "sqlite_".  Since this 
+        Check the virtual table name to see if it is a internal schema object starting with "sqlite_".  Since this
         is not expected for a virtual table, a error will be raised if detected.
 
         """
 
         if self.table_name.startswith(INTERNAL_SCHEMA_OBJECT_PREFIX):
-            log_message = "Master schema virtual table row found as internal schema object with name: {}, " \
-                          "table name: {} and sql: {} which should not occur."
+            log_message = (
+                "Master schema virtual table row found as internal schema object with name: {}, "
+                "table name: {} and sql: {} which should not occur."
+            )
             log_message = log_message.format(self.name, self.table_name, self.sql)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -1769,7 +2167,9 @@ class VirtualTableRow(TableRow):
 
         # Check for comments after the virtual table name, before the using clause
         while remaining_sql_command.startswith(("--", "/*")):
-            comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+            comment, remaining_sql_command = parse_comment_from_sql_segment(
+                remaining_sql_command
+            )
             self.comments.append(comment.rstrip())
             remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -1777,19 +2177,28 @@ class VirtualTableRow(TableRow):
         self.module_arguments = []
 
         # Check if this remaining sql statement starts with "AS"
-        if remaining_sql_command[:len(VIRTUAL_TABLE_USING_CLAUSE)].upper() != VIRTUAL_TABLE_USING_CLAUSE:
-            log_message = "Create virtual table statement does not have a \"USING\" clause for master schema " \
-                          "table row with name: {} and sql: {}."
+        if (
+            remaining_sql_command[: len(VIRTUAL_TABLE_USING_CLAUSE)].upper()
+            != VIRTUAL_TABLE_USING_CLAUSE
+        ):
+            log_message = (
+                'Create virtual table statement does not have a "USING" clause for master schema '
+                "table row with name: {} and sql: {}."
+            )
             log_message = log_message.format(self.name, self.sql)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
         # Remove the using prefix and left strip any whitespace
-        remaining_sql_command = remaining_sql_command[len(VIRTUAL_TABLE_USING_CLAUSE):].lstrip()
+        remaining_sql_command = remaining_sql_command[
+            len(VIRTUAL_TABLE_USING_CLAUSE) :
+        ].lstrip()
 
         # Check for comments after the using clause, before the module name
         while remaining_sql_command.startswith(("--", "/*")):
-            comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+            comment, remaining_sql_command = parse_comment_from_sql_segment(
+                remaining_sql_command
+            )
             self.comments.append(comment.rstrip())
             remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -1797,15 +2206,21 @@ class VirtualTableRow(TableRow):
         self.module_arguments = []
 
         # Retrieve the module name and remaining sql after the module name is removed
-        self.module_name, remaining_sql_command = TableRow._get_module_name_and_remaining_sql(self.name, self.sql,
-                                                                                              remaining_sql_command)
+        (
+            self.module_name,
+            remaining_sql_command,
+        ) = TableRow._get_module_name_and_remaining_sql(
+            self.name, self.sql, remaining_sql_command
+        )
 
         # Left strip the remaining  sql command
         remaining_sql_command = remaining_sql_command.lstrip()
 
         # Check for comments after the module name, before the module arguments
         while remaining_sql_command.startswith(("--", "/*")):
-            comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+            comment, remaining_sql_command = parse_comment_from_sql_segment(
+                remaining_sql_command
+            )
             self.comments.append(comment.rstrip())
             remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -1819,15 +2234,19 @@ class VirtualTableRow(TableRow):
         """
 
         # The first thing is to get the closing parenthesis index to the module arguments
-        closing_parenthesis_index = get_index_of_closing_parenthesis(remaining_sql_command)
+        closing_parenthesis_index = get_index_of_closing_parenthesis(
+            remaining_sql_command
+        )
 
         # Declare the arguments to be the "(...)" section
-        arguments = remaining_sql_command[:closing_parenthesis_index + 1]
+        arguments = remaining_sql_command[: closing_parenthesis_index + 1]
 
         # Double check the module arguments has a beginning opening parenthesis and ends with a closing parenthesis
         if arguments.find("(") != 0 or arguments.rfind(")") != len(arguments) - 1:
-            log_message = "The arguments are not surrounded by parenthesis as expected for table row with name: {}" \
-                          "and sql: {} with arguments: {}."
+            log_message = (
+                "The arguments are not surrounded by parenthesis as expected for table row with name: {}"
+                "and sql: {} with arguments: {}."
+            )
             log_message = log_message.format(self.name, self.sql, arguments)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
@@ -1848,15 +2267,17 @@ class VirtualTableRow(TableRow):
         """
 
         """
-        
+
         At this point we have the SQL down to the remaining module arguments.  Since the module arguments are different
         depending on the module, many use cases will need to be investigated and addressed.  For now a warning is
         thrown that a virtual table was found.
 
         """
 
-        log_message = "Virtual table name: {} was found with module name: {} and sql: {}.  Virtual table modules are " \
-                      "not fully implemented."
+        log_message = (
+            "Virtual table name: {} was found with module name: {} and sql: {}.  Virtual table modules are "
+            "not fully implemented."
+        )
         log_message = log_message.format(self.name, self.module_name, self.sql)
         logger.warning(log_message)
         warn(log_message, RuntimeWarning)
@@ -1872,37 +2293,60 @@ class VirtualTableRow(TableRow):
         """
 
         # Last get the remaining sql command to check for the "without rowid" use case
-        remaining_sql_command = remaining_sql_command[closing_parenthesis_index + 1:].lstrip()
+        remaining_sql_command = remaining_sql_command[
+            closing_parenthesis_index + 1 :
+        ].lstrip()
 
         # See if the remaining sql command has any content left
         if len(remaining_sql_command) != 0:
-            log_message = "Additional content found in virtual table sql after module arguments in table row" \
-                          "with name: {} found with module name: {} and sql: {}."
+            log_message = (
+                "Additional content found in virtual table sql after module arguments in table row"
+                "with name: {} found with module name: {} and sql: {}."
+            )
             log_message = log_message.format(self.name, self.module_name, self.sql)
             logger.error(log_message)
             raise MasterSchemaRowParsingError(log_message)
 
-    def stringify(self, padding="", print_record_columns=True, print_module_arguments=True):
-        string = "\n" \
-                 + padding + "Module Name: {}\n" \
-                 + padding + "Module Arguments Length: {}"
-        string = string.format(self.module_name,
-                               len(self.module_arguments))
-        string = super(VirtualTableRow, self).stringify(padding, print_record_columns) + string
+    def stringify(
+        self, padding="", print_record_columns=True, print_module_arguments=True
+    ):
+        string = (
+            "\n"
+            + padding
+            + "Module Name: {}\n"
+            + padding
+            + "Module Arguments Length: {}"
+        )
+        string = string.format(self.module_name, len(self.module_arguments))
+        string = super().stringify(padding, print_record_columns) + string
         if print_module_arguments:
             for module_argument in self.module_arguments:
-                string += "\n" \
-                          + padding + "Module Argument:\n{}".format(module_argument.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Module Argument:\n{}".format(
+                        module_argument.stringify(padding + "\t")
+                    )
+                )
         return string
 
 
 class IndexRow(MasterSchemaRow):
+    def __init__(
+        self,
+        version_interface,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+        tables,
+    ):
 
-    def __init__(self, version_interface, b_tree_table_leaf_page_number,
-                 b_tree_table_leaf_cell, record_columns, tables):
-
-        super(IndexRow, self).__init__(version_interface, b_tree_table_leaf_page_number,
-                                       b_tree_table_leaf_cell, record_columns)
+        super().__init__(
+            version_interface,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         # Initialize the logger
         logger = getLogger(LOGGER_NAME)
@@ -1910,7 +2354,9 @@ class IndexRow(MasterSchemaRow):
         # Make sure this is the index row type after initialized by it's superclass
         if self.row_type != MASTER_SCHEMA_ROW_TYPE.INDEX:
             log_message = "Invalid row type: {} when expecting: {} with name: {}."
-            log_message = log_message.format(self.row_type, MASTER_SCHEMA_ROW_TYPE.INDEX, self.name)
+            log_message = log_message.format(
+                self.row_type, MASTER_SCHEMA_ROW_TYPE.INDEX, self.name
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -1953,7 +2399,9 @@ class IndexRow(MasterSchemaRow):
 
         """
 
-        if self.internal_schema_object and not self.name.startswith(INTERNAL_SCHEMA_OBJECT_INDEX_PREFIX):
+        if self.internal_schema_object and not self.name.startswith(
+            INTERNAL_SCHEMA_OBJECT_INDEX_PREFIX
+        ):
             log_message = "Internal schema object detected but invalid prefix for index row with name: {}."
             log_message = log_message.format(self.name)
             logger.error(log_message)
@@ -2031,8 +2479,10 @@ class IndexRow(MasterSchemaRow):
 
             """
 
-            log_message = "A index internal schema object found in index row with name: {} " \
-                          "and sql: {}.  This is not fully implemented and may cause issues with index pages."
+            log_message = (
+                "A index internal schema object found in index row with name: {} "
+                "and sql: {}.  This is not fully implemented and may cause issues with index pages."
+            )
             log_message = log_message.format(self.name, self.sql)
             logger.warning(log_message)
             warn(log_message, RuntimeWarning)
@@ -2072,14 +2522,18 @@ class IndexRow(MasterSchemaRow):
                 create_command_offset = len(CREATE_UNIQUE_INDEX_CLAUSE)
 
             else:
-                log_message = "Invalid sql for create index statement: {} with name: {}."
+                log_message = (
+                    "Invalid sql for create index statement: {} with name: {}."
+                )
                 log_message = log_message.format(self.sql, self.name)
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
 
             if not create_command_offset:
-                log_message = "The create command offset was not set while parsing sql for index row name: {} " \
-                              "and sql: {}."
+                log_message = (
+                    "The create command offset was not set while parsing sql for index row name: {} "
+                    "and sql: {}."
+                )
                 log_message = log_message.format(self.name, self.sql)
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
@@ -2102,48 +2556,69 @@ class IndexRow(MasterSchemaRow):
             """
 
             # Strip off the "create [unique] index" command from the beginning of the create index statement
-            remaining_sql_command = str(sql_command[create_command_offset + 1:])
+            remaining_sql_command = str(sql_command[create_command_offset + 1 :])
 
             # Get the index name and remaining sql
-            index_name, remaining_sql_command = \
-                MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(self.row_type, self.name,
-                                                                              self.sql, remaining_sql_command)
+            (
+                index_name,
+                remaining_sql_command,
+            ) = MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(
+                self.row_type, self.name, self.sql, remaining_sql_command
+            )
 
             # Left strip the remaining sql command
             remaining_sql_command = remaining_sql_command.lstrip()
 
             # Check if this remaining sql statement starts with "ON"
-            if remaining_sql_command[:len(INDEX_ON_COMMAND)].upper() != INDEX_ON_COMMAND:
-                log_message = "Create index statement does not have a \"ON\" clause for master schema " \
-                              "index row with name: {} and sql: {}."
+            if (
+                remaining_sql_command[: len(INDEX_ON_COMMAND)].upper()
+                != INDEX_ON_COMMAND
+            ):
+                log_message = (
+                    'Create index statement does not have a "ON" clause for master schema '
+                    "index row with name: {} and sql: {}."
+                )
                 log_message = log_message.format(self.name, self.sql)
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
 
             # Remove the using prefix and strip any whitespace from the beginning
-            remaining_sql_command = remaining_sql_command[len(INDEX_ON_COMMAND):].lstrip()
+            remaining_sql_command = remaining_sql_command[
+                len(INDEX_ON_COMMAND) :
+            ].lstrip()
 
             # Get the table name and remaining sql
-            table_name, remaining_sql_command = \
-                MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(self.row_type, self.name,
-                                                                              self.sql, remaining_sql_command)
+            (
+                table_name,
+                remaining_sql_command,
+            ) = MasterSchemaRow._get_master_schema_row_name_and_remaining_sql(
+                self.row_type, self.name, self.sql, remaining_sql_command
+            )
 
             # Left strip the remaining sql command
             remaining_sql_command = remaining_sql_command.lstrip()
 
             # Check the index name is equal to the name as specified in the sqlite documentation
             if index_name.lower() != self.name.lower():
-                log_message = "For index master schema row: {}, the index name: {} does not match the derived index" \
-                              "name: {} from the sql: {}."
-                log_message = log_message.format(self.row_id, self.name, index_name, self.sql)
+                log_message = (
+                    "For index master schema row: {}, the index name: {} does not match the derived index"
+                    "name: {} from the sql: {}."
+                )
+                log_message = log_message.format(
+                    self.row_id, self.name, index_name, self.sql
+                )
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
 
             # Check the table name is equal to the index table name as specified in the sqlite documentation
             if table_name.lower() != self.table_name.lower():
-                log_message = "For index master schema row: {}, the table name: {} does not match the derived table " \
-                              "name: {} from the sql: {}."
-                log_message = log_message.format(self.row_id, self.table_name, table_name, self.sql)
+                log_message = (
+                    "For index master schema row: {}, the table name: {} does not match the derived table "
+                    "name: {} from the sql: {}."
+                )
+                log_message = log_message.format(
+                    self.row_id, self.table_name, table_name, self.sql
+                )
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
 
@@ -2163,20 +2638,29 @@ class IndexRow(MasterSchemaRow):
 
             # Check for comments after the index name, before the indexed columns
             while remaining_sql_command.startswith(("--", "/*")):
-                comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                comment, remaining_sql_command = parse_comment_from_sql_segment(
+                    remaining_sql_command
+                )
                 self.comments.append(comment.rstrip())
                 remaining_sql_command = remaining_sql_command.lstrip()
 
             # The first thing to be done is get the closing parenthesis index to the indexed columns
-            closing_parenthesis_index = get_index_of_closing_parenthesis(remaining_sql_command)
+            closing_parenthesis_index = get_index_of_closing_parenthesis(
+                remaining_sql_command
+            )
 
             # Declare the indexed columns to be the "( [INDEXED_COLUMN], ... )" explained above
-            indexed_columns = remaining_sql_command[:closing_parenthesis_index + 1]
+            indexed_columns = remaining_sql_command[: closing_parenthesis_index + 1]
 
             # Double check the indexed columns has a beginning opening parenthesis and ends with a closing parenthesis.
-            if indexed_columns.find("(") != 0 or indexed_columns.rfind(")") != len(indexed_columns) - 1:
-                log_message = "The indexed columns are not surrounded by parenthesis as expected for index row with" \
-                              "name: {} and sql: {} with definitions: {}."
+            if (
+                indexed_columns.find("(") != 0
+                or indexed_columns.rfind(")") != len(indexed_columns) - 1
+            ):
+                log_message = (
+                    "The indexed columns are not surrounded by parenthesis as expected for index row with"
+                    "name: {} and sql: {} with definitions: {}."
+                )
                 log_message = log_message.format(self.name, self.sql, indexed_columns)
                 logger.error(log_message)
                 raise MasterSchemaRowParsingError(log_message)
@@ -2204,7 +2688,9 @@ class IndexRow(MasterSchemaRow):
             """
 
             # Last get the remaining sql command to check for the "where" use case
-            remaining_sql_command = remaining_sql_command[closing_parenthesis_index + 1:].lstrip()
+            remaining_sql_command = remaining_sql_command[
+                closing_parenthesis_index + 1 :
+            ].lstrip()
 
             """
 
@@ -2221,7 +2707,9 @@ class IndexRow(MasterSchemaRow):
 
             # Check for comments after the end of the index columns
             while remaining_sql_command.startswith(("--", "/*")):
-                comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                comment, remaining_sql_command = parse_comment_from_sql_segment(
+                    remaining_sql_command
+                )
                 self.comments.append(comment.rstrip())
                 remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -2238,9 +2726,14 @@ class IndexRow(MasterSchemaRow):
                 """
 
                 # Check if this remaining sql statement starts with "WHERE"
-                if remaining_sql_command[:len(INDEX_WHERE_CLAUSE)].upper() != INDEX_WHERE_CLAUSE:
-                    log_message = "Create virtual table statement does not have a \"WHERE\" clause for master schema " \
-                                  "index row with name: {} and sql: {} when expected."
+                if (
+                    remaining_sql_command[: len(INDEX_WHERE_CLAUSE)].upper()
+                    != INDEX_WHERE_CLAUSE
+                ):
+                    log_message = (
+                        'Create virtual table statement does not have a "WHERE" clause for master schema '
+                        "index row with name: {} and sql: {} when expected."
+                    )
                     log_message = log_message.format(self.name, self.sql)
                     logger.error(log_message)
                     raise MasterSchemaRowParsingError(log_message)
@@ -2250,7 +2743,9 @@ class IndexRow(MasterSchemaRow):
 
                 # Check for comments after the where clause
                 while remaining_sql_command.startswith(("--", "/*")):
-                    comment, remaining_sql_command = parse_comment_from_sql_segment(remaining_sql_command)
+                    comment, remaining_sql_command = parse_comment_from_sql_segment(
+                        remaining_sql_command
+                    )
                     self.comments.append(comment.rstrip())
                     remaining_sql_command = remaining_sql_command.lstrip()
 
@@ -2272,51 +2767,81 @@ class IndexRow(MasterSchemaRow):
             """
 
             if self.partial_index:
-                log_message = "A index specified as a partial index was found in index row with name: {} " \
-                              "and sql: {}.  This use case is not fully implemented."
+                log_message = (
+                    "A index specified as a partial index was found in index row with name: {} "
+                    "and sql: {}.  This use case is not fully implemented."
+                )
                 log_message = log_message.format(self.name, self.sql)
                 logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
     def stringify(self, padding="", print_record_columns=True):
-        string = "\n" \
-                 + padding + "Internal Schema Object: {}\n" \
-                 + padding + "Unique: {}\n" \
-                 + padding + "Partial Index: {}"
-        string = string.format(self.internal_schema_object,
-                               self.unique,
-                               self.partial_index)
-        string = super(IndexRow, self).stringify(padding, print_record_columns) + string
+        string = (
+            "\n"
+            + padding
+            + "Internal Schema Object: {}\n"
+            + padding
+            + "Unique: {}\n"
+            + padding
+            + "Partial Index: {}"
+        )
+        string = string.format(
+            self.internal_schema_object, self.unique, self.partial_index
+        )
+        string = super().stringify(padding, print_record_columns) + string
         return string
 
 
 class ViewRow(MasterSchemaRow):
-
-    def __init__(self, version_interface, b_tree_table_leaf_page_number,
-                 b_tree_table_leaf_cell, record_columns, tables):
-        super(ViewRow, self).__init__(version_interface, b_tree_table_leaf_page_number,
-                                      b_tree_table_leaf_cell, record_columns)
+    def __init__(
+        self,
+        version_interface,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+        tables,
+    ):
+        super().__init__(
+            version_interface,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         logger = getLogger(LOGGER_NAME)
 
         if self.row_type != MASTER_SCHEMA_ROW_TYPE.VIEW:
             log_message = "Invalid row type: {} when expecting: {} with name: {}."
-            log_message = log_message.format(self.row_type, MASTER_SCHEMA_ROW_TYPE.VIEW, self.name)
+            log_message = log_message.format(
+                self.row_type, MASTER_SCHEMA_ROW_TYPE.VIEW, self.name
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
 
 class TriggerRow(MasterSchemaRow):
-
-    def __init__(self, version_interface, b_tree_table_leaf_page_number,
-                 b_tree_table_leaf_cell, record_columns, tables, views):
-        super(TriggerRow, self).__init__(version_interface, b_tree_table_leaf_page_number,
-                                         b_tree_table_leaf_cell, record_columns)
+    def __init__(
+        self,
+        version_interface,
+        b_tree_table_leaf_page_number,
+        b_tree_table_leaf_cell,
+        record_columns,
+        tables,
+        views,
+    ):
+        super().__init__(
+            version_interface,
+            b_tree_table_leaf_page_number,
+            b_tree_table_leaf_cell,
+            record_columns,
+        )
 
         logger = getLogger(LOGGER_NAME)
 
         if self.row_type != MASTER_SCHEMA_ROW_TYPE.TRIGGER:
             log_message = "Invalid row type: {} when expecting: {} with name: {}."
-            log_message = log_message.format(self.row_type, MASTER_SCHEMA_ROW_TYPE.TRIGGER, self.name)
+            log_message = log_message.format(
+                self.row_type, MASTER_SCHEMA_ROW_TYPE.TRIGGER, self.name
+            )
             logger.error(log_message)
             raise ValueError(log_message)

@@ -1,14 +1,17 @@
 from logging import getLogger
-from openpyxl import Workbook
 from os import rename
-from os.path import exists
-from os.path import sep
-from uuid import uuid4
+from os.path import exists, sep
 from re import sub
-from sqlite_dissect.constants import ILLEGAL_XML_CHARACTER_PATTERN
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import PAGE_TYPE
-from sqlite_dissect.constants import UTF_8
+from uuid import uuid4
+
+from openpyxl import Workbook
+
+from sqlite_dissect.constants import (
+    ILLEGAL_XML_CHARACTER_PATTERN,
+    LOGGER_NAME,
+    PAGE_TYPE,
+    UTF_8,
+)
 from sqlite_dissect.exception import ExportError
 
 """
@@ -23,8 +26,7 @@ CommitXlsxExporter(object)
 """
 
 
-class CommitXlsxExporter(object):
-
+class CommitXlsxExporter:
     def __init__(self, export_directory, file_name):
         self._workbook = Workbook(write_only=True)
         self._xlsx_file_name = export_directory + sep + file_name
@@ -42,9 +44,13 @@ class CommitXlsxExporter(object):
             # Rename the existing file
             rename(self._xlsx_file_name, new_file_name_for_existing_file)
 
-            log_message = "File: {} already existing when creating the file for commit xlsx exporting.  The " \
-                          "file was renamed to: {} and new data will be written to the file name specified."
-            log_message = log_message.format(self._xlsx_file_name, new_file_name_for_existing_file)
+            log_message = (
+                "File: {} already existing when creating the file for commit xlsx exporting.  The "
+                "file was renamed to: {} and new data will be written to the file name specified."
+            )
+            log_message = log_message.format(
+                self._xlsx_file_name, new_file_name_for_existing_file
+            )
             getLogger(LOGGER_NAME).debug(log_message)
 
         return self
@@ -56,7 +62,6 @@ class CommitXlsxExporter(object):
         getLogger(LOGGER_NAME).debug(log_message)
 
     def write_commit(self, master_schema_entry, commit):
-
         """
 
 
@@ -118,18 +123,27 @@ class CommitXlsxExporter(object):
                     truncated_sheet_name = sheet_name[:30] + str(name_postfix_increment)
 
                     # CHeck if the name does not already exist in the dictionary
-                    if truncated_sheet_name not in self._long_sheet_name_translation_dictionary:
+                    if (
+                        truncated_sheet_name
+                        not in self._long_sheet_name_translation_dictionary
+                    ):
 
                         # Add the sheet name and truncated sheet name into the dictionary
-                        self._long_sheet_name_translation_dictionary[sheet_name] = truncated_sheet_name
+                        self._long_sheet_name_translation_dictionary[sheet_name] = (
+                            truncated_sheet_name
+                        )
 
                         # Set the sheet name
                         sheet_name = truncated_sheet_name
 
                         # Log a debug message for the truncation of the commit name as a sheet name
-                        log_message = "Commit name: {} was truncated to: {} since it had a length of {} characters " \
-                                      "which is greater than the 31 allowed characters for a sheet name."
-                        log_message = log_message.format(commit.name, sheet_name, len(commit.name))
+                        log_message = (
+                            "Commit name: {} was truncated to: {} since it had a length of {} characters "
+                            "which is greater than the 31 allowed characters for a sheet name."
+                        )
+                        log_message = log_message.format(
+                            commit.name, sheet_name, len(commit.name)
+                        )
                         logger.debug(log_message)
 
                         # Break from the while loop
@@ -143,11 +157,17 @@ class CommitXlsxExporter(object):
 
                 # Raise an exception if the name postfix increment counter reached 10
                 if name_postfix_increment == 10:
-                    log_message = "Max number of allowed (10) increments reached for renaming the sheet with " \
-                                  "original name: {} for page type: {} due to having a length of {} characters " \
-                                  "which is greater than the 31 allowed characters while writing to xlsx file name: {}."
-                    log_message = log_message.format(commit.name, commit.page_type, len(commit.name),
-                                                     self._xlsx_file_name)
+                    log_message = (
+                        "Max number of allowed (10) increments reached for renaming the sheet with "
+                        "original name: {} for page type: {} due to having a length of {} characters "
+                        "which is greater than the 31 allowed characters while writing to xlsx file name: {}."
+                    )
+                    log_message = log_message.format(
+                        commit.name,
+                        commit.page_type,
+                        len(commit.name),
+                        self._xlsx_file_name,
+                    )
                     logger.warning(log_message)
                     raise ExportError(log_message)
 
@@ -179,8 +199,18 @@ class CommitXlsxExporter(object):
 
         column_headers = []
         if write_headers:
-            column_headers.extend(["File Source", "Version", "Page Version", "Cell Source", "Page Number",
-                                   "Location", "Operation", "File Offset"])
+            column_headers.extend(
+                [
+                    "File Source",
+                    "Version",
+                    "Page Version",
+                    "Cell Source",
+                    "Page Number",
+                    "Location",
+                    "Operation",
+                    "File Offset",
+                ]
+            )
 
         if commit.page_type == PAGE_TYPE.B_TREE_INDEX_LEAF:
 
@@ -193,49 +223,114 @@ class CommitXlsxExporter(object):
 
             sheet.append(column_headers)
 
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            commit.added_cells.values(), "Added")
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            commit.updated_cells.values(), "Updated")
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            commit.deleted_cells.values(), "Deleted")
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            commit.carved_cells.values(), "Carved")
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.added_cells.values(),
+                "Added",
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.updated_cells.values(),
+                "Updated",
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.deleted_cells.values(),
+                "Deleted",
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         elif commit.page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
 
             if write_headers:
                 column_headers.append("Row ID")
-                column_headers.extend([column_definition.column_name
-                                       for column_definition in master_schema_entry.column_definitions])
+                column_headers.extend(
+                    [
+                        column_definition.column_name
+                        for column_definition in master_schema_entry.column_definitions
+                    ]
+                )
                 sheet.append(column_headers)
 
             # Sort the added, updated, and deleted cells by the row id
-            sorted_added_cells = sorted(commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            sorted_added_cells, "Added")
-            sorted_updated_cells = sorted(commit.updated_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            sorted_updated_cells, "Updated")
-            sorted_deleted_cells = sorted(commit.deleted_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id)
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            sorted_deleted_cells, "Deleted")
+            sorted_added_cells = sorted(
+                commit.added_cells.values(), key=lambda b_tree_cell: b_tree_cell.row_id
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_added_cells,
+                "Added",
+            )
+            sorted_updated_cells = sorted(
+                commit.updated_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_updated_cells,
+                "Updated",
+            )
+            sorted_deleted_cells = sorted(
+                commit.deleted_cells.values(),
+                key=lambda b_tree_cell: b_tree_cell.row_id,
+            )
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                sorted_deleted_cells,
+                "Deleted",
+            )
 
             # We will not sort the carved cells since row ids are not deterministic even if parsed
-            CommitXlsxExporter._write_cells(sheet, commit.file_type, commit.database_text_encoding, commit.page_type,
-                                            commit.carved_cells.values(), "Carved")
+            CommitXlsxExporter._write_cells(
+                sheet,
+                commit.file_type,
+                commit.database_text_encoding,
+                commit.page_type,
+                commit.carved_cells.values(),
+                "Carved",
+            )
 
         else:
 
-            log_message = "Invalid commit page type: {} found for xlsx export on master " \
-                          "schema entry name: {} while writing to xlsx file name: {}."
-            log_message = log_message.format(commit.page_type, commit.name, self._xlsx_file_name)
+            log_message = (
+                "Invalid commit page type: {} found for xlsx export on master "
+                "schema entry name: {} while writing to xlsx file name: {}."
+            )
+            log_message = log_message.format(
+                commit.page_type, commit.name, self._xlsx_file_name
+            )
             logger.warning(log_message)
             raise ExportError(log_message)
 
     @staticmethod
-    def _write_cells(sheet, file_type, database_text_encoding, page_type, cells, operation):
-
+    def _write_cells(
+        sheet, file_type, database_text_encoding, page_type, cells, operation
+    ):
         """
 
         This function will write the list of cells sent in to the sheet specified including the metadata regarding
@@ -313,13 +408,19 @@ class CommitXlsxExporter(object):
             cell_record_column_values = []
             for record_column in cell.payload.record_columns:
                 serial_type = record_column.serial_type
-                text_affinity = True if serial_type >= 13 and serial_type % 2 == 1 else False
+                text_affinity = (
+                    True if serial_type >= 13 and serial_type % 2 == 1 else False
+                )
                 value = record_column.value
                 if isinstance(value, (bytes, bytearray, str)):
                     if len(value) == 0 and isinstance(value, bytearray):
                         value = None
                     else:
-                        value = value.decode(database_text_encoding, "replace") if text_affinity else str(value)
+                        value = (
+                            value.decode(database_text_encoding, "replace")
+                            if text_affinity
+                            else str(value)
+                        )
                         try:
                             value.encode(UTF_8)
                         except UnicodeDecodeError:
@@ -327,12 +428,20 @@ class CommitXlsxExporter(object):
                         if not isinstance(value, str):
                             value = value.decode(UTF_8)
                         if value[0] == "=":
-                            value = ' ' + value
+                            value = " " + value
                         value = sub(ILLEGAL_XML_CHARACTER_PATTERN, " ", value)
                 cell_record_column_values.append(value)
 
-            row = [file_type, cell.version_number, cell.page_version_number, cell.source, cell.page_number,
-                   cell.location, operation, cell.file_offset]
+            row = [
+                file_type,
+                cell.version_number,
+                cell.page_version_number,
+                cell.source,
+                cell.page_number,
+                cell.location,
+                operation,
+                cell.file_offset,
+            ]
             if page_type == PAGE_TYPE.B_TREE_TABLE_LEAF:
                 row.append(cell.row_id)
             row.extend(cell_record_column_values)

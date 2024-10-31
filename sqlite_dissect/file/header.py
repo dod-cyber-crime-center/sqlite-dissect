@@ -1,6 +1,6 @@
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from logging import getLogger
+
 from sqlite_dissect.constants import LOGGER_NAME
 
 """
@@ -20,7 +20,7 @@ SQLiteHeader(object)
 """
 
 
-class SQLiteHeader(object):
+class SQLiteHeader:
 
     __metaclass__ = ABCMeta
 
@@ -32,10 +32,12 @@ class SQLiteHeader(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     @abstractmethod
     def stringify(self, padding=""):
-        log_message = "The abstract method stringify was called directly and is not implemented."
+        log_message = (
+            "The abstract method stringify was called directly and is not implemented."
+        )
         getLogger(LOGGER_NAME).error(log_message)
         raise NotImplementedError(log_message)

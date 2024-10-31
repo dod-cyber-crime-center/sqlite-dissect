@@ -1,7 +1,7 @@
 
 # sqlite_dissect.file
 
-This package will control parsing and access to all (supported) sqlite files including the 
+This package will control parsing and access to all (supported) sqlite files including the
 database, rollback journal, and wal.
 
 - file_handle.py
@@ -24,7 +24,7 @@ supported file types specified in the FILE_TYPE file types list.
 This script holds the following object(s):
 - FileHandle(object)
 <br><br>
-  
+
 ```mermaid
 %%{init: { "theme": "dark" }}%%
 classDiagram
@@ -57,7 +57,7 @@ TODO:
     - [ ] Investigate if lock byte pages affect other SQLite file types such as WAL, journal, etc. at all.
     - [ ] Handle exceptions that may be raised from creating headers and reading data better.
     - [ ] Split the read_data function into separate read and seek functions?
-  
+
 <br>
 
 ### header.py
@@ -67,8 +67,8 @@ of the wal, journal, and database file headers will extend this class.
 
 >Note:
 > <br>
-> The database file header is the same as the file header for the sqlite database.  However, for cases like the wal 
-> file, the file has a file header that is not related to the actual database information and then depending on how 
+> The database file header is the same as the file header for the sqlite database.  However, for cases like the wal
+> file, the file has a file header that is not related to the actual database information and then depending on how
 > many commits were done with the first page in them, could have many database headers.
 
 This script holds the following object(s):

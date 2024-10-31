@@ -1,8 +1,7 @@
 from logging import getLogger
 from struct import unpack
-from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import WAL_INDEX_HEADER_LENGTH
+
+from sqlite_dissect.constants import FILE_TYPE, LOGGER_NAME, WAL_INDEX_HEADER_LENGTH
 from sqlite_dissect.file.file_handle import FileHandle
 
 """
@@ -17,13 +16,14 @@ WriteAheadLogIndex(object)
 """
 
 
-class WriteAheadLogIndex(object):
-
+class WriteAheadLogIndex:
     def __init__(self, file_name, file_size=None):
 
         logger = getLogger(LOGGER_NAME)
 
-        self._file_handle = FileHandle(FILE_TYPE.WAL_INDEX, file_name, file_size=file_size)
+        self._file_handle = FileHandle(
+            FILE_TYPE.WAL_INDEX, file_name, file_size=file_size
+        )
 
         zero = False
         start = WAL_INDEX_HEADER_LENGTH
@@ -34,7 +34,9 @@ class WriteAheadLogIndex(object):
                 zero = True
             else:
                 key = (data * 383) & 8191
-                log_message = "Entry {} at offset: {} is page #{} with key of {}.".format(i, start, data, key)
+                log_message = (
+                    f"Entry {i} at offset: {start} is page #{data} with key of {key}."
+                )
                 logger.debug(log_message)
                 start += 4
 
@@ -46,18 +48,24 @@ class WriteAheadLogIndex(object):
             if data != 0:
                 number_found += 1
                 log_message = "Number {}: {} at offset: {} with relative offset: {} index (/2): {} and N#: {}"
-                log_message = log_message.format(number_found, i, u16_offset, u16_offset-16384,
-                                                 (u16_offset-16384)/2, data)
+                log_message = log_message.format(
+                    number_found,
+                    i,
+                    u16_offset,
+                    u16_offset - 16384,
+                    (u16_offset - 16384) / 2,
+                    data,
+                )
                 logger.debug(log_message)
             u16_offset += 2
 
-        logger.debug("Number of entries found: {}.".format(number_found))
+        logger.debug(f"Number of entries found: {number_found}.")
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
         string = padding + "File Handle:\n{}"

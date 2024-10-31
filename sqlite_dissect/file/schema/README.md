@@ -20,7 +20,7 @@ This script holds the objects needed for parsing column related objects to the m
 This script holds the following object(s):
 - ColumnDefinition(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -57,7 +57,7 @@ This script holds the following object(s):
 - ViewRow(MasterSchemaRow)
 - TriggerRow(MasterSchemaRow)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -115,7 +115,7 @@ This script holds the objects needed for parsing table related objects to the ma
 This script holds the following object(s):
 - TableConstraint(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -132,7 +132,6 @@ This script holds the following function(s):
 - get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0)
 - parse_comment_from_sql_segment(sql_segment)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
-  

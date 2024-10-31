@@ -21,7 +21,7 @@ This script holds the objects used for parsing the write ahead log commit record
 This script holds the following object(s):
 - WriteAheadLogCommitRecord(Version)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -37,7 +37,7 @@ TODO:
     - [ ] The incremental vacuum mode can change in the header from 1 to 2 or 2 to 1.
     - [ ] Investigate if the database text encoding/schema format number can change after set.
     - [ ] Investigate if the size in pages can differ on first update if last version < 3.7.0.
-  
+
 <br>
 
 ### frame.py
@@ -57,7 +57,7 @@ This script holds the objects used for parsing the WAL frame.
 This script holds the following object(s):
 -WriteAheadLogFrame(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -77,7 +77,7 @@ This script holds the following object(s):
 - WriteAheadLogHeader(SQLiteHeader)
 - WriteAheadLogFrameHeader(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -88,7 +88,7 @@ TODO:
 - [ ] Create arrays for salt and checksum values rather than separate variables?  They are arrays in the sqlite c code.
     ##### WriteAheadLogHeader Class:
     - [ ] Investigate use cases where the checkpoint != 0.  A warning is thrown currently.
-  
+
 <br>
 
 ### utilities.py
@@ -98,12 +98,12 @@ than more general utility methods.
 This script holds the following function(s):
 - compare_database_headers(previous_database_header, new_database_header)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
     ##### compare_database_headers Function:
     - [ ] The \_\_dict\_\_ also returns class objects that may cause issues.
-  
+
 <br>
 
 ### wal.py
@@ -112,7 +112,7 @@ This script holds the WAL objects used for parsing the WAL file.
 This script holds the following object(s):
 - WriteAheadLog(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -127,4 +127,3 @@ TODO:
     - [ ] Check the last valid frame index matches that in the wal index file (if found).
     - [ ] Check the database size in pages in the wal index file (if found) against the last commit record.
     - [ ] The file_size arg may not be needed since it is in the file handle and may be removed.
-  

@@ -1,19 +1,22 @@
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from copy import copy
 from logging import getLogger
 from warnings import warn
+
 from sqlite_dissect.carving.utilities import get_content_size
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import MASTER_SCHEMA_ROW_TYPE
-from sqlite_dissect.constants import STORAGE_CLASS
-from sqlite_dissect.constants import TYPE_AFFINITY
-from sqlite_dissect.file.database.utilities import aggregate_leaf_cells
-from sqlite_dissect.file.database.utilities import get_pages_from_b_tree_page
-from sqlite_dissect.file.schema.master import OrdinaryTableRow
-from sqlite_dissect.file.schema.master import VirtualTableRow
-from sqlite_dissect.file.version_parser import VersionParser
+from sqlite_dissect.constants import (
+    LOGGER_NAME,
+    MASTER_SCHEMA_ROW_TYPE,
+    STORAGE_CLASS,
+    TYPE_AFFINITY,
+)
 from sqlite_dissect.exception import SignatureError
+from sqlite_dissect.file.database.utilities import (
+    aggregate_leaf_cells,
+    get_pages_from_b_tree_page,
+)
+from sqlite_dissect.file.schema.master import OrdinaryTableRow, VirtualTableRow
+from sqlite_dissect.file.version_parser import VersionParser
 
 """
 
@@ -36,9 +39,13 @@ ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature)
 
 
 class Signature(VersionParser):
-
-    def __init__(self, version_history, master_schema_entry, version_number=None, ending_version_number=None):
-
+    def __init__(
+        self,
+        version_history,
+        master_schema_entry,
+        version_number=None,
+        ending_version_number=None,
+    ):
         """
 
 
@@ -67,7 +74,9 @@ class Signature(VersionParser):
         """
 
         # Call to the super class
-        super(Signature, self).__init__(version_history, master_schema_entry, version_number, ending_version_number)
+        super().__init__(
+            version_history, master_schema_entry, version_number, ending_version_number
+        )
 
         logger = getLogger(LOGGER_NAME)
 
@@ -78,28 +87,48 @@ class Signature(VersionParser):
         """
 
         if master_schema_entry.row_type == MASTER_SCHEMA_ROW_TYPE.INDEX:
-            log_message = "An index row type was found for signature which is not fully supported for master " \
-                          "schema entry root page number: {} row type: {} name: {} table name: {} and sql: {}."
-            log_message = log_message.format(master_schema_entry.root_page_number,
-                                             master_schema_entry.row_type, master_schema_entry.name,
-                                             master_schema_entry.table_name, master_schema_entry.sql)
+            log_message = (
+                "An index row type was found for signature which is not fully supported for master "
+                "schema entry root page number: {} row type: {} name: {} table name: {} and sql: {}."
+            )
+            log_message = log_message.format(
+                master_schema_entry.root_page_number,
+                master_schema_entry.row_type,
+                master_schema_entry.name,
+                master_schema_entry.table_name,
+                master_schema_entry.sql,
+            )
             logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
             if master_schema_entry.internal_schema_object:
-                log_message = "An internal schema object index row type was found for the version parser which is " \
-                              "not fully supported for master schema entry root page number: {} type: {} name: {} " \
-                              "table name: {} and sql: {} and may result in erroneous cells."
-                log_message = log_message.format(master_schema_entry.root_page_number,
-                                                 master_schema_entry.row_type, master_schema_entry.name,
-                                                 master_schema_entry.table_name, master_schema_entry.sql)
+                log_message = (
+                    "An internal schema object index row type was found for the version parser which is "
+                    "not fully supported for master schema entry root page number: {} type: {} name: {} "
+                    "table name: {} and sql: {} and may result in erroneous cells."
+                )
+                log_message = log_message.format(
+                    master_schema_entry.root_page_number,
+                    master_schema_entry.row_type,
+                    master_schema_entry.name,
+                    master_schema_entry.table_name,
+                    master_schema_entry.sql,
+                )
                 logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
-        log_message = "Creating signature for master schema entry with name: {} table name: {} row type: {} and " \
-                      "sql: {} for version number: {} and ending version number: {}."
-        log_message = log_message.format(self.name, self.table_name, self.row_type, self.sql,
-                                         self.parser_starting_version_number, self.parser_ending_version_number)
+        log_message = (
+            "Creating signature for master schema entry with name: {} table name: {} row type: {} and "
+            "sql: {} for version number: {} and ending version number: {}."
+        )
+        log_message = log_message.format(
+            self.name,
+            self.table_name,
+            self.row_type,
+            self.sql,
+            self.parser_starting_version_number,
+            self.parser_ending_version_number,
+        )
         logger.debug(log_message)
 
         """
@@ -141,37 +170,53 @@ class Signature(VersionParser):
         Note:  IndexRow master schema entries do not have column definitions at this time so we need to make sure
                the object is a OrdinaryTableRow object.  (VirtualTableRow objects or OrdinaryTableRow that are
                "without rowid" tables do not have column definitions at this time either.)  This results in only
-               normal tables currently having signatures.  Warnings have already been thrown in regards to these 
+               normal tables currently having signatures.  Warnings have already been thrown in regards to these
                use cases above.
 
         """
 
-        if isinstance(master_schema_entry, OrdinaryTableRow) and not master_schema_entry.without_row_id:
+        if (
+            isinstance(master_schema_entry, OrdinaryTableRow)
+            and not master_schema_entry.without_row_id
+        ):
             for column_definition in master_schema_entry.column_definitions:
-                self.schema_column_signatures.append(SchemaColumnSignature(column_definition))
+                self.schema_column_signatures.append(
+                    SchemaColumnSignature(column_definition)
+                )
 
         if isinstance(master_schema_entry, VirtualTableRow):
 
             """
-            
+
             Below we initialize variables for the signature to prevent issues with the stringify method.  After that,
             a warning message is printed and the application continues on since the virtual tables in SQLite are not
             currently supported.  All fields are set to the defaults (False and/or None/Empty values).
-            
+
             """
             self.altered_columns = False
             self.column_breakdown = {}
 
-            log_message = "Virtual table found in signature for master schema entry with name: {} table name: {} " \
-                          "row type: {} and sql: {} for version number: {} and ending version number: {}.  A " \
-                          "signature will not be generated since virtual tables are not fully supported yet."
-            log_message = log_message.format(self.name, self.table_name, self.row_type, self.sql,
-                                             self.parser_starting_version_number, self.parser_ending_version_number)
+            log_message = (
+                "Virtual table found in signature for master schema entry with name: {} table name: {} "
+                "row type: {} and sql: {} for version number: {} and ending version number: {}.  A "
+                "signature will not be generated since virtual tables are not fully supported yet."
+            )
+            log_message = log_message.format(
+                self.name,
+                self.table_name,
+                self.row_type,
+                self.sql,
+                self.parser_starting_version_number,
+                self.parser_ending_version_number,
+            )
             log_message = log_message.format()
             getLogger(LOGGER_NAME).warn(log_message)
             warn(log_message, RuntimeWarning)
 
-        elif self.parser_starting_version_number is not None and self.parser_ending_version_number is not None:
+        elif (
+            self.parser_starting_version_number is not None
+            and self.parser_ending_version_number is not None
+        ):
 
             # Get the versions
             versions = version_history.versions
@@ -195,8 +240,10 @@ class Signature(VersionParser):
             root_b_tree_page_numbers = []
 
             # Iterate through the versions in reference to this master schema entry
-            for version_number in range(self.parser_starting_version_number,
-                                        self.parser_ending_version_number + 1):
+            for version_number in range(
+                self.parser_starting_version_number,
+                self.parser_ending_version_number + 1,
+            ):
 
                 version = versions[version_number]
                 root_page_number = self.root_page_number_version_index[version_number]
@@ -208,12 +255,18 @@ class Signature(VersionParser):
                     b_tree_updated = True
 
                 # Check if the root page number changed
-                elif root_page_number != self.root_page_number_version_index[version_number - 1]:
+                elif (
+                    root_page_number
+                    != self.root_page_number_version_index[version_number - 1]
+                ):
                     b_tree_updated = True
 
                 # Check if any of the non-root pages changed
-                elif [page_number for page_number in root_b_tree_page_numbers
-                      if page_number in version.updated_b_tree_page_numbers]:
+                elif [
+                    page_number
+                    for page_number in root_b_tree_page_numbers
+                    if page_number in version.updated_b_tree_page_numbers
+                ]:
                     b_tree_updated = True
 
                 # Parse the b-tree page structure if it was updated
@@ -221,8 +274,10 @@ class Signature(VersionParser):
 
                     # Get the root page and root page numbers from the first version
                     root_page = version.get_b_tree_root_page(root_page_number)
-                    root_b_tree_page_numbers = [b_tree_page.number for b_tree_page
-                                                in get_pages_from_b_tree_page(root_page)]
+                    root_b_tree_page_numbers = [
+                        b_tree_page.number
+                        for b_tree_page in get_pages_from_b_tree_page(root_page)
+                    ]
 
                     """
 
@@ -237,7 +292,9 @@ class Signature(VersionParser):
 
                     """
 
-                    total, records = aggregate_leaf_cells(root_page, accounted_for_cell_digests, True)
+                    total, records = aggregate_leaf_cells(
+                        root_page, accounted_for_cell_digests, True
+                    )
 
                     # Add the totals to the counts
                     self.total_records += total
@@ -268,17 +325,26 @@ class Signature(VersionParser):
                         """
 
                         # Check if the serial type signature of the record is not already in the row signatures
-                        if record.serial_type_signature not in self.table_row_signatures:
+                        if (
+                            record.serial_type_signature
+                            not in self.table_row_signatures
+                        ):
 
                             # Create and add a new table row signature
-                            table_row_signature = TableRowSignature(column_definitions, record)
-                            self.table_row_signatures[record.serial_type_signature] = table_row_signature
+                            table_row_signature = TableRowSignature(
+                                column_definitions, record
+                            )
+                            self.table_row_signatures[record.serial_type_signature] = (
+                                table_row_signature
+                            )
 
                         # The signature already exists
                         else:
 
                             # Update the table row signature
-                            self.table_row_signatures[record.serial_type_signature].update(record)
+                            self.table_row_signatures[
+                                record.serial_type_signature
+                            ].update(record)
 
             """
 
@@ -293,19 +359,29 @@ class Signature(VersionParser):
             total_table_row_signature_count = 0
 
             # Iterate through the table row signatures and set the total rows and increment the count
-            for serial_type_signature, table_row_signature in self.table_row_signatures.items():
+            for (
+                serial_type_signature,
+                table_row_signature,
+            ) in self.table_row_signatures.items():
                 table_row_signature.number_of_rows = self.unique_records
                 total_table_row_signature_count += table_row_signature.count
 
             # Make sure the count of records match
             if total_table_row_signature_count != self.unique_records:
-                log_message = "The total table row signature count: {} does not match the number of unique " \
-                              "records: {} for master schema entry row type: {} with root page number: {} name: {} " \
-                              "table name: {} and sql: {}."
-                log_message = log_message.format(total_table_row_signature_count, self.unique_records,
-                                                 master_schema_entry.row_type, master_schema_entry.root_page_number,
-                                                 master_schema_entry.name, master_schema_entry.table_name,
-                                                 master_schema_entry.sql)
+                log_message = (
+                    "The total table row signature count: {} does not match the number of unique "
+                    "records: {} for master schema entry row type: {} with root page number: {} name: {} "
+                    "table name: {} and sql: {}."
+                )
+                log_message = log_message.format(
+                    total_table_row_signature_count,
+                    self.unique_records,
+                    master_schema_entry.row_type,
+                    master_schema_entry.root_page_number,
+                    master_schema_entry.name,
+                    master_schema_entry.table_name,
+                    master_schema_entry.sql,
+                )
                 logger.error(log_message)
                 raise SignatureError(log_message)
 
@@ -361,9 +437,13 @@ class Signature(VersionParser):
             for table_row_signature in self.table_row_signatures.values():
                 column_signature_length = len(table_row_signature.column_signatures)
                 if column_signature_length in self.column_breakdown:
-                    self.column_breakdown[column_signature_length] += table_row_signature.count
+                    self.column_breakdown[
+                        column_signature_length
+                    ] += table_row_signature.count
                 else:
-                    self.column_breakdown[column_signature_length] = table_row_signature.count
+                    self.column_breakdown[column_signature_length] = (
+                        table_row_signature.count
+                    )
 
             # Get the number of columns in the schema and add it to the column breakdown if not already added
             schema_column_length = len(self.schema_column_signatures)
@@ -373,7 +453,9 @@ class Signature(VersionParser):
             # Iterate through the column breakdown and compute probabilities
             for column_count in self.column_breakdown:
                 row_count = self.column_breakdown[column_count]
-                probability = float(row_count) / self.unique_records if self.unique_records else 0
+                probability = (
+                    float(row_count) / self.unique_records if self.unique_records else 0
+                )
                 self.column_breakdown[column_count] = (row_count, probability)
 
             # The columns have been altered if there is more than one entry in the column breakdown
@@ -421,22 +503,39 @@ class Signature(VersionParser):
                 table_row_columns = {}
 
                 # Iterate through the table row signatures and create the table row columns dictionary
-                for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.items():
+                for (
+                    table_row_md5_hex_digest,
+                    table_row_signature,
+                ) in self.table_row_signatures.items():
 
                     # Iterate through all of the column signatures in the current table row signature
-                    for column_index in range(len(table_row_signature.column_signatures)):
+                    for column_index in range(
+                        len(table_row_signature.column_signatures)
+                    ):
 
                         # Add or append the column signature in the table row columns dictionary
                         if column_index in table_row_columns:
-                            table_row_columns[column_index].append(table_row_signature.column_signatures[column_index])
+                            table_row_columns[column_index].append(
+                                table_row_signature.column_signatures[column_index]
+                            )
                         else:
-                            table_row_columns[column_index] = [table_row_signature.column_signatures[column_index]]
+                            table_row_columns[column_index] = [
+                                table_row_signature.column_signatures[column_index]
+                            ]
 
                 # Iterate through the table row columns and create the table column signatures
-                for table_row_column_index, table_row_column_serial_type_array in table_row_columns.items():
+                for (
+                    table_row_column_index,
+                    table_row_column_serial_type_array,
+                ) in table_row_columns.items():
                     column_name = column_definitions[table_row_column_index].column_name
-                    self.table_column_signatures.append(TableColumnSignature(table_row_column_index, column_name,
-                                                                             table_row_column_serial_type_array))
+                    self.table_column_signatures.append(
+                        TableColumnSignature(
+                            table_row_column_index,
+                            column_name,
+                            table_row_column_serial_type_array,
+                        )
+                    )
 
             # No table row signatures were found
             else:
@@ -450,13 +549,20 @@ class Signature(VersionParser):
 
                 # Make sure no records were found
                 if self.total_records or self.unique_records:
-                    log_message = "The total records: {} and unique records: {} are both not 0 as expected for " \
-                                  "master schema entry row type: {} with root page number: {} name: {} table " \
-                                  "name: {} and sql: {}."
-                    log_message = log_message.format(self.total_records, self.unique_records,
-                                                     master_schema_entry.row_type, master_schema_entry.root_page_number,
-                                                     master_schema_entry.name, master_schema_entry.table_name,
-                                                     master_schema_entry.sql)
+                    log_message = (
+                        "The total records: {} and unique records: {} are both not 0 as expected for "
+                        "master schema entry row type: {} with root page number: {} name: {} table "
+                        "name: {} and sql: {}."
+                    )
+                    log_message = log_message.format(
+                        self.total_records,
+                        self.unique_records,
+                        master_schema_entry.row_type,
+                        master_schema_entry.root_page_number,
+                        master_schema_entry.name,
+                        master_schema_entry.table_name,
+                        master_schema_entry.sql,
+                    )
                     logger.error(log_message)
                     raise SignatureError(log_message)
 
@@ -485,72 +591,116 @@ class Signature(VersionParser):
 
         if schema_column_signatures_length and table_column_signatures_length:
             if schema_column_signatures_length != table_column_signatures_length:
-                log_message = "The schema column signatures length: {} is not equal to the table column signatures " \
-                              "length: {} for master schema entry row type: {} with root page number: {} name: {} " \
-                              "table name: {} and sql: {}."
-                log_message = log_message.format(schema_column_signatures_length, table_column_signatures_length,
-                                                 master_schema_entry.row_type, master_schema_entry.root_page_number,
-                                                 master_schema_entry.name, master_schema_entry.table_name,
-                                                 master_schema_entry.sql)
+                log_message = (
+                    "The schema column signatures length: {} is not equal to the table column signatures "
+                    "length: {} for master schema entry row type: {} with root page number: {} name: {} "
+                    "table name: {} and sql: {}."
+                )
+                log_message = log_message.format(
+                    schema_column_signatures_length,
+                    table_column_signatures_length,
+                    master_schema_entry.row_type,
+                    master_schema_entry.root_page_number,
+                    master_schema_entry.name,
+                    master_schema_entry.table_name,
+                    master_schema_entry.sql,
+                )
                 logger.error(log_message)
                 raise SignatureError(log_message)
 
-        self.number_of_columns = max(schema_column_signatures_length, table_column_signatures_length)
+        self.number_of_columns = max(
+            schema_column_signatures_length, table_column_signatures_length
+        )
 
-    def stringify(self, padding="", print_table_row_signatures=True, print_schema_column_signatures=True,
-                  print_table_column_signatures=True, print_column_signatures=True):
-        string = "\n" \
-                 + padding + "Number of Columns: {}\n" \
-                 + padding + "Total Records: {}\n" \
-                 + padding + "Unique Records: {}\n" \
-                 + padding + "Altered Columns: {}\n" \
-                 + padding + "Column Breakdown: {}\n" \
-                 + padding + "Schema Column Signatures Length: {}\n" \
-                 + padding + "Table Row Signatures Length: {}\n" \
-                 + padding + "Table Column Signatures Length: {}\n" \
-                 + padding + "Recommended Schema Column Signature: {}\n" \
-                 + padding + "Complete Schema Column Signature: {}\n" \
-                 + padding + "Focused Signature: {}\n" \
-                 + padding + "Simplified Signature: {}\n" \
-                 + padding + "Focused Probability Signature: {}\n" \
-                 + padding + "Simplified Probability Signature: {}\n" \
-                 + padding + "Epilog Schema Signature: {}\n" \
-                 + padding + "Epilog Focused Signature: {}\n" \
-                 + padding + "Epilog Simplified Signature: {}"
-        string = string.format(self.number_of_columns,
-                               self.total_records,
-                               self.unique_records,
-                               self.altered_columns,
-                               self.column_breakdown,
-                               len(self.schema_column_signatures),
-                               len(self.table_row_signatures),
-                               len(self.table_column_signatures),
-                               self.recommended_schema_signature,
-                               self.complete_schema_signature,
-                               self.focused_signature,
-                               self.simplified_signature,
-                               self.focused_probabilistic_signature,
-                               self.simplified_probabilistic_signature,
-                               self.epilog_schema_signature,
-                               self.epilog_focused_signature,
-                               self.epilog_simplified_signature)
+    def stringify(
+        self,
+        padding="",
+        print_table_row_signatures=True,
+        print_schema_column_signatures=True,
+        print_table_column_signatures=True,
+        print_column_signatures=True,
+    ):
+        string = (
+            "\n"
+            + padding
+            + "Number of Columns: {}\n"
+            + padding
+            + "Total Records: {}\n"
+            + padding
+            + "Unique Records: {}\n"
+            + padding
+            + "Altered Columns: {}\n"
+            + padding
+            + "Column Breakdown: {}\n"
+            + padding
+            + "Schema Column Signatures Length: {}\n"
+            + padding
+            + "Table Row Signatures Length: {}\n"
+            + padding
+            + "Table Column Signatures Length: {}\n"
+            + padding
+            + "Recommended Schema Column Signature: {}\n"
+            + padding
+            + "Complete Schema Column Signature: {}\n"
+            + padding
+            + "Focused Signature: {}\n"
+            + padding
+            + "Simplified Signature: {}\n"
+            + padding
+            + "Focused Probability Signature: {}\n"
+            + padding
+            + "Simplified Probability Signature: {}\n"
+            + padding
+            + "Epilog Schema Signature: {}\n"
+            + padding
+            + "Epilog Focused Signature: {}\n"
+            + padding
+            + "Epilog Simplified Signature: {}"
+        )
+        string = string.format(
+            self.number_of_columns,
+            self.total_records,
+            self.unique_records,
+            self.altered_columns,
+            self.column_breakdown,
+            len(self.schema_column_signatures),
+            len(self.table_row_signatures),
+            len(self.table_column_signatures),
+            self.recommended_schema_signature,
+            self.complete_schema_signature,
+            self.focused_signature,
+            self.simplified_signature,
+            self.focused_probabilistic_signature,
+            self.simplified_probabilistic_signature,
+            self.epilog_schema_signature,
+            self.epilog_focused_signature,
+            self.epilog_simplified_signature,
+        )
         if print_schema_column_signatures:
             for schema_column_signature in self.schema_column_signatures:
                 signature_string = "\n" + padding + "Schema Column Signature: {}"
-                signature_string = signature_string.format(schema_column_signature.stringify("\t"))
+                signature_string = signature_string.format(
+                    schema_column_signature.stringify("\t")
+                )
                 string += signature_string
         if print_table_row_signatures:
-            for table_row_md5_hex_digest, table_row_signature in self.table_row_signatures.items():
+            for (
+                table_row_md5_hex_digest,
+                table_row_signature,
+            ) in self.table_row_signatures.items():
                 signature_string = "\n" + padding + "Table Row Signature:\n{}"
-                signature_string = signature_string.format(table_row_signature.stringify("\t", print_column_signatures))
+                signature_string = signature_string.format(
+                    table_row_signature.stringify("\t", print_column_signatures)
+                )
                 string += signature_string
         if print_table_column_signatures:
             for table_column_signature in self.table_column_signatures:
                 signature_string = "\n" + padding + "Table Column Signature: {}"
-                signature_string = signature_string.format(table_column_signature.stringify("\t",
-                                                                                            print_column_signatures))
+                signature_string = signature_string.format(
+                    table_column_signature.stringify("\t", print_column_signatures)
+                )
                 string += signature_string
-        return super(Signature, self).stringify(padding) + string
+        return super().stringify(padding) + string
 
     @property
     def epilog_focused_signature(self):
@@ -607,7 +757,9 @@ class Signature(VersionParser):
             """
 
             # Copy the recommended signature from this particular schema column signature as a base
-            epilog_column_signature = copy(schema_column_signature.recommended_signature)
+            epilog_column_signature = copy(
+                schema_column_signature.recommended_signature
+            )
 
             # Append a null value as epilog does if it is not in the column signature already
             if 0 not in epilog_column_signature:
@@ -625,7 +777,9 @@ class Signature(VersionParser):
         for column_signature in self.simplified_signature:
 
             # Copy over the like serial types between this column signature and the epilog column signature
-            epilog_column_signature = [x for x in column_signature if x in [-2, -1, 0, 7]]
+            epilog_column_signature = [
+                x for x in column_signature if x in [-2, -1, 0, 7]
+            ]
 
             """
 
@@ -654,7 +808,9 @@ class Signature(VersionParser):
     def focused_probabilistic_signature(self):
         focused_signatures = []
         for table_column_signature in self.table_column_signatures:
-            focused_signatures.append(table_column_signature.focused_probabilistic_signature)
+            focused_signatures.append(
+                table_column_signature.focused_probabilistic_signature
+            )
         return focused_signatures
 
     @property
@@ -675,7 +831,9 @@ class Signature(VersionParser):
     def simplified_probabilistic_signature(self):
         simplified_signatures = []
         for table_column_signature in self.table_column_signatures:
-            simplified_signatures.append(table_column_signature.simplified_probabilistic_signature)
+            simplified_signatures.append(
+                table_column_signature.simplified_probabilistic_signature
+            )
         return simplified_signatures
 
     @property
@@ -686,8 +844,7 @@ class Signature(VersionParser):
         return simplified_signatures
 
 
-class SchemaColumnSignature(object):
-
+class SchemaColumnSignature:
     """
 
     SchemaColumnSignature
@@ -771,8 +928,13 @@ class SchemaColumnSignature(object):
         if self.type_affinity == TYPE_AFFINITY.INTEGER:
 
             self.recommended_storage_class = STORAGE_CLASS.INTEGER
-            self.possible_storage_classes = [STORAGE_CLASS.INTEGER, STORAGE_CLASS.REAL, STORAGE_CLASS.TEXT,
-                                             STORAGE_CLASS.BLOB, STORAGE_CLASS.NULL]
+            self.possible_storage_classes = [
+                STORAGE_CLASS.INTEGER,
+                STORAGE_CLASS.REAL,
+                STORAGE_CLASS.TEXT,
+                STORAGE_CLASS.BLOB,
+                STORAGE_CLASS.NULL,
+            ]
 
             self.recommended_signature = [1, 2, 3, 4, 5, 6, 8, 9]
             self.complete_signature = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -780,8 +942,12 @@ class SchemaColumnSignature(object):
         elif self.type_affinity == TYPE_AFFINITY.REAL:
 
             self.recommended_storage_class = STORAGE_CLASS.REAL
-            self.possible_storage_classes = [STORAGE_CLASS.REAL, STORAGE_CLASS.TEXT,
-                                             STORAGE_CLASS.BLOB, STORAGE_CLASS.NULL]
+            self.possible_storage_classes = [
+                STORAGE_CLASS.REAL,
+                STORAGE_CLASS.TEXT,
+                STORAGE_CLASS.BLOB,
+                STORAGE_CLASS.NULL,
+            ]
 
             self.recommended_signature = [1, 2, 3, 4, 5, 6, 7, 8, 9]
             self.complete_signature = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -789,7 +955,11 @@ class SchemaColumnSignature(object):
         elif self.type_affinity == TYPE_AFFINITY.TEXT:
 
             self.recommended_storage_class = TYPE_AFFINITY.TEXT
-            self.possible_storage_classes = [STORAGE_CLASS.TEXT, STORAGE_CLASS.BLOB, STORAGE_CLASS.NULL]
+            self.possible_storage_classes = [
+                STORAGE_CLASS.TEXT,
+                STORAGE_CLASS.BLOB,
+                STORAGE_CLASS.NULL,
+            ]
 
             self.recommended_signature = [-2]
             self.complete_signature = [-2, -1, 0]
@@ -797,8 +967,13 @@ class SchemaColumnSignature(object):
         elif self.type_affinity == TYPE_AFFINITY.BLOB:
 
             self.recommended_storage_class = TYPE_AFFINITY.BLOB
-            self.possible_storage_classes = [STORAGE_CLASS.INTEGER, STORAGE_CLASS.REAL, STORAGE_CLASS.TEXT,
-                                             STORAGE_CLASS.BLOB, STORAGE_CLASS.NULL]
+            self.possible_storage_classes = [
+                STORAGE_CLASS.INTEGER,
+                STORAGE_CLASS.REAL,
+                STORAGE_CLASS.TEXT,
+                STORAGE_CLASS.BLOB,
+                STORAGE_CLASS.NULL,
+            ]
 
             self.recommended_signature = [-1]
             self.complete_signature = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -806,15 +981,20 @@ class SchemaColumnSignature(object):
         elif self.type_affinity == TYPE_AFFINITY.NUMERIC:
 
             self.recommended_storage_class = TYPE_AFFINITY.NUMERIC
-            self.possible_storage_classes = [STORAGE_CLASS.INTEGER, STORAGE_CLASS.REAL, STORAGE_CLASS.TEXT,
-                                             STORAGE_CLASS.BLOB, STORAGE_CLASS.NULL]
+            self.possible_storage_classes = [
+                STORAGE_CLASS.INTEGER,
+                STORAGE_CLASS.REAL,
+                STORAGE_CLASS.TEXT,
+                STORAGE_CLASS.BLOB,
+                STORAGE_CLASS.NULL,
+            ]
 
             self.recommended_signature = [1, 2, 3, 4, 5, 6, 7, 8, 9]
             self.complete_signature = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
         else:
 
-            log_message = "Invalid type affinity found: {}.".format(self.type_affinity)
+            log_message = f"Invalid type affinity found: {self.type_affinity}."
             getLogger(LOGGER_NAME).error(log_message)
             raise SignatureError(log_message)
 
@@ -822,28 +1002,38 @@ class SchemaColumnSignature(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Derived Data Type Name: {}\n" \
-                 + padding + "Data Type: {}\n" \
-                 + padding + "Type Affinity: {}\n" \
-                 + padding + "Recommended Storage Class: {}\n" \
-                 + padding + "Possible Storage Classes: {}\n" \
-                 + padding + "Recommended Signature: {}\n" \
-                 + padding + "Complete Signature: {}"
-        string = string.format(self.derived_data_type_name,
-                               self.data_type,
-                               self.type_affinity,
-                               self.recommended_storage_class,
-                               self.possible_storage_classes,
-                               self.recommended_signature,
-                               self.complete_signature)
+        string = (
+            padding
+            + "Derived Data Type Name: {}\n"
+            + padding
+            + "Data Type: {}\n"
+            + padding
+            + "Type Affinity: {}\n"
+            + padding
+            + "Recommended Storage Class: {}\n"
+            + padding
+            + "Possible Storage Classes: {}\n"
+            + padding
+            + "Recommended Signature: {}\n"
+            + padding
+            + "Complete Signature: {}"
+        )
+        string = string.format(
+            self.derived_data_type_name,
+            self.data_type,
+            self.type_affinity,
+            self.recommended_storage_class,
+            self.possible_storage_classes,
+            self.recommended_signature,
+            self.complete_signature,
+        )
         return string
 
 
-class TableColumnSignature(object):
-
+class TableColumnSignature:
     def __init__(self, index, name, column_signatures):
 
         self._logger = getLogger(LOGGER_NAME)
@@ -856,16 +1046,24 @@ class TableColumnSignature(object):
         for column_signature in column_signatures:
 
             if column_signature.index != self.index:
-                log_message = "Invalid column signature index: {} found for table column signature with index: {} " \
-                              "and name: {}."
-                log_message = log_message.format(column_signature.index, self.index, self.name)
+                log_message = (
+                    "Invalid column signature index: {} found for table column signature with index: {} "
+                    "and name: {}."
+                )
+                log_message = log_message.format(
+                    column_signature.index, self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise SignatureError(log_message)
 
             if column_signature.name != self.name:
-                log_message = "Invalid column signature name: {} found for table column signature with name: {} " \
-                              "and name: {}."
-                log_message = log_message.format(column_signature.name, self.index, self.name)
+                log_message = (
+                    "Invalid column signature name: {} found for table column signature with name: {} "
+                    "and name: {}."
+                )
+                log_message = log_message.format(
+                    column_signature.name, self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise SignatureError(log_message)
 
@@ -874,41 +1072,67 @@ class TableColumnSignature(object):
             if column_signature.serial_type in self.column_signatures:
 
                 if isinstance(column_signature, ColumnFixedLengthSignature):
-                    updated_column_signature = self.column_signatures[column_signature.serial_type]
-                    updated_column_signature.update(column_signature.serial_type, column_signature.count)
+                    updated_column_signature = self.column_signatures[
+                        column_signature.serial_type
+                    ]
+                    updated_column_signature.update(
+                        column_signature.serial_type, column_signature.count
+                    )
 
                 elif isinstance(column_signature, ColumnVariableLengthSignature):
-                    updated_column_signature = self.column_signatures[column_signature.serial_type]
-                    updated_column_signature.update(column_signature.serial_type, column_signature.count,
-                                                    column_signature.variable_length_serial_types)
+                    updated_column_signature = self.column_signatures[
+                        column_signature.serial_type
+                    ]
+                    updated_column_signature.update(
+                        column_signature.serial_type,
+                        column_signature.count,
+                        column_signature.variable_length_serial_types,
+                    )
 
                 else:
-                    log_message = "Invalid column signature type: {} found for table column signature with index: {} " \
-                                  "and name: {}."
-                    log_message = log_message.format(type(column_signature), self.index, self.name)
+                    log_message = (
+                        "Invalid column signature type: {} found for table column signature with index: {} "
+                        "and name: {}."
+                    )
+                    log_message = log_message.format(
+                        type(column_signature), self.index, self.name
+                    )
                     self._logger.error(log_message)
                     raise SignatureError(log_message)
 
             else:
 
                 if isinstance(column_signature, ColumnFixedLengthSignature):
-                    new_column_signature = ColumnFixedLengthSignature(index, column_signature.name,
-                                                                      column_signature.serial_type,
-                                                                      column_signature.count)
-                    self.column_signatures[column_signature.serial_type] = new_column_signature
+                    new_column_signature = ColumnFixedLengthSignature(
+                        index,
+                        column_signature.name,
+                        column_signature.serial_type,
+                        column_signature.count,
+                    )
+                    self.column_signatures[column_signature.serial_type] = (
+                        new_column_signature
+                    )
 
                 elif isinstance(column_signature, ColumnVariableLengthSignature):
-                    new_column_signature = ColumnReducedVariableLengthSignature(index, column_signature.name,
-                                                                                column_signature.serial_type,
-                                                                                column_signature.count,
-                                                                                column_signature.
-                                                                                variable_length_serial_types)
-                    self.column_signatures[column_signature.serial_type] = new_column_signature
+                    new_column_signature = ColumnReducedVariableLengthSignature(
+                        index,
+                        column_signature.name,
+                        column_signature.serial_type,
+                        column_signature.count,
+                        column_signature.variable_length_serial_types,
+                    )
+                    self.column_signatures[column_signature.serial_type] = (
+                        new_column_signature
+                    )
 
                 else:
-                    log_message = "Invalid column signature type: {} found for table column signature with index: {} " \
-                                  "and name: {}."
-                    log_message = log_message.format(type(column_signature), self.index, self.name)
+                    log_message = (
+                        "Invalid column signature type: {} found for table column signature with index: {} "
+                        "and name: {}."
+                    )
+                    log_message = log_message.format(
+                        type(column_signature), self.index, self.name
+                    )
                     self._logger.error(log_message)
                     raise SignatureError(log_message)
 
@@ -919,24 +1143,43 @@ class TableColumnSignature(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_column_signatures=True):
-        string = padding + "Index: {}\n" \
-                 + padding + "Name: {}\n" \
-                 + padding + "Count: {}\n" \
-                 + padding + "Focused Signature: {}\n" \
-                 + padding + "Simple Signature: {}\n" \
-                 + padding + "Column Signature Length: {}"
-        string = string.format(self.index,
-                               self.name,
-                               self.count,
-                               self.focused_signature,
-                               self.simplified_signature,
-                               len(self.column_signatures))
+        string = (
+            padding
+            + "Index: {}\n"
+            + padding
+            + "Name: {}\n"
+            + padding
+            + "Count: {}\n"
+            + padding
+            + "Focused Signature: {}\n"
+            + padding
+            + "Simple Signature: {}\n"
+            + padding
+            + "Column Signature Length: {}"
+        )
+        string = string.format(
+            self.index,
+            self.name,
+            self.count,
+            self.focused_signature,
+            self.simplified_signature,
+            len(self.column_signatures),
+        )
         if print_column_signatures:
-            for column_signature_index, column_signature in self.column_signatures.items():
-                string += "\n" + padding + "Column Signature:\n{}".format(column_signature.stringify(padding + "\t"))
+            for (
+                column_signature_index,
+                column_signature,
+            ) in self.column_signatures.items():
+                string += (
+                    "\n"
+                    + padding
+                    + "Column Signature:\n{}".format(
+                        column_signature.stringify(padding + "\t")
+                    )
+                )
         return string
 
     @property
@@ -945,14 +1188,24 @@ class TableColumnSignature(object):
         for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
                 for serial_type in column_signature.variable_length_serial_types:
-                    serial_type_probability = column_signature.get_variable_length_serial_type_probability(serial_type)
+                    serial_type_probability = (
+                        column_signature.get_variable_length_serial_type_probability(
+                            serial_type
+                        )
+                    )
                     focused_signatures.append((serial_type, serial_type_probability))
             elif isinstance(column_signature, ColumnFixedLengthSignature):
-                focused_signatures.append((column_signature.serial_type, column_signature.probability))
+                focused_signatures.append(
+                    (column_signature.serial_type, column_signature.probability)
+                )
             else:
-                log_message = "Invalid column signature type: {} found for table column signature with index: {} " \
-                              "and name: {}."
-                log_message = log_message.format(type(column_signature), self.index, self.name)
+                log_message = (
+                    "Invalid column signature type: {} found for table column signature with index: {} "
+                    "and name: {}."
+                )
+                log_message = log_message.format(
+                    type(column_signature), self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
         return sorted(focused_signatures, key=lambda x: x[0])
@@ -962,13 +1215,19 @@ class TableColumnSignature(object):
         focused_signatures = []
         for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
-                focused_signatures.extend(column_signature.variable_length_serial_types.keys())
+                focused_signatures.extend(
+                    column_signature.variable_length_serial_types.keys()
+                )
             elif isinstance(column_signature, ColumnFixedLengthSignature):
                 focused_signatures.append(column_signature.serial_type)
             else:
-                log_message = "Invalid column signature type: {} found for table column signature with index: {} " \
-                              "and name: {}."
-                log_message = log_message.format(type(column_signature), self.index, self.name)
+                log_message = (
+                    "Invalid column signature type: {} found for table column signature with index: {} "
+                    "and name: {}."
+                )
+                log_message = log_message.format(
+                    type(column_signature), self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
         return sorted(focused_signatures, key=int)
@@ -977,7 +1236,9 @@ class TableColumnSignature(object):
     def simplified_probabilistic_signature(self):
         simplified_signatures = []
         for column_signature_index, column_signature in self.column_signatures.items():
-            simplified_signatures.append((column_signature.serial_type, column_signature.probability))
+            simplified_signatures.append(
+                (column_signature.serial_type, column_signature.probability)
+            )
         return sorted(simplified_signatures, key=lambda x: x[0])
 
     @property
@@ -988,8 +1249,7 @@ class TableColumnSignature(object):
         return sorted(simplified_signatures, key=int)
 
 
-class TableRowSignature(object):
-
+class TableRowSignature:
     """
 
     TableRowSignature
@@ -1010,7 +1270,6 @@ class TableRowSignature(object):
     """
 
     def __init__(self, column_definitions, record):
-
         """
 
         Constructor.
@@ -1055,19 +1314,29 @@ class TableRowSignature(object):
 
             # Check if the column definitions is less than the number of record columns
             if len(column_definitions) < len(record_columns):
-                log_message = "The length of column definitions: {} is less than the record column length: {} " \
-                              "for table row signature with record serial type signature: {}."
-                log_message = log_message.format(len(column_definitions), len(record_columns),
-                                                 self.record_serial_type_signature)
+                log_message = (
+                    "The length of column definitions: {} is less than the record column length: {} "
+                    "for table row signature with record serial type signature: {}."
+                )
+                log_message = log_message.format(
+                    len(column_definitions),
+                    len(record_columns),
+                    self.record_serial_type_signature,
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
 
             # The number of column definitions is greater than the number of record columns
             else:
-                log_message = "The length of column definitions: {} is greater than the record column length: {} " \
-                              "for table row signature with record serial type signature: {}."
-                log_message = log_message.format(len(column_definitions), len(record_columns),
-                                                 self.record_serial_type_signature)
+                log_message = (
+                    "The length of column definitions: {} is greater than the record column length: {} "
+                    "for table row signature with record serial type signature: {}."
+                )
+                log_message = log_message.format(
+                    len(column_definitions),
+                    len(record_columns),
+                    self.record_serial_type_signature,
+                )
                 self._logger.debug(log_message)
 
         """
@@ -1087,12 +1356,18 @@ class TableRowSignature(object):
             serial_type = record_columns[index].serial_type
 
             if 0 <= serial_type <= 9:
-                self.column_signatures[index] = ColumnFixedLengthSignature(index, column_name, serial_type)
+                self.column_signatures[index] = ColumnFixedLengthSignature(
+                    index, column_name, serial_type
+                )
             elif serial_type >= 12:
-                self.column_signatures[index] = ColumnNonReducedVariableLengthSignature(index, column_name, serial_type)
+                self.column_signatures[index] = ColumnNonReducedVariableLengthSignature(
+                    index, column_name, serial_type
+                )
             else:
                 log_message = "Invalid serial type: {} for table row signature with record serial type signature: {}."
-                log_message = log_message.format(serial_type, self.record_serial_type_signature)
+                log_message = log_message.format(
+                    serial_type, self.record_serial_type_signature
+                )
                 self._logger.error(log_message)
                 raise SignatureError(log_message)
 
@@ -1100,26 +1375,46 @@ class TableRowSignature(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_column_signatures=True):
-        string = padding + "Record Serial Type Signature: {}\n" \
-                 + padding + "Count: {}\n" \
-                 + padding + "Number of Rows: {}\n" \
-                 + padding + "Probability: {}\n" \
-                 + padding + "Focused Signature: {}\n" \
-                 + padding + "Simple Signature: {}\n" \
-                 + padding + "Column Signature Length: {}"
-        string = string.format(self.record_serial_type_signature,
-                               self.count,
-                               self.number_of_rows,
-                               self.probability,
-                               self.focused_signature,
-                               self.simplified_signature,
-                               len(self.column_signatures))
+        string = (
+            padding
+            + "Record Serial Type Signature: {}\n"
+            + padding
+            + "Count: {}\n"
+            + padding
+            + "Number of Rows: {}\n"
+            + padding
+            + "Probability: {}\n"
+            + padding
+            + "Focused Signature: {}\n"
+            + padding
+            + "Simple Signature: {}\n"
+            + padding
+            + "Column Signature Length: {}"
+        )
+        string = string.format(
+            self.record_serial_type_signature,
+            self.count,
+            self.number_of_rows,
+            self.probability,
+            self.focused_signature,
+            self.simplified_signature,
+            len(self.column_signatures),
+        )
         if print_column_signatures:
-            for column_signature_index, column_signature in self.column_signatures.items():
-                string += "\n" + padding + "Column Signature:\n{}".format(column_signature.stringify(padding + "\t"))
+            for (
+                column_signature_index,
+                column_signature,
+            ) in self.column_signatures.items():
+                string += (
+                    "\n"
+                    + padding
+                    + "Column Signature:\n{}".format(
+                        column_signature.stringify(padding + "\t")
+                    )
+                )
         return string
 
     @property
@@ -1127,20 +1422,27 @@ class TableRowSignature(object):
         focused_signatures = []
         for column_signature_index, column_signature in self.column_signatures.items():
             if isinstance(column_signature, ColumnVariableLengthSignature):
-                focused_signatures.append(sorted(column_signature.variable_length_serial_types.keys(), key=int))
+                focused_signatures.append(
+                    sorted(
+                        column_signature.variable_length_serial_types.keys(), key=int
+                    )
+                )
             elif isinstance(column_signature, ColumnFixedLengthSignature):
                 focused_signatures.append([column_signature.serial_type])
             else:
-                log_message = "Invalid column signature type: {} found for table row signature with record serial " \
-                              "type signature: {}."
-                log_message = log_message.format(type(column_signature), self.record_serial_type_signature)
+                log_message = (
+                    "Invalid column signature type: {} found for table row signature with record serial "
+                    "type signature: {}."
+                )
+                log_message = log_message.format(
+                    type(column_signature), self.record_serial_type_signature
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
         return focused_signatures
 
     @property
     def number_of_rows(self):
-
         """
 
 
@@ -1158,7 +1460,9 @@ class TableRowSignature(object):
 
         if number_of_rows <= 0 or number_of_rows < self.count:
             log_message = "Invalid number of rows: {} for table row signature with record serial type signature: {}."
-            log_message = log_message.format(number_of_rows, self.record_serial_type_signature)
+            log_message = log_message.format(
+                number_of_rows, self.record_serial_type_signature
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
@@ -1169,7 +1473,6 @@ class TableRowSignature(object):
 
     @property
     def probability(self):
-
         """
 
 
@@ -1199,10 +1502,15 @@ class TableRowSignature(object):
 
         # Check the length of each (we assume the order in relative to each other is the same)
         if len(self.column_signatures) != len(record_columns):
-            log_message = "The length of column signatures: {} does not match record column length from record: {} " \
-                          "for table row signature with record serial type signature: {}."
-            log_message = log_message.format(len(self.column_signatures), len(record_columns),
-                                             self.record_serial_type_signature)
+            log_message = (
+                "The length of column signatures: {} does not match record column length from record: {} "
+                "for table row signature with record serial type signature: {}."
+            )
+            log_message = log_message.format(
+                len(self.column_signatures),
+                len(record_columns),
+                self.record_serial_type_signature,
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
@@ -1214,10 +1522,15 @@ class TableRowSignature(object):
             if isinstance(column_signature, ColumnFixedLengthSignature):
 
                 if column_signature.serial_type != serial_type:
-                    log_message = "Column signature serial type: {} does not match record serial type: {} " \
-                                  "for table row signature with record serial type signature: {}."
-                    log_message = log_message.format(column_signature.serial_type, serial_type,
-                                                     self.record_serial_type_signature)
+                    log_message = (
+                        "Column signature serial type: {} does not match record serial type: {} "
+                        "for table row signature with record serial type signature: {}."
+                    )
+                    log_message = log_message.format(
+                        column_signature.serial_type,
+                        serial_type,
+                        self.record_serial_type_signature,
+                    )
                     self._logger.error(log_message)
                     raise SignatureError(log_message)
 
@@ -1227,28 +1540,42 @@ class TableRowSignature(object):
 
                 if serial_type >= 12 and serial_type % 2 == 0:
                     if column_signature.serial_type != -1:
-                        log_message = "Column signature serial type: {} does not equate to record column variable " \
-                                      "length serial type: {} for table row signature with record serial " \
-                                      "type signature: {}."
-                        log_message = log_message.format(column_signature.serial_type, serial_type,
-                                                         self.record_serial_type_signature)
+                        log_message = (
+                            "Column signature serial type: {} does not equate to record column variable "
+                            "length serial type: {} for table row signature with record serial "
+                            "type signature: {}."
+                        )
+                        log_message = log_message.format(
+                            column_signature.serial_type,
+                            serial_type,
+                            self.record_serial_type_signature,
+                        )
                         self._logger.error(log_message)
                         raise SignatureError(log_message)
 
                 elif serial_type >= 13 and serial_type % 2 == 1:
                     if column_signature.serial_type != -2:
-                        log_message = "Column signature serial type: {} does not equate to record column variable " \
-                                      "length serial type: {} for table row signature with record serial " \
-                                      "type signature: {}."
-                        log_message = log_message.format(column_signature.serial_type, serial_type,
-                                                         self.record_serial_type_signature)
+                        log_message = (
+                            "Column signature serial type: {} does not equate to record column variable "
+                            "length serial type: {} for table row signature with record serial "
+                            "type signature: {}."
+                        )
+                        log_message = log_message.format(
+                            column_signature.serial_type,
+                            serial_type,
+                            self.record_serial_type_signature,
+                        )
                         self._logger.error(log_message)
                         raise SignatureError(log_message)
 
                 else:
-                    log_message = "Invalid serial type: {} for column variable length signature " \
-                                  "for table row signature with record serial type signature: {}."
-                    log_message = log_message.format(serial_type, self.record_serial_type_signature)
+                    log_message = (
+                        "Invalid serial type: {} for column variable length signature "
+                        "for table row signature with record serial type signature: {}."
+                    )
+                    log_message = log_message.format(
+                        serial_type, self.record_serial_type_signature
+                    )
                     self._logger.error(log_message)
                     raise SignatureError(log_message)
 
@@ -1256,19 +1583,22 @@ class TableRowSignature(object):
 
             else:
 
-                log_message = "Invalid column signature type: {} found for table row signature with record serial " \
-                              "type signature: {}."
-                log_message = log_message.format(type(column_signature), self.record_serial_type_signature)
+                log_message = (
+                    "Invalid column signature type: {} found for table row signature with record serial "
+                    "type signature: {}."
+                )
+                log_message = log_message.format(
+                    type(column_signature), self.record_serial_type_signature
+                )
                 self._logger.error(log_message)
                 raise SignatureError(log_message)
 
 
-class ColumnSignature(object):
+class ColumnSignature:
 
     __metaclass__ = ABCMeta
 
     def __init__(self, index, name, serial_type, count=1):
-
         """
 
         Constructor.
@@ -1313,25 +1643,34 @@ class ColumnSignature(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Index: {}\n" \
-                 + padding + "Name: {}\n" \
-                 + padding + "Serial Type: {}\n" \
-                 + padding + "Count: {}\n" \
-                 + padding + "Number of Rows: {}\n" \
-                 + padding + "Probability: {}"
-        return string.format(self.index,
-                             self.name,
-                             self.serial_type,
-                             self.count,
-                             self.number_of_rows,
-                             self.probability)
+        string = (
+            padding
+            + "Index: {}\n"
+            + padding
+            + "Name: {}\n"
+            + padding
+            + "Serial Type: {}\n"
+            + padding
+            + "Count: {}\n"
+            + padding
+            + "Number of Rows: {}\n"
+            + padding
+            + "Probability: {}"
+        )
+        return string.format(
+            self.index,
+            self.name,
+            self.serial_type,
+            self.count,
+            self.number_of_rows,
+            self.probability,
+        )
 
     @property
     def number_of_rows(self):
-
         """
 
 
@@ -1347,7 +1686,9 @@ class ColumnSignature(object):
     @number_of_rows.setter
     def number_of_rows(self, number_of_rows):
         if number_of_rows <= 0 or number_of_rows < self.count:
-            log_message = "Invalid number of rows: {} for column signature index: {} and name: {}"
+            log_message = (
+                "Invalid number of rows: {} for column signature index: {} and name: {}"
+            )
             log_message = log_message.format(number_of_rows, self.index, self.name)
             self._logger.error(log_message)
             raise ValueError(log_message)
@@ -1355,7 +1696,6 @@ class ColumnSignature(object):
 
     @property
     def probability(self):
-
         """
 
 
@@ -1372,14 +1712,15 @@ class ColumnSignature(object):
 
     @abstractmethod
     def update(self, serial_type, count=None, variable_length_serial_types=None):
-        raise NotImplementedError("The abstract method update was called directly and is not implemented.")
+        raise NotImplementedError(
+            "The abstract method update was called directly and is not implemented."
+        )
 
 
 class ColumnFixedLengthSignature(ColumnSignature):
-
     def __init__(self, index, name, serial_type, count=1):
 
-        super(ColumnFixedLengthSignature, self).__init__(index, name, serial_type, count)
+        super().__init__(index, name, serial_type, count)
 
         if serial_type not in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]:
             log_message = "Invalid serial type for column fixed-length signature index: {} and name: {}"
@@ -1392,21 +1733,29 @@ class ColumnFixedLengthSignature(ColumnSignature):
     def stringify(self, padding=""):
         string = "\n" + padding + "Content Size: {}"
         string = string.format(self.content_size)
-        return super(ColumnFixedLengthSignature, self).stringify(padding) + string
+        return super().stringify(padding) + string
 
     def update(self, serial_type, count=1, variable_length_serial_types=None):
 
         if serial_type != self.serial_type:
-            log_message = "Specified serial type: {} does not match column fixed-length signature serial type: {} " \
-                          "index: {} and name: {}"
-            log_message = log_message.format(serial_type, self.serial_type, self.index, self.name)
+            log_message = (
+                "Specified serial type: {} does not match column fixed-length signature serial type: {} "
+                "index: {} and name: {}"
+            )
+            log_message = log_message.format(
+                serial_type, self.serial_type, self.index, self.name
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if variable_length_serial_types:
-            log_message = "Variable length serial types: {} specified for column fixed-length signature " \
-                          "index: {} and name: {}"
-            log_message = log_message.format(variable_length_serial_types, self.index, self.name)
+            log_message = (
+                "Variable length serial types: {} specified for column fixed-length signature "
+                "index: {} and name: {}"
+            )
+            log_message = log_message.format(
+                variable_length_serial_types, self.index, self.name
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
@@ -1419,7 +1768,7 @@ class ColumnVariableLengthSignature(ColumnSignature):
 
     def __init__(self, index, name, serial_type, count=1):
 
-        super(ColumnVariableLengthSignature, self).__init__(index, name, serial_type, count)
+        super().__init__(index, name, serial_type, count)
 
         """
 
@@ -1433,10 +1782,9 @@ class ColumnVariableLengthSignature(ColumnSignature):
     def stringify(self, padding=""):
         string = "\n" + padding + "Variable Length Serial Types: {}"
         string = string.format(self.variable_length_serial_types)
-        return super(ColumnVariableLengthSignature, self).stringify(padding) + string
+        return super().stringify(padding) + string
 
     def get_variable_length_serial_type_probability(self, variable_length_serial_type):
-
         """
 
 
@@ -1450,12 +1798,14 @@ class ColumnVariableLengthSignature(ColumnSignature):
         """
 
         if self._number_of_rows:
-            return float(self.variable_length_serial_types[variable_length_serial_type]) / self._number_of_rows
+            return (
+                float(self.variable_length_serial_types[variable_length_serial_type])
+                / self._number_of_rows
+            )
         return None
 
 
 class ColumnReducedVariableLengthSignature(ColumnVariableLengthSignature):
-
     """
 
     ColumnReducedVariableLengthSignature
@@ -1476,57 +1826,79 @@ class ColumnReducedVariableLengthSignature(ColumnVariableLengthSignature):
             raise ValueError(log_message)
 
         if not count:
-            log_message = "Count not specified for column reduced variable length signature index: {} and name: {} " \
-                          "for serial type: {} and variable length serial types: {}."
-            log_message = log_message.format(index, name, serial_type, variable_length_serial_types)
+            log_message = (
+                "Count not specified for column reduced variable length signature index: {} and name: {} "
+                "for serial type: {} and variable length serial types: {}."
+            )
+            log_message = log_message.format(
+                index, name, serial_type, variable_length_serial_types
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if not variable_length_serial_types:
-            log_message = "Variable length serial types not specified for column reduced variable length signature " \
-                          "index: {} and name: {} for serial type: {} and count: {}."
+            log_message = (
+                "Variable length serial types not specified for column reduced variable length signature "
+                "index: {} and name: {} for serial type: {} and count: {}."
+            )
             log_message = log_message.format(index, name, serial_type, count)
             self._logger.error(log_message)
             raise ValueError(log_message)
 
-        super(ColumnReducedVariableLengthSignature, self).__init__(index, name, serial_type, count)
+        super().__init__(index, name, serial_type, count)
 
         self.variable_length_serial_types = variable_length_serial_types
 
     def update(self, serial_type, count=None, variable_length_serial_types=None):
 
         if serial_type != self.serial_type:
-            log_message = "Specified serial type: {} does not match column reduced variable length signature serial " \
-                          "type: {} index: {} and name: {}"
-            log_message = log_message.format(serial_type, self.serial_type, self.index, self.name)
+            log_message = (
+                "Specified serial type: {} does not match column reduced variable length signature serial "
+                "type: {} index: {} and name: {}"
+            )
+            log_message = log_message.format(
+                serial_type, self.serial_type, self.index, self.name
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if not count:
-            log_message = "Count not specified for column reduced variable length signature index: {} and name: {} " \
-                          "for serial type: {} and variable length serial types: {}."
-            log_message = log_message.format(self.index, self.name, serial_type, variable_length_serial_types)
+            log_message = (
+                "Count not specified for column reduced variable length signature index: {} and name: {} "
+                "for serial type: {} and variable length serial types: {}."
+            )
+            log_message = log_message.format(
+                self.index, self.name, serial_type, variable_length_serial_types
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if not variable_length_serial_types:
-            log_message = "Variable length serial types not specified for column reduced variable length signature " \
-                          "index: {} and name: {} for serial type: {} and count: {}."
+            log_message = (
+                "Variable length serial types not specified for column reduced variable length signature "
+                "index: {} and name: {} for serial type: {} and count: {}."
+            )
             log_message = log_message.format(self.index, self.name, serial_type, count)
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         self.count += count
 
-        for variable_length_serial_type, variable_length_serial_type_count in variable_length_serial_types.items():
+        for (
+            variable_length_serial_type,
+            variable_length_serial_type_count,
+        ) in variable_length_serial_types.items():
             if variable_length_serial_type in self.variable_length_serial_types:
-                self.variable_length_serial_types[variable_length_serial_type] += variable_length_serial_type_count
+                self.variable_length_serial_types[
+                    variable_length_serial_type
+                ] += variable_length_serial_type_count
             else:
-                self.variable_length_serial_types[variable_length_serial_type] = variable_length_serial_type_count
+                self.variable_length_serial_types[variable_length_serial_type] = (
+                    variable_length_serial_type_count
+                )
 
 
 class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
-
     """
 
     ColumnNonReducedVariableLengthSignature
@@ -1541,13 +1913,15 @@ class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
     def __init__(self, index, name, serial_type):
 
         if serial_type < 12:
-            log_message = "Invalid serial type: {} for column non-reduced variable length signature index: {} " \
-                          "and name: {}"
+            log_message = (
+                "Invalid serial type: {} for column non-reduced variable length signature index: {} "
+                "and name: {}"
+            )
             log_message = log_message.format(serial_type, self.index, self.name)
             self._logger.error(log_message)
             raise ValueError(log_message)
 
-        super(ColumnNonReducedVariableLengthSignature, self).__init__(index, name, serial_type)
+        super().__init__(index, name, serial_type)
 
         self.variable_length_serial_types = {}
 
@@ -1562,8 +1936,10 @@ class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
             self.serial_type = -2
 
         else:
-            log_message = "Invalid serial type: {} for column non-reduced variable length signature index: {} and " \
-                          "name: {}"
+            log_message = (
+                "Invalid serial type: {} for column non-reduced variable length signature index: {} and "
+                "name: {}"
+            )
             log_message = log_message.format(serial_type, self.index, self.name)
             self._logger.error(log_message)
             raise ValueError(log_message)
@@ -1571,22 +1947,30 @@ class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
     def update(self, serial_type, count=None, variable_length_serial_types=None):
 
         if serial_type < 12:
-            log_message = "Invalid serial type: {} for column non-reduced variable length signature index: {} " \
-                          "and name: {}"
+            log_message = (
+                "Invalid serial type: {} for column non-reduced variable length signature index: {} "
+                "and name: {}"
+            )
             log_message = log_message.format(serial_type, self.index, self.name)
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if count:
-            log_message = "Count specified for column non-reduced variable length signature index: {} and name: {} " \
-                          "for serial type: {} and variable length serial types: {}."
-            log_message = log_message.format(self.index, self.name, serial_type, variable_length_serial_types)
+            log_message = (
+                "Count specified for column non-reduced variable length signature index: {} and name: {} "
+                "for serial type: {} and variable length serial types: {}."
+            )
+            log_message = log_message.format(
+                self.index, self.name, serial_type, variable_length_serial_types
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
         if variable_length_serial_types:
-            log_message = "Variable length serial types specified for column non-reduced variable length signature " \
-                          "index: {} and name: {} for serial type: {} and count: {}."
+            log_message = (
+                "Variable length serial types specified for column non-reduced variable length signature "
+                "index: {} and name: {} for serial type: {} and count: {}."
+            )
             log_message = log_message.format(self.index, self.name, serial_type, count)
             self._logger.error(log_message)
             raise ValueError(log_message)
@@ -1597,9 +1981,13 @@ class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
         if serial_type >= 12 and serial_type % 2 == 0:
 
             if self.serial_type != -1:
-                log_message = "Specified serial type: {} does not equate to column non-reduced variable length " \
-                              "signature serial type: {} index: {} and name: {}"
-                log_message = log_message.format(serial_type, self.serial_type, self.index, self.name)
+                log_message = (
+                    "Specified serial type: {} does not equate to column non-reduced variable length "
+                    "signature serial type: {} index: {} and name: {}"
+                )
+                log_message = log_message.format(
+                    serial_type, self.serial_type, self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
 
@@ -1607,16 +1995,22 @@ class ColumnNonReducedVariableLengthSignature(ColumnVariableLengthSignature):
         elif serial_type >= 13 and serial_type % 2 == 1:
 
             if self.serial_type != -2:
-                log_message = "Specified serial type: {} does not equate to column non-reduced variable length " \
-                              "signature serial type: {} index: {} and name: {}"
-                log_message = log_message.format(serial_type, self.serial_type, self.index, self.name)
+                log_message = (
+                    "Specified serial type: {} does not equate to column non-reduced variable length "
+                    "signature serial type: {} index: {} and name: {}"
+                )
+                log_message = log_message.format(
+                    serial_type, self.serial_type, self.index, self.name
+                )
                 self._logger.error(log_message)
                 raise ValueError(log_message)
 
         else:
 
-            log_message = "Invalid serial type: {} for column non-reduced variable length signature index: {} and " \
-                          "name: {}"
+            log_message = (
+                "Invalid serial type: {} for column non-reduced variable length signature index: {} and "
+                "name: {}"
+            )
             log_message = log_message.format(serial_type, self.index, self.name)
             self._logger.error(log_message)
             raise ValueError(log_message)

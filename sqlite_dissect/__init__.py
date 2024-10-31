@@ -1,7 +1,8 @@
 import logging
 import warnings
-from sqlite_dissect.constants import LOGGER_NAME
+
 from sqlite_dissect._version import __version__
+from sqlite_dissect.constants import LOGGER_NAME
 
 """
 
@@ -36,7 +37,6 @@ def null_logger():
 
         # Make our own if an error occurring while importing
         class NullHandler(logging.Handler):
-
             def emit(self, record):
                 pass
 

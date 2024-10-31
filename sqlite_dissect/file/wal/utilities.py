@@ -1,4 +1,5 @@
 from logging import getLogger
+
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.file.database.header import DatabaseHeader
 
@@ -26,7 +27,9 @@ def compare_database_headers(previous_database_header, database_header):
         raise ValueError(log_message)
 
     if not isinstance(database_header, DatabaseHeader):
-        log_message = "The database header is not a Database Header but has a type of: {}."
+        log_message = (
+            "The database header is not a Database Header but has a type of: {}."
+        )
         log_message = log_message.format(type(database_header))
         logger.error(log_message)
         raise ValueError(log_message)

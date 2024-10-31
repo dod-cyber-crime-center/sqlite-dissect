@@ -29,7 +29,7 @@ This script holds the following object(s):
 - VersionCsvExporter(object)
 - CommitCsvExporter(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -64,7 +64,7 @@ TODO:
     - [ ] _write_cells: Address the use of "NULL" vs None in SQLite for cells.
     - [ ] write_commit: Remove the master schema entry argument?
     - [ ] write_commit: Handle the b-tree table interior page better since it is only for journal files.
-  
+
 <br>
 
 ### sqlite_export.py
@@ -95,7 +95,7 @@ TODO:
 - [ ] Create a constant for "iso_" for internal schema object indexes?
 - [ ] Figure out naming conventions (or how to handle) the "Row ID" vs the integer primary key which is NULL.
 - [ ] Investigate how other applications handle different database text encodings in reference to output.
-- [ ] Consolidate documentation information so that it is not repeated. 
+- [ ] Consolidate documentation information so that it is not repeated.
     ##### CommitSqliteExporter Class:
     -[ ] _write_cells: Address the use of "NULL" vs None in SQLite for cells.
     -[ ] _write_cells: Address the use case above with the advent of tables with added columns.
@@ -115,7 +115,7 @@ This script holds the following object(s):
 - CommitConsoleExporter(object)
 - CommitTextExporter(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -131,7 +131,7 @@ TODO:
     ##### CommitTextExporter Class:
     -[ ] _write_cells: Address the use of "NULL" vs None in SQLite for cells.
     -[ ] write_header: Remove the master schema entry argument?
-  
+
 <br>
 
 ### xlsx_export.py

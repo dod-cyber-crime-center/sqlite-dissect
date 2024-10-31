@@ -1,12 +1,15 @@
 from abc import ABCMeta
 from binascii import hexlify
 from logging import getLogger
+
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.exception import RecordParsingError
-from sqlite_dissect.utilities import decode_varint
-from sqlite_dissect.utilities import get_md5_hash
-from sqlite_dissect.utilities import get_record_content
-from sqlite_dissect.utilities import get_serial_type_signature
+from sqlite_dissect.utilities import (
+    decode_varint,
+    get_md5_hash,
+    get_record_content,
+    get_serial_type_signature,
+)
 
 """
 
@@ -23,7 +26,7 @@ RecordColumn(object)
 """
 
 
-class Payload(object):
+class Payload:
 
     __metaclass__ = ABCMeta
 
@@ -53,48 +56,78 @@ class Payload(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_record_columns=True):
-        string = padding + "Start Offset: {}\n" \
-                 + padding + "End Offset: {}\n" \
-                 + padding + "Byte Size: {}\n" \
-                 + padding + "MD5 Hex Digest: {}\n" \
-                 + padding + "Header Byte Size: {}\n" \
-                 + padding + "Header Byte Size VARINT Length: {}\n" \
-                 + padding + "Header Start Offset: {}\n" \
-                 + padding + "Header End Offset: {}\n" \
-                 + padding + "Body Start Offset: {}\n" \
-                 + padding + "Body End Offset: {}\n" \
-                 + padding + "Has Overflow: {}\n" \
-                 + padding + "Bytes on First Page: {}\n" \
-                 + padding + "Overflow Byte Size: {}\n" \
-                 + padding + "Serial Type Signature: {}"
-        string = string.format(self.start_offset,
-                               self.end_offset,
-                               self.byte_size,
-                               self.md5_hex_digest,
-                               self.header_byte_size,
-                               self.header_byte_size_varint_length,
-                               self.header_start_offset,
-                               self.header_end_offset,
-                               self.body_start_offset,
-                               self.body_end_offset,
-                               self.has_overflow,
-                               self.bytes_on_first_page,
-                               self.overflow_byte_size,
-                               self.serial_type_signature)
+        string = (
+            padding
+            + "Start Offset: {}\n"
+            + padding
+            + "End Offset: {}\n"
+            + padding
+            + "Byte Size: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}\n"
+            + padding
+            + "Header Byte Size: {}\n"
+            + padding
+            + "Header Byte Size VARINT Length: {}\n"
+            + padding
+            + "Header Start Offset: {}\n"
+            + padding
+            + "Header End Offset: {}\n"
+            + padding
+            + "Body Start Offset: {}\n"
+            + padding
+            + "Body End Offset: {}\n"
+            + padding
+            + "Has Overflow: {}\n"
+            + padding
+            + "Bytes on First Page: {}\n"
+            + padding
+            + "Overflow Byte Size: {}\n"
+            + padding
+            + "Serial Type Signature: {}"
+        )
+        string = string.format(
+            self.start_offset,
+            self.end_offset,
+            self.byte_size,
+            self.md5_hex_digest,
+            self.header_byte_size,
+            self.header_byte_size_varint_length,
+            self.header_start_offset,
+            self.header_end_offset,
+            self.body_start_offset,
+            self.body_end_offset,
+            self.has_overflow,
+            self.bytes_on_first_page,
+            self.overflow_byte_size,
+            self.serial_type_signature,
+        )
         if print_record_columns:
             for record_column in self.record_columns:
-                string += "\n" + padding + "Record Column:\n{}".format(record_column.stringify(padding + "\t"))
+                string += (
+                    "\n"
+                    + padding
+                    + "Record Column:\n{}".format(
+                        record_column.stringify(padding + "\t")
+                    )
+                )
         return string
 
 
 class Record(Payload):
+    def __init__(
+        self,
+        page,
+        payload_offset,
+        payload_byte_size,
+        bytes_on_first_page=None,
+        overflow=bytearray(),
+    ):
 
-    def __init__(self, page, payload_offset, payload_byte_size, bytes_on_first_page=None, overflow=bytearray()):
-
-        super(Record, self).__init__()
+        super().__init__()
 
         logger = getLogger(LOGGER_NAME)
 
@@ -115,7 +148,9 @@ class Record(Payload):
             raise RecordParsingError(log_message)
 
         if bytes_on_first_page > payload_byte_size:
-            log_message = "Bytes on first page: {} greater than payload byte size: {} on page."
+            log_message = (
+                "Bytes on first page: {} greater than payload byte size: {} on page."
+            )
             log_message = log_message.format(bytes_on_first_page, payload_byte_size)
             logger.error(log_message)
             raise RecordParsingError(log_message)
@@ -134,19 +169,25 @@ class Record(Payload):
             logger.error(log_message)
             raise RecordParsingError(log_message)
 
-        self.header_byte_size, self.header_byte_size_varint_length = decode_varint(page, self.start_offset)
+        self.header_byte_size, self.header_byte_size_varint_length = decode_varint(
+            page, self.start_offset
+        )
         self.header_start_offset = int(self.start_offset)
         self.header_end_offset = int(self.start_offset + self.header_byte_size)
         self.body_start_offset = int(self.header_end_offset)
         self.body_end_offset = int(self.end_offset)
 
-        current_page_record_content = page[int(self.start_offset):int(self.end_offset)]
+        current_page_record_content = page[
+            int(self.start_offset) : int(self.end_offset)
+        ]
 
         total_record_content = current_page_record_content + overflow
 
         if len(total_record_content) != self.byte_size:
-            log_message = "The record content was found to be a different length of: {} than the specified byte " \
-                          "size: {} on page."
+            log_message = (
+                "The record content was found to be a different length of: {} than the specified byte "
+                "size: {} on page."
+            )
             log_message = log_message.format(len(total_record_content), self.byte_size)
             logger.error(log_message)
             raise RecordParsingError(log_message)
@@ -158,16 +199,22 @@ class Record(Payload):
         column_index = 0
         while current_header_offset < self.header_byte_size:
 
-            serial_type, serial_type_varint_length = decode_varint(total_record_content, current_header_offset)
+            serial_type, serial_type_varint_length = decode_varint(
+                total_record_content, current_header_offset
+            )
 
             self.serial_type_signature += str(get_serial_type_signature(serial_type))
 
-            record_column_md5_hash_string = total_record_content[current_header_offset:
-                                                                 current_header_offset + serial_type_varint_length]
+            record_column_md5_hash_string = total_record_content[
+                current_header_offset : current_header_offset
+                + serial_type_varint_length
+            ]
 
-            body_content = total_record_content[self.header_byte_size:self.byte_size]
+            body_content = total_record_content[self.header_byte_size : self.byte_size]
 
-            content_size, value = get_record_content(serial_type, body_content, current_body_offset)
+            content_size, value = get_record_content(
+                serial_type, body_content, current_body_offset
+            )
 
             """
 
@@ -175,12 +222,20 @@ class Record(Payload):
 
             """
 
-            record_column_md5_hash_string += body_content[current_body_offset:current_body_offset + content_size]
+            record_column_md5_hash_string += body_content[
+                current_body_offset : current_body_offset + content_size
+            ]
 
             record_column_md5_hex_digest = get_md5_hash(record_column_md5_hash_string)
 
-            record_column = RecordColumn(column_index, serial_type, serial_type_varint_length,
-                                         content_size, value, record_column_md5_hex_digest)
+            record_column = RecordColumn(
+                column_index,
+                serial_type,
+                serial_type_varint_length,
+                content_size,
+                value,
+                record_column_md5_hex_digest,
+            )
 
             self.record_columns.append(record_column)
 
@@ -189,9 +244,16 @@ class Record(Payload):
             column_index += 1
 
 
-class RecordColumn(object):
-
-    def __init__(self, index, serial_type, serial_type_varint_length, content_size, value, md5_hex_digest):
+class RecordColumn:
+    def __init__(
+        self,
+        index,
+        serial_type,
+        serial_type_varint_length,
+        content_size,
+        value,
+        md5_hex_digest,
+    ):
         self.index = index
         self.serial_type = serial_type
         self.serial_type_varint_length = serial_type_varint_length
@@ -203,18 +265,28 @@ class RecordColumn(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Index: {}\n" \
-                 + padding + "Serial Type: {}\n" \
-                 + padding + "Serial Type VARINT Length: {}\n" \
-                 + padding + "Content Size: {}\n" \
-                 + padding + "Value: {}\n" \
-                 + padding + "MD5 Hex Digest: {}"
-        return string.format(self.index,
-                             self.serial_type,
-                             self.serial_type_varint_length,
-                             self.content_size,
-                             self.value,
-                             self.md5_hex_digest)
+        string = (
+            padding
+            + "Index: {}\n"
+            + padding
+            + "Serial Type: {}\n"
+            + padding
+            + "Serial Type VARINT Length: {}\n"
+            + padding
+            + "Content Size: {}\n"
+            + padding
+            + "Value: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}"
+        )
+        return string.format(
+            self.index,
+            self.serial_type,
+            self.serial_type_varint_length,
+            self.content_size,
+            self.value,
+            self.md5_hex_digest,
+        )

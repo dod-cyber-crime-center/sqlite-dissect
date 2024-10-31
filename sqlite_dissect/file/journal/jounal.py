@@ -13,17 +13,18 @@ RollbackJournal(object)
 """
 
 
-class RollbackJournal(object):
-
+class RollbackJournal:
     def __init__(self, file_identifier, file_size=None):
 
-        self.file_handle = FileHandle(FILE_TYPE.ROLLBACK_JOURNAL, file_identifier, file_size=file_size)
+        self.file_handle = FileHandle(
+            FILE_TYPE.ROLLBACK_JOURNAL, file_identifier, file_size=file_size
+        )
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
         string = padding + "File Handle:\n{}"

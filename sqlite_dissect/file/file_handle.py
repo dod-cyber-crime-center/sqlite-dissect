@@ -1,19 +1,22 @@
 import os
 from logging import getLogger
 from warnings import warn
-from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.constants import LOCK_BYTE_PAGE_START_OFFSET
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import ROLLBACK_JOURNAL_HEADER_LENGTH
-from sqlite_dissect.constants import SQLITE_DATABASE_HEADER_LENGTH
-from sqlite_dissect.constants import UTF_8
-from sqlite_dissect.constants import UTF_8_DATABASE_TEXT_ENCODING
-from sqlite_dissect.constants import UTF_16BE
-from sqlite_dissect.constants import UTF_16BE_DATABASE_TEXT_ENCODING
-from sqlite_dissect.constants import UTF_16LE
-from sqlite_dissect.constants import UTF_16LE_DATABASE_TEXT_ENCODING
-from sqlite_dissect.constants import WAL_HEADER_LENGTH
-from sqlite_dissect.constants import WAL_INDEX_HEADER_LENGTH
+
+from sqlite_dissect.constants import (
+    FILE_TYPE,
+    LOCK_BYTE_PAGE_START_OFFSET,
+    LOGGER_NAME,
+    ROLLBACK_JOURNAL_HEADER_LENGTH,
+    SQLITE_DATABASE_HEADER_LENGTH,
+    UTF_8,
+    UTF_8_DATABASE_TEXT_ENCODING,
+    UTF_16BE,
+    UTF_16BE_DATABASE_TEXT_ENCODING,
+    UTF_16LE,
+    UTF_16LE_DATABASE_TEXT_ENCODING,
+    WAL_HEADER_LENGTH,
+    WAL_INDEX_HEADER_LENGTH,
+)
 from sqlite_dissect.file.database.header import DatabaseHeader
 from sqlite_dissect.file.journal.header import RollbackJournalHeader
 from sqlite_dissect.file.wal.header import WriteAheadLogHeader
@@ -32,10 +35,10 @@ FileHandle(object)
 """
 
 
-class FileHandle(object):
-
-    def __init__(self, file_type, file_identifier, database_text_encoding=None, file_size=None):
-
+class FileHandle:
+    def __init__(
+        self, file_type, file_identifier, database_text_encoding=None, file_size=None
+    ):
         """
 
         Constructor.  This constructor initializes this object.
@@ -78,19 +81,23 @@ class FileHandle(object):
             """
 
             if not os.path.exists(file_identifier):
-                log_message = "The file name specified does not exist: {}".format(file_identifier)
+                log_message = (
+                    f"The file name specified does not exist: {file_identifier}"
+                )
                 self._logger.error(log_message)
-                raise IOError(log_message)
+                raise OSError(log_message)
 
             if not os.path.isfile(file_identifier):
-                log_message = "The file name specified is not a file: {}".format(file_identifier)
+                log_message = (
+                    f"The file name specified is not a file: {file_identifier}"
+                )
                 self._logger.error(log_message)
-                raise IOError(log_message)
+                raise OSError(log_message)
 
             try:
                 self.file_object = open(file_identifier, "rb")
-            except IOError:
-                log_message = "Unable to open the file in \"rb\" mode with file name: {}.".format(file_identifier)
+            except OSError:
+                log_message = f'Unable to open the file in "rb" mode with file name: {file_identifier}.'
                 self._logger.error(log_message)
                 raise
 
@@ -118,22 +125,35 @@ class FileHandle(object):
 
             try:
 
-                database_header = DatabaseHeader(self.file_object.read(SQLITE_DATABASE_HEADER_LENGTH))
+                database_header = DatabaseHeader(
+                    self.file_object.read(SQLITE_DATABASE_HEADER_LENGTH)
+                )
 
                 if self._database_text_encoding:
                     log_message = "Database text encoding specified as: {} when should not be set."
                     self._logger.error(log_message)
                     raise ValueError(log_message)
 
-                if database_header.database_text_encoding == UTF_8_DATABASE_TEXT_ENCODING:
+                if (
+                    database_header.database_text_encoding
+                    == UTF_8_DATABASE_TEXT_ENCODING
+                ):
                     self._database_text_encoding = UTF_8
-                elif database_header.database_text_encoding == UTF_16LE_DATABASE_TEXT_ENCODING:
+                elif (
+                    database_header.database_text_encoding
+                    == UTF_16LE_DATABASE_TEXT_ENCODING
+                ):
                     self._database_text_encoding = UTF_16LE
-                elif database_header.database_text_encoding == UTF_16BE_DATABASE_TEXT_ENCODING:
+                elif (
+                    database_header.database_text_encoding
+                    == UTF_16BE_DATABASE_TEXT_ENCODING
+                ):
                     self._database_text_encoding = UTF_16BE
                 elif database_header.database_text_encoding:
                     log_message = "The database text encoding: {} is not recognized as a valid database text encoding."
-                    log_message = log_message.format(database_header.database_text_encoding)
+                    log_message = log_message.format(
+                        database_header.database_text_encoding
+                    )
                     self._logger.error(log_message)
                     raise RuntimeError(log_message)
 
@@ -147,7 +167,9 @@ class FileHandle(object):
         elif self.file_type == FILE_TYPE.WAL:
 
             try:
-                self.header = WriteAheadLogHeader(self.file_object.read(WAL_HEADER_LENGTH))
+                self.header = WriteAheadLogHeader(
+                    self.file_object.read(WAL_HEADER_LENGTH)
+                )
             except:
                 log_message = "Failed to initialize the write ahead log header."
                 self._logger.error(log_message)
@@ -156,7 +178,9 @@ class FileHandle(object):
         elif self.file_type == FILE_TYPE.WAL_INDEX:
 
             try:
-                self.header = WriteAheadLogIndexHeader(self.file_object.read(WAL_INDEX_HEADER_LENGTH))
+                self.header = WriteAheadLogIndexHeader(
+                    self.file_object.read(WAL_INDEX_HEADER_LENGTH)
+                )
             except:
                 log_message = "Failed to initialize the write ahead log index header."
                 self._logger.error(log_message)
@@ -165,7 +189,9 @@ class FileHandle(object):
         elif self.file_type == FILE_TYPE.ROLLBACK_JOURNAL:
 
             try:
-                self.header = RollbackJournalHeader(self.file_object.read(ROLLBACK_JOURNAL_HEADER_LENGTH))
+                self.header = RollbackJournalHeader(
+                    self.file_object.read(ROLLBACK_JOURNAL_HEADER_LENGTH)
+                )
             except:
                 log_message = "Failed to initialize the rollback journal header."
                 self._logger.error(log_message)
@@ -173,7 +199,7 @@ class FileHandle(object):
 
         else:
 
-            log_message = "Invalid file type specified: {}.".format(self.file_type)
+            log_message = f"Invalid file type specified: {self.file_type}."
             self._logger.error(log_message)
             raise ValueError(log_message)
 
@@ -181,17 +207,26 @@ class FileHandle(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding="", print_header=True):
-        string = padding + "File Type: {}\n" \
-                 + padding + "File Size: {}\n" \
-                 + padding + "Database Text Encoding: {}"
-        string = string.format(self.file_type,
-                               self.file_size,
-                               self.database_text_encoding)
+        string = (
+            padding
+            + "File Type: {}\n"
+            + padding
+            + "File Size: {}\n"
+            + padding
+            + "Database Text Encoding: {}"
+        )
+        string = string.format(
+            self.file_type, self.file_size, self.database_text_encoding
+        )
         if print_header:
-            string += "\n" + padding + "Header:\n{}".format(self.header.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Header:\n{}".format(self.header.stringify(padding + "\t"))
+            )
         return string
 
     @property
@@ -201,10 +236,17 @@ class FileHandle(object):
     @database_text_encoding.setter
     def database_text_encoding(self, database_text_encoding):
 
-        if self._database_text_encoding and self._database_text_encoding != database_text_encoding:
-            log_message = "Database text encoding is set to: {} and cannot be set differently to: {}.  " \
-                          "Operation not permitted."
-            log_message = log_message.format(self._database_text_encoding, database_text_encoding)
+        if (
+            self._database_text_encoding
+            and self._database_text_encoding != database_text_encoding
+        ):
+            log_message = (
+                "Database text encoding is set to: {} and cannot be set differently to: {}.  "
+                "Operation not permitted."
+            )
+            log_message = log_message.format(
+                self._database_text_encoding, database_text_encoding
+            )
             self._logger.error(log_message)
             raise TypeError(log_message)
 
@@ -230,7 +272,7 @@ class FileHandle(object):
 
                 self.file_object.close()
 
-            except IOError:
+            except OSError:
 
                 log_message = "Unable to close the file object."
                 self._logger.exception(log_message)
@@ -246,7 +288,9 @@ class FileHandle(object):
 
         if offset + number_of_bytes > self.file_size:
             log_message = "Requested length of data: {} at offset {} to {} is > than the file size: {}."
-            log_message = log_message.format(number_of_bytes, offset, number_of_bytes + offset, self.file_size)
+            log_message = log_message.format(
+                number_of_bytes, offset, number_of_bytes + offset, self.file_size
+            )
             self._logger.error(log_message)
             raise EOFError(log_message)
 

@@ -1,4 +1,5 @@
 from logging import getLogger
+
 from sqlite_dissect.constants import LOGGER_NAME
 from sqlite_dissect.exception import MasterSchemaParsingError
 
@@ -17,7 +18,6 @@ parse_comment_from_sql_segment(sql_segment)
 
 
 def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
-
     """
 
 
@@ -39,9 +39,13 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
     logger = getLogger(LOGGER_NAME)
 
     if string[opening_parenthesis_offset] != "(":
-        log_message = "The opening parenthesis offset specifies a \"{}\" character and not the " \
-                      "expected \"(\" in {} with opening parenthesis offset: {}."
-        log_message = log_message.format(string[opening_parenthesis_offset], string, opening_parenthesis_offset)
+        log_message = (
+            'The opening parenthesis offset specifies a "{}" character and not the '
+            'expected "(" in {} with opening parenthesis offset: {}.'
+        )
+        log_message = log_message.format(
+            string[opening_parenthesis_offset], string, opening_parenthesis_offset
+        )
         logger.error(log_message)
         raise ValueError(log_message)
 
@@ -65,22 +69,25 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
     comment_indicator = 0
     literal_indicator = 0
 
-    for index, character in enumerate(string[opening_parenthesis_offset + 1:], opening_parenthesis_offset + 1):
+    for index, character in enumerate(
+        string[opening_parenthesis_offset + 1 :], opening_parenthesis_offset + 1
+    ):
 
         closing_parenthesis_offset = index
 
         if comment_indicator:
 
-            if (comment_indicator == 1 and character == '\n') or \
-                    (comment_indicator == 2 and character == '/' and string[index - 1] == '*'):
+            if (comment_indicator == 1 and character == "\n") or (
+                comment_indicator == 2 and character == "/" and string[index - 1] == "*"
+            ):
                 comment_indicator = 0
 
-       	elif literal_indicator:
-            if literal_indicator == 1 and character == '\'':
+        elif literal_indicator:
+            if literal_indicator == 1 and character == "'":
                 literal_indicator = 0
-            elif literal_indicator == 2 and character == '\"':
+            elif literal_indicator == 2 and character == '"':
                 literal_indicator = 0
-            elif literal_indicator == 3 and character == '`':
+            elif literal_indicator == 3 and character == "`":
                 literal_indicator = 0
 
         else:
@@ -117,26 +124,33 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
 
                 # Check to make sure the full comment indicators were found for "--" and "/*"
                 if character == "/" and string[index + 1] != "*":
-                    log_message = "Comment indicator '{}' found followed by an invalid secondary comment " \
-                                  "indicator: {} found in {}."
-                    log_message = log_message.format(character, string[index + 1], string)
+                    log_message = (
+                        "Comment indicator '{}' found followed by an invalid secondary comment "
+                        "indicator: {} found in {}."
+                    )
+                    log_message = log_message.format(
+                        character, string[index + 1], string
+                    )
                     logger.error(log_message)
                     raise MasterSchemaParsingError(log_message)
 
                 # Set the comment indicator
                 comment_indicator = 2
 
-            elif character == "\'":
+            elif character == "'":
                 literal_indicator = 1
 
-            elif character == "\"":
+            elif character == '"':
                 literal_indicator = 2
 
             elif character == "`":
                 literal_indicator = 3
 
     # Check to make sure the closing parenthesis was found
-    if closing_parenthesis_offset == len(string) - 1 and string[closing_parenthesis_offset] != ")":
+    if (
+        closing_parenthesis_offset == len(string) - 1
+        and string[closing_parenthesis_offset] != ")"
+    ):
         log_message = "The closing parenthesis was not found in {} with opening parenthesis offset: {}."
         log_message = log_message.format(string, opening_parenthesis_offset)
         logger.error(log_message)
@@ -146,7 +160,6 @@ def get_index_of_closing_parenthesis(string, opening_parenthesis_offset=0):
 
 
 def parse_comment_from_sql_segment(sql_segment):
-
     """
 
     This function will parse out the comment from the sql_segment.  This function assumes that a comment
@@ -184,22 +197,24 @@ def parse_comment_from_sql_segment(sql_segment):
     # Check if the sql segment starts with "--"
     if sql_segment.startswith("--"):
 
-        comment = sql_segment[:sql_segment.index('\n') + 1]
-        remaining_sql_segment = sql_segment[sql_segment.index('\n') + 1:]
+        comment = sql_segment[: sql_segment.index("\n") + 1]
+        remaining_sql_segment = sql_segment[sql_segment.index("\n") + 1 :]
 
         return comment, remaining_sql_segment
 
     # Check if the sql segment starts with "/*"
     elif sql_segment.startswith("/*"):
 
-        comment = sql_segment[:sql_segment.index("*/") + 2]
-        remaining_sql_segment = sql_segment[sql_segment.index("*/") + 2:]
+        comment = sql_segment[: sql_segment.index("*/") + 2]
+        remaining_sql_segment = sql_segment[sql_segment.index("*/") + 2 :]
 
         return comment, remaining_sql_segment
 
     # The remaining sql command does not start with "--" or "/*" as expected
     else:
-        log_message = "The sql segment: {} did not start with the expected \"--\" or \"/*\" strings."
+        log_message = (
+            'The sql segment: {} did not start with the expected "--" or "/*" strings.'
+        )
         log_message = log_message.format(sql_segment.number)
         logger.error(log_message)
         raise MasterSchemaParsingError(log_message)

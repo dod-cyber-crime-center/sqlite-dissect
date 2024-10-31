@@ -14,7 +14,7 @@ SQLite Dissect is a SQLite parser with recovery abilities over SQLite databases
 and their accompanying journal files. If no options are set other than the file
 name, the default behaviour will be to check for any journal files and print to
 the console the output of the SQLite files.  The directory of the SQLite file
-specified will be searched through to find the associated journal files.  If 
+specified will be searched through to find the associated journal files.  If
 they are not in the same directory as the specified file, they will not be found
 and their location will need to be specified in the command.  SQLite carving
 will not be done by default.  Please see the options below to enable carving.
@@ -23,7 +23,7 @@ will not be done by default.  Please see the options below to enable carving.
 
 | Argument    | Description                                                                                                                                                                                                                  | Example Usage                  |
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| SQLITE_PATH | The path and filename of the SQLite file or directory to be carved. If a directory is provided, it will recursively search for files with the extensions: `.db`, `.sqlite`, `.sqlite3`. | `sqlite_dissect SQLITE_PATH` |  
+| SQLITE_PATH | The path and filename of the SQLite file or directory to be carved. If a directory is provided, it will recursively search for files with the extensions: `.db`, `.sqlite`, `.sqlite3`. | `sqlite_dissect SQLITE_PATH` |
 
 
 #### Optional Arguments:
@@ -85,8 +85,8 @@ sqlite_dissect [SQLITE_PATH] --signatures -d [OUTPUT_DIRECTORY] -e sqlite --carv
 sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-freelists -b [TABLES]
 ```
 
-6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and 
-   carving entries.  The schema history (schema updates throughout the WAL are included if a WAL file is detected) and 
+6. Parse a SQLite database file and print the output to a xlsx workbook along with generating signatures and
+   carving entries.  The schema history (schema updates throughout the WAL are included if a WAL file is detected) and
    signatures will be printed to standard output.  The log level will be set to debug and all log messages will be
    output to the specified log file.
 
@@ -94,9 +94,9 @@ sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e sqlite --carve --carve-fre
 sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e xlsx --schema-history --carve --signatures --log-level debug -i [LOG_FILE]
 ```
 
-7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.  
+7. Parse a SQLite database file along with a specified rollback journal file and send the output to CSV files.
    (CSV is the only output option currently implemented for rollback journal files)
-   
+
 ```shell
 sqlite_dissect [SQLITE_PATH] -d [OUTPUT_DIRECTORY] -e csv --carve -j [ROLLBACK_JOURNAL]
 ```
@@ -149,17 +149,17 @@ export SQLD_EXPORT_TYPE="[text, sqlite, case]"
 This application focuses on carving by analyzing the allocated content within each of the SQLite
 database tables and creating signatures.  Where there is no content in the table, the signature
 is based off of analyzing the create table statement in the master schema table.  The signature
-contains the series of possible serial types that can be stored within the file for that table.  
+contains the series of possible serial types that can be stored within the file for that table.
 This signature is then applied to the unallocated content and freeblocks of the table b-tree in
-the file.  This includes both interior and leaf table b-tree pages for that table.  The signatures 
+the file.  This includes both interior and leaf table b-tree pages for that table.  The signatures
 are only applied to the pages belonging to the particular b-tree page it was generated from due
 to initial research showing that the pages when created or pulled from the freelist set are
 overwritten with zeros for the unallocated portions.  Fragments within the pages can be reported
 on but, due to the size (<4 bytes), are not carved.  Due to the fact that entries are added into
 tables in SQLite from the end of the page and moving toward the beginning, the carving works
-in the same manner in order to detect previously partially overwritten entries better.  This 
+in the same manner in order to detect previously partially overwritten entries better.  This
 carving can also be applied to the set of freelist pages within the SQLite file if specified
-but the freelist pages are currently treated as sets of unallocated data with the exception 
+but the freelist pages are currently treated as sets of unallocated data with the exception
 of the freelist page metadata.
 
 The carving process does not currently account for index b-trees as the more pertinent information
@@ -185,12 +185,12 @@ a full unallocated block and only support export to csv files.
 SQLite Dissect can support output to various forms: text, csv, xlsx, and sqlite.  Due to certain
 constraints on what can be written to some file types, certain modifications need to be made.  For
 instance, when writing SQLite columns such as row_id that are already going to pre-exist in the table
-for export to a SQLite file we need to preface the columns with "sd_" so they will not conflict with 
-the actual row_id column.  This also applies to internal schema objects. If certain SQLite tables are 
-requested to be written to a SQLite file, than these will be prefaced with "iso_" so they will not 
-conflict with similar internal schema objects that may already exist in the SQLite file bring written 
-to.  In xlsx or csv, due to a "=" symbol indicating a type of equation, these are prefaced with a " " 
-character to avoid this issue.  More details can be found in the code documentation of the export classes 
+for export to a SQLite file we need to preface the columns with "sd_" so they will not conflict with
+the actual row_id column.  This also applies to internal schema objects. If certain SQLite tables are
+requested to be written to a SQLite file, than these will be prefaced with "iso_" so they will not
+conflict with similar internal schema objects that may already exist in the SQLite file bring written
+to.  In xlsx or csv, due to a "=" symbol indicating a type of equation, these are prefaced with a " "
+character to avoid this issue.  More details can be found in the code documentation of the export classes
 themselves.
 
 SQLite Dissect opens the file as read only and acts as a read only interpreter when parsing and carving
@@ -203,10 +203,10 @@ specified for output.
    (WAL or rollback) file.  Journal files by themselves are not supported yet.
 
 #### Currently not implemented:
-1. Signatures and carving are not implemented for "without rowid" tables or indexes.  This will not cause an error 
+1. Signatures and carving are not implemented for "without rowid" tables or indexes.  This will not cause an error
    but will skip signature generation and carving processes.
-2. Signatures and carving are not implemented for virtual tables.  This will not cause an error but will skip 
-   signature generation and carving processes.  `Note:  Even though virtual tables are skipped, virtual tables may 
+2. Signatures and carving are not implemented for virtual tables.  This will not cause an error but will skip
+   signature generation and carving processes.  `Note:  Even though virtual tables are skipped, virtual tables may
    create other non-virtual tables which are not skipped.  Currently nothing ties these tables back to the virtual
    table that created them.`
 3. Invalidated frames in WAL files are currently skipped and not parsed.  `Note:  This applies to previous WAL records
@@ -286,8 +286,8 @@ TODO:
 - [ ] Incorporate signature generation input and output files once implemented.
 - [ ] Incorporate "store in memory" arguments (currently set to False, more in depth operations may want it True).
 - [ ] Implement multiple passes/depths.
-- [ ] Test use cases for exempted tables with rollback journal and when combined with specified tables.  
-- [ ] Check on name vs table_name properties of the master schema entry.  
+- [ ] Test use cases for exempted tables with rollback journal and when combined with specified tables.
+- [ ] Check on name vs table_name properties of the master schema entry.
 - [ ] Test cases where the schema changes throughout the WAL file.
 - [ ] Investigate handling of virtual and "without rowid" tables when creating table signatures through the interface.
 - [ ] Documentation on "without rowid" tables and indexes in references to carving in help documentation.
@@ -295,7 +295,7 @@ TODO:
 - [ ] Research if there can be journal files with a zero length database file or zero-length journal files.
 - [ ] Research if there can be combinations and of multiple rollback journal and WAL files with the SQLite database.
 - [ ] Validate initial research that allocation of freelist pages to a b-tree results in a wipe of the page data.
-- [ ] Add additional logging messages to the master schema entries skipped in signature generation. 
+- [ ] Add additional logging messages to the master schema entries skipped in signature generation.
 - [ ] Integrate in the SQLite Forensic Corpus into tests.
 - [ ] Look into updating terminology for versioning to timelining.
 - [ ] Create PyUnit tests.

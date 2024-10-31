@@ -20,7 +20,7 @@ This script holds the following object(s):
 - WriteAheadLogIndexSubHeader(SQLiteHeader)
 - WriteAheadLogIndexCheckpointInfo(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.

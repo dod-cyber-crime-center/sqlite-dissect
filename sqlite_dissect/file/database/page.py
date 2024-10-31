@@ -3,54 +3,60 @@ from binascii import hexlify
 from logging import getLogger
 from struct import unpack
 from warnings import warn
-from sqlite_dissect.constants import CELL_LOCATION
-from sqlite_dissect.constants import CELL_MODULE
-from sqlite_dissect.constants import CELL_POINTER_BYTE_LENGTH
-from sqlite_dissect.constants import CELL_SOURCE
-from sqlite_dissect.constants import FIRST_OVERFLOW_PAGE_INDEX
-from sqlite_dissect.constants import FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
-from sqlite_dissect.constants import FIRST_OVERFLOW_PARENT_PAGE_NUMBER
-from sqlite_dissect.constants import FREEBLOCK_BYTE_LENGTH
-from sqlite_dissect.constants import FREELIST_HEADER_LENGTH
-from sqlite_dissect.constants import FREELIST_LEAF_PAGE_NUMBER_LENGTH
-from sqlite_dissect.constants import FREELIST_NEXT_TRUNK_PAGE_LENGTH
-from sqlite_dissect.constants import INDEX_INTERIOR_CELL_CLASS
-from sqlite_dissect.constants import INDEX_INTERIOR_PAGE_HEX_ID
-from sqlite_dissect.constants import INDEX_LEAF_CELL_CLASS
-from sqlite_dissect.constants import INDEX_LEAF_PAGE_HEX_ID
-from sqlite_dissect.constants import INTERIOR_PAGE_HEADER_CLASS
-from sqlite_dissect.constants import LEAF_PAGE_HEADER_CLASS
-from sqlite_dissect.constants import LEFT_CHILD_POINTER_BYTE_LENGTH
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import MASTER_PAGE_HEX_ID
-from sqlite_dissect.constants import NEXT_FREEBLOCK_OFFSET_LENGTH
-from sqlite_dissect.constants import OVERFLOW_HEADER_LENGTH
-from sqlite_dissect.constants import PAGE_FRAGMENT_LIMIT
-from sqlite_dissect.constants import PAGE_HEADER_MODULE
-from sqlite_dissect.constants import PAGE_TYPE
-from sqlite_dissect.constants import PAGE_TYPE_LENGTH
-from sqlite_dissect.constants import POINTER_MAP_B_TREE_NON_ROOT_PAGE_TYPE
-from sqlite_dissect.constants import POINTER_MAP_B_TREE_ROOT_PAGE_TYPE
-from sqlite_dissect.constants import POINTER_MAP_ENTRY_LENGTH
-from sqlite_dissect.constants import POINTER_MAP_FREELIST_PAGE_TYPE
-from sqlite_dissect.constants import POINTER_MAP_OVERFLOW_FIRST_PAGE_TYPE
-from sqlite_dissect.constants import POINTER_MAP_OVERFLOW_FOLLOWING_PAGE_TYPE
-from sqlite_dissect.constants import POINTER_MAP_PAGE_TYPES
-from sqlite_dissect.constants import SQLITE_DATABASE_HEADER_LENGTH
-from sqlite_dissect.constants import SQLITE_MASTER_SCHEMA_ROOT_PAGE
-from sqlite_dissect.constants import TABLE_INTERIOR_CELL_CLASS
-from sqlite_dissect.constants import TABLE_INTERIOR_PAGE_HEX_ID
-from sqlite_dissect.constants import TABLE_LEAF_CELL_CLASS
-from sqlite_dissect.constants import TABLE_LEAF_PAGE_HEX_ID
-from sqlite_dissect.constants import ZERO_BYTE
-from sqlite_dissect.exception import BTreePageParsingError
-from sqlite_dissect.exception import CellParsingError
-from sqlite_dissect.exception import PageParsingError
-from sqlite_dissect.file.database.payload import decode_varint
-from sqlite_dissect.file.database.payload import Record
-from sqlite_dissect.utilities import calculate_expected_overflow
-from sqlite_dissect.utilities import get_class_instance
-from sqlite_dissect.utilities import get_md5_hash
+
+from sqlite_dissect.constants import (
+    CELL_LOCATION,
+    CELL_MODULE,
+    CELL_POINTER_BYTE_LENGTH,
+    CELL_SOURCE,
+    FIRST_OVERFLOW_PAGE_INDEX,
+    FIRST_OVERFLOW_PAGE_NUMBER_LENGTH,
+    FIRST_OVERFLOW_PARENT_PAGE_NUMBER,
+    FREEBLOCK_BYTE_LENGTH,
+    FREELIST_HEADER_LENGTH,
+    FREELIST_LEAF_PAGE_NUMBER_LENGTH,
+    FREELIST_NEXT_TRUNK_PAGE_LENGTH,
+    INDEX_INTERIOR_CELL_CLASS,
+    INDEX_INTERIOR_PAGE_HEX_ID,
+    INDEX_LEAF_CELL_CLASS,
+    INDEX_LEAF_PAGE_HEX_ID,
+    INTERIOR_PAGE_HEADER_CLASS,
+    LEAF_PAGE_HEADER_CLASS,
+    LEFT_CHILD_POINTER_BYTE_LENGTH,
+    LOGGER_NAME,
+    MASTER_PAGE_HEX_ID,
+    NEXT_FREEBLOCK_OFFSET_LENGTH,
+    OVERFLOW_HEADER_LENGTH,
+    PAGE_FRAGMENT_LIMIT,
+    PAGE_HEADER_MODULE,
+    PAGE_TYPE,
+    PAGE_TYPE_LENGTH,
+    POINTER_MAP_B_TREE_NON_ROOT_PAGE_TYPE,
+    POINTER_MAP_B_TREE_ROOT_PAGE_TYPE,
+    POINTER_MAP_ENTRY_LENGTH,
+    POINTER_MAP_FREELIST_PAGE_TYPE,
+    POINTER_MAP_OVERFLOW_FIRST_PAGE_TYPE,
+    POINTER_MAP_OVERFLOW_FOLLOWING_PAGE_TYPE,
+    POINTER_MAP_PAGE_TYPES,
+    SQLITE_DATABASE_HEADER_LENGTH,
+    SQLITE_MASTER_SCHEMA_ROOT_PAGE,
+    TABLE_INTERIOR_CELL_CLASS,
+    TABLE_INTERIOR_PAGE_HEX_ID,
+    TABLE_LEAF_CELL_CLASS,
+    TABLE_LEAF_PAGE_HEX_ID,
+    ZERO_BYTE,
+)
+from sqlite_dissect.exception import (
+    BTreePageParsingError,
+    CellParsingError,
+    PageParsingError,
+)
+from sqlite_dissect.file.database.payload import Record, decode_varint
+from sqlite_dissect.utilities import (
+    calculate_expected_overflow,
+    get_class_instance,
+    get_md5_hash,
+)
 
 """
 
@@ -91,7 +97,7 @@ Assumptions:
 """
 
 
-class Page(object):
+class Page:
 
     __metaclass__ = ABCMeta
 
@@ -114,37 +120,52 @@ class Page(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Version Number: {}\n" \
-                 + padding + "Page Version Number: {}\n" \
-                 + padding + "Number: {}\n" \
-                 + padding + "Page Type: {}\n" \
-                 + padding + "Offset: {}\n" \
-                 + padding + "Size: {}\n" \
-                 + padding + "MD5 Hex Digest: {}\n" \
-                 + padding + "Unallocated Space Start Offset: {}\n" \
-                 + padding + "Unallocated Space End Offset: {}\n" \
-                 + padding + "Unallocated Space Size: {}\n" \
-                 + padding + "Unallocated Content MD5 Hex Digest: {}\n" \
-                 + padding + "Unallocated Content (Hex): {}"
-        return string.format(self.version_number,
-                             self.page_version_number,
-                             self.number,
-                             self.page_type,
-                             self.offset,
-                             self.size,
-                             self.md5_hex_digest,
-                             self.unallocated_space_start_offset,
-                             self.unallocated_space_end_offset,
-                             self.unallocated_space_length,
-                             self.unallocated_space_md5_hex_digest,
-                             hexlify(self.unallocated_space))
+        string = (
+            padding
+            + "Version Number: {}\n"
+            + padding
+            + "Page Version Number: {}\n"
+            + padding
+            + "Number: {}\n"
+            + padding
+            + "Page Type: {}\n"
+            + padding
+            + "Offset: {}\n"
+            + padding
+            + "Size: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}\n"
+            + padding
+            + "Unallocated Space Start Offset: {}\n"
+            + padding
+            + "Unallocated Space End Offset: {}\n"
+            + padding
+            + "Unallocated Space Size: {}\n"
+            + padding
+            + "Unallocated Content MD5 Hex Digest: {}\n"
+            + padding
+            + "Unallocated Content (Hex): {}"
+        )
+        return string.format(
+            self.version_number,
+            self.page_version_number,
+            self.number,
+            self.page_type,
+            self.offset,
+            self.size,
+            self.md5_hex_digest,
+            self.unallocated_space_start_offset,
+            self.unallocated_space_end_offset,
+            self.unallocated_space_length,
+            self.unallocated_space_md5_hex_digest,
+            hexlify(self.unallocated_space),
+        )
 
     @property
     def unallocated_space(self):
-
         """
 
         This property returns the unallocated space inside this page.
@@ -156,12 +177,14 @@ class Page(object):
         if self.unallocated_space_length == 0:
             return bytearray()
         else:
-            return self._version_interface.get_page_data(self.number, self.unallocated_space_start_offset,
-                                                         self.unallocated_space_length)
+            return self._version_interface.get_page_data(
+                self.number,
+                self.unallocated_space_start_offset,
+                self.unallocated_space_length,
+            )
 
     @property
     def unallocated_space_md5_hex_digest(self):
-
         """
 
         This method will compute the md5 hash of the unallocated space of this page and return it.  This is
@@ -177,7 +200,6 @@ class Page(object):
 
     @property
     def unallocated_space_length(self):
-
         """
 
         This property will compute the unallocated space length of this page and return it.  This is calculated
@@ -193,11 +215,17 @@ class Page(object):
 
 
 class OverflowPage(Page):
+    def __init__(
+        self,
+        version_interface,
+        number,
+        parent_cell_page_number,
+        parent_overflow_page_number,
+        index,
+        payload_remaining,
+    ):
 
-    def __init__(self, version_interface, number, parent_cell_page_number, parent_overflow_page_number,
-                 index, payload_remaining):
-
-        super(OverflowPage, self).__init__(version_interface, number)
+        super().__init__(version_interface, number)
 
         self.page_type = PAGE_TYPE.OVERFLOW
 
@@ -222,14 +250,22 @@ class OverflowPage(Page):
 
             # This was found to be the last overflow page in the chain.  Make sure there are no other overflow pages.
             if self.next_overflow_page_number:
-                log_message = "Additional overflow page number: {} found for version number: {} " \
-                              "page version number: {} page number: {} when no more overflow pages were expected."
-                log_message = log_message.format(self.next_overflow_page_number, self.version_number,
-                                                 self.page_version_number, self.number)
+                log_message = (
+                    "Additional overflow page number: {} found for version number: {} "
+                    "page version number: {} page number: {} when no more overflow pages were expected."
+                )
+                log_message = log_message.format(
+                    self.next_overflow_page_number,
+                    self.version_number,
+                    self.page_version_number,
+                    self.number,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
-            self.unallocated_space_start_offset = payload_remaining + OVERFLOW_HEADER_LENGTH
+            self.unallocated_space_start_offset = (
+                payload_remaining + OVERFLOW_HEADER_LENGTH
+            )
 
         if self.next_overflow_page_number:
 
@@ -249,34 +285,55 @@ class OverflowPage(Page):
 
             """
 
-            next_overflow_page_version = self._version_interface.get_page_version(self.next_overflow_page_number)
+            next_overflow_page_version = self._version_interface.get_page_version(
+                self.next_overflow_page_number
+            )
             if self.page_version_number != next_overflow_page_version:
-                log_message = "The version of the current overflow page: {} on version: {} on page: {} has points to " \
-                              "a next overflow page version: {} for page: {} that has a different version."
-                log_message = log_message.format(self.page_version_number, self.version_number, self.number,
-                                                 next_overflow_page_version, self.next_overflow_page_number)
+                log_message = (
+                    "The version of the current overflow page: {} on version: {} on page: {} has points to "
+                    "a next overflow page version: {} for page: {} that has a different version."
+                )
+                log_message = log_message.format(
+                    self.page_version_number,
+                    self.version_number,
+                    self.number,
+                    next_overflow_page_version,
+                    self.next_overflow_page_number,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Parent Cell Page Number: {}\n" \
-                 + padding + "Parent Overflow Page Number: {}\n" \
-                 + padding + "Index: {}\n" \
-                 + padding + "Next Overflow Page Number: {}\n" \
-                 + padding + "Content Length: {}\n" \
-                 + padding + "Content (Hex): {}"
-        string = string.format(self.parent_cell_page_number,
-                               self.parent_overflow_page_number,
-                               self.index,
-                               self.next_overflow_page_number,
-                               self.content_length,
-                               hexlify(self.content))
-        return super(OverflowPage, self).stringify(padding) + string
+        string = (
+            "\n"
+            + padding
+            + "Parent Cell Page Number: {}\n"
+            + padding
+            + "Parent Overflow Page Number: {}\n"
+            + padding
+            + "Index: {}\n"
+            + padding
+            + "Next Overflow Page Number: {}\n"
+            + padding
+            + "Content Length: {}\n"
+            + padding
+            + "Content (Hex): {}"
+        )
+        string = string.format(
+            self.parent_cell_page_number,
+            self.parent_overflow_page_number,
+            self.index,
+            self.next_overflow_page_number,
+            self.content_length,
+            hexlify(self.content),
+        )
+        return super().stringify(padding) + string
 
     @property
     def content(self):
-        return self._version_interface.get_page_data(self.number, OVERFLOW_HEADER_LENGTH, self.content_length)
+        return self._version_interface.get_page_data(
+            self.number, OVERFLOW_HEADER_LENGTH, self.content_length
+        )
 
     @property
     def content_length(self):
@@ -284,10 +341,11 @@ class OverflowPage(Page):
 
 
 class FreelistTrunkPage(Page):
+    def __init__(
+        self, version_interface, number, parent_freelist_trunk_page_number, index
+    ):
 
-    def __init__(self, version_interface, number, parent_freelist_trunk_page_number, index):
-
-        super(FreelistTrunkPage, self).__init__(version_interface, number)
+        super().__init__(version_interface, number)
 
         self.page_type = PAGE_TYPE.FREELIST_TRUNK
 
@@ -296,13 +354,18 @@ class FreelistTrunkPage(Page):
 
         page = self._version_interface.get_page_data(self.number)
 
-        self.next_freelist_trunk_page_number = unpack(b">I", page[:FREELIST_NEXT_TRUNK_PAGE_LENGTH])[0]
-        self.number_of_leaf_page_pointers = unpack(b">I", page[FREELIST_NEXT_TRUNK_PAGE_LENGTH:
-                                                               FREELIST_HEADER_LENGTH])[0]
+        self.next_freelist_trunk_page_number = unpack(
+            b">I", page[:FREELIST_NEXT_TRUNK_PAGE_LENGTH]
+        )[0]
+        self.number_of_leaf_page_pointers = unpack(
+            b">I", page[FREELIST_NEXT_TRUNK_PAGE_LENGTH:FREELIST_HEADER_LENGTH]
+        )[0]
         self.freelist_leaf_page_numbers = []
         self.freelist_leaf_pages = []
         for index in range(int(self.number_of_leaf_page_pointers)):
-            start_offset = index * FREELIST_LEAF_PAGE_NUMBER_LENGTH + FREELIST_HEADER_LENGTH
+            start_offset = (
+                index * FREELIST_LEAF_PAGE_NUMBER_LENGTH + FREELIST_HEADER_LENGTH
+            )
             end_offset = start_offset + FREELIST_LEAF_PAGE_NUMBER_LENGTH
             freelist_leaf_page_number = unpack(b">I", page[start_offset:end_offset])[0]
 
@@ -313,22 +376,34 @@ class FreelistTrunkPage(Page):
 
             """
 
-            freelist_leaf_page = FreelistLeafPage(self._version_interface, freelist_leaf_page_number,
-                                                  self.number, index)
+            freelist_leaf_page = FreelistLeafPage(
+                self._version_interface, freelist_leaf_page_number, self.number, index
+            )
 
             self.freelist_leaf_page_numbers.append(freelist_leaf_page_number)
             self.freelist_leaf_pages.append(freelist_leaf_page)
 
         if len(self.freelist_leaf_page_numbers) != self.number_of_leaf_page_pointers:
-            log_message = "In freelist trunk page: {} with page version: {} in version: {} found a different amount " \
-                          "of freelist leaf page numbers: {} than freelist leaf page pointers: {} found on the page."
-            log_message = log_message.format(self.number, self.page_version_number, self.version_number,
-                                             len(self.freelist_leaf_page_numbers), self.number_of_leaf_page_pointers)
+            log_message = (
+                "In freelist trunk page: {} with page version: {} in version: {} found a different amount "
+                "of freelist leaf page numbers: {} than freelist leaf page pointers: {} found on the page."
+            )
+            log_message = log_message.format(
+                self.number,
+                self.page_version_number,
+                self.version_number,
+                len(self.freelist_leaf_page_numbers),
+                self.number_of_leaf_page_pointers,
+            )
             self._logger.error(log_message)
             raise PageParsingError(log_message)
 
-        freelist_leaf_page_numbers_size = self.number_of_leaf_page_pointers * FREELIST_LEAF_PAGE_NUMBER_LENGTH
-        self.unallocated_space_start_offset = FREELIST_HEADER_LENGTH + freelist_leaf_page_numbers_size
+        freelist_leaf_page_numbers_size = (
+            self.number_of_leaf_page_pointers * FREELIST_LEAF_PAGE_NUMBER_LENGTH
+        )
+        self.unallocated_space_start_offset = (
+            FREELIST_HEADER_LENGTH + freelist_leaf_page_numbers_size
+        )
         self.unallocated_space_end_offset = self.size
 
         self.md5_hex_digest = get_md5_hash(page)
@@ -344,46 +419,80 @@ class FreelistTrunkPage(Page):
 
             """
 
-            next_freelist_trunk_page_version_number = self._version_interface.get_page_version(
-                                                                                self.next_freelist_trunk_page_number)
+            next_freelist_trunk_page_version_number = (
+                self._version_interface.get_page_version(
+                    self.next_freelist_trunk_page_number
+                )
+            )
             if self.page_version_number > next_freelist_trunk_page_version_number:
-                log_message = "Found a freelist trunk page: {} that has page version: {} in version: {} that points " \
-                              "to an earlier freelist trunk page version: {}."
-                log_message = log_message.format(self.number, self.page_version_number, self.version_number,
-                                                 next_freelist_trunk_page_version_number)
+                log_message = (
+                    "Found a freelist trunk page: {} that has page version: {} in version: {} that points "
+                    "to an earlier freelist trunk page version: {}."
+                )
+                log_message = log_message.format(
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    next_freelist_trunk_page_version_number,
+                )
                 self._logger.info(log_message)
 
-            self.next_freelist_trunk_page = FreelistTrunkPage(self._version_interface,
-                                                              self.next_freelist_trunk_page_number,
-                                                              self.number, self.index + 1)
+            self.next_freelist_trunk_page = FreelistTrunkPage(
+                self._version_interface,
+                self.next_freelist_trunk_page_number,
+                self.number,
+                self.index + 1,
+            )
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Parent Freelist Trunk Page Number: {}\n" \
-                 + padding + "Index: {}\n" \
-                 + padding + "Next Freelist Trunk Page Number: {}\n" \
-                 + padding + "Number of Leaf Page Pointers: {}\n" \
-                 + padding + "Freelist Leaf Page Numbers: {}\n" \
-                 + padding + "Freelist Leaf Pages length: {}"
-        string = string.format(self.parent_freelist_trunk_page_number,
-                               self.index,
-                               self.next_freelist_trunk_page_number,
-                               self.number_of_leaf_page_pointers,
-                               self.freelist_leaf_page_numbers,
-                               len(self.freelist_leaf_pages))
+        string = (
+            "\n"
+            + padding
+            + "Parent Freelist Trunk Page Number: {}\n"
+            + padding
+            + "Index: {}\n"
+            + padding
+            + "Next Freelist Trunk Page Number: {}\n"
+            + padding
+            + "Number of Leaf Page Pointers: {}\n"
+            + padding
+            + "Freelist Leaf Page Numbers: {}\n"
+            + padding
+            + "Freelist Leaf Pages length: {}"
+        )
+        string = string.format(
+            self.parent_freelist_trunk_page_number,
+            self.index,
+            self.next_freelist_trunk_page_number,
+            self.number_of_leaf_page_pointers,
+            self.freelist_leaf_page_numbers,
+            len(self.freelist_leaf_pages),
+        )
         for freelist_leaf_page in self.freelist_leaf_pages:
-            string += "\n" + padding + "Freelist Leaf Page:\n{}".format(freelist_leaf_page.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Freelist Leaf Page:\n{}".format(
+                    freelist_leaf_page.stringify(padding + "\t")
+                )
+            )
         if self.next_freelist_trunk_page:
-            string += "\n" + padding \
-                      + "Next Freelist Trunk Page:\n{}".format(self.next_freelist_trunk_page.stringify(padding + "\t"))
-        return super(FreelistTrunkPage, self).stringify(padding) + string
+            string += (
+                "\n"
+                + padding
+                + "Next Freelist Trunk Page:\n{}".format(
+                    self.next_freelist_trunk_page.stringify(padding + "\t")
+                )
+            )
+        return super().stringify(padding) + string
 
 
 class FreelistLeafPage(Page):
+    def __init__(
+        self, version_interface, number, parent_freelist_trunk_page_number, index
+    ):
 
-    def __init__(self, version_interface, number, parent_freelist_trunk_page_number, index):
-
-        super(FreelistLeafPage, self).__init__(version_interface, number)
+        super().__init__(version_interface, number)
 
         self.page_type = PAGE_TYPE.FREELIST_LEAF
 
@@ -397,19 +506,21 @@ class FreelistLeafPage(Page):
         self.md5_hex_digest = get_md5_hash(page)
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Parent Freelist Trunk Page Number: {}\n" \
-                 + padding + "Index: {}"
-        string = string.format(self.parent_freelist_trunk_page_number,
-                               self.index)
-        return super(FreelistLeafPage, self).stringify(padding) + string
+        string = (
+            "\n"
+            + padding
+            + "Parent Freelist Trunk Page Number: {}\n"
+            + padding
+            + "Index: {}"
+        )
+        string = string.format(self.parent_freelist_trunk_page_number, self.index)
+        return super().stringify(padding) + string
 
 
 class PointerMapPage(Page):
-
     def __init__(self, version_interface, number, number_of_entries):
 
-        super(PointerMapPage, self).__init__(version_interface, number)
+        super().__init__(version_interface, number)
 
         self.page_type = PAGE_TYPE.POINTER_MAP
 
@@ -417,7 +528,9 @@ class PointerMapPage(Page):
 
         self.number_of_entries = number_of_entries
 
-        self.unallocated_space_start_offset = self.number_of_entries * POINTER_MAP_ENTRY_LENGTH
+        self.unallocated_space_start_offset = (
+            self.number_of_entries * POINTER_MAP_ENTRY_LENGTH
+        )
         self.unallocated_space_end_offset = self.size
 
         self.md5_hex_digest = get_md5_hash(page)
@@ -428,78 +541,163 @@ class PointerMapPage(Page):
             offset = index * POINTER_MAP_ENTRY_LENGTH
 
             if offset >= self.size:
-                log_message = "For pointer map page: {} for page version: {} and version: {} the offset: {} " \
-                              "was found to greater or equal to the page size: {} on index: {}."
-                log_message = log_message.format(self.number, self.page_version_number, self.version_number,
-                                                 offset, self.size, index)
+                log_message = (
+                    "For pointer map page: {} for page version: {} and version: {} the offset: {} "
+                    "was found to greater or equal to the page size: {} on index: {}."
+                )
+                log_message = log_message.format(
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    offset,
+                    self.size,
+                    index,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
-            page_type = page[offset:offset + PAGE_TYPE_LENGTH]
+            page_type = page[offset : offset + PAGE_TYPE_LENGTH]
             if page_type == ZERO_BYTE:
-                log_message = "The page type was found to be empty for pointer map page: {} for page version: {} " \
-                              "and version: {} on index: {} and offset: {}."
-                log_message = log_message.format(self.number, self.page_version_number, self.version_number,
-                                                 index, offset)
+                log_message = (
+                    "The page type was found to be empty for pointer map page: {} for page version: {} "
+                    "and version: {} on index: {} and offset: {}."
+                )
+                log_message = log_message.format(
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    index,
+                    offset,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
             elif offset + POINTER_MAP_ENTRY_LENGTH > self.size:
-                log_message = "The offset {} and pointer map length: {} go beyond the page size: {} for pointer " \
-                              "map page: {} for page version: {} and version: {} on index: {}."
-                log_message = log_message.format(offset, POINTER_MAP_ENTRY_LENGTH, self.size, self.number,
-                                                 self.page_version_number, self.version_number, index)
+                log_message = (
+                    "The offset {} and pointer map length: {} go beyond the page size: {} for pointer "
+                    "map page: {} for page version: {} and version: {} on index: {}."
+                )
+                log_message = log_message.format(
+                    offset,
+                    POINTER_MAP_ENTRY_LENGTH,
+                    self.size,
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    index,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
             elif page_type not in POINTER_MAP_PAGE_TYPES:
-                log_message = "The page type was not recognized: {} as a valid pointer map page type for " \
-                              "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
-                log_message = log_message.format(hexlify(page_type), self.number, self.page_version_number,
-                                                 self.version_number, index, offset)
+                log_message = (
+                    "The page type was not recognized: {} as a valid pointer map page type for "
+                    "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
+                )
+                log_message = log_message.format(
+                    hexlify(page_type),
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    index,
+                    offset,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
-            parent_page_number = unpack(b">I", page[offset + PAGE_TYPE_LENGTH:offset + POINTER_MAP_ENTRY_LENGTH])[0]
+            parent_page_number = unpack(
+                b">I",
+                page[offset + PAGE_TYPE_LENGTH : offset + POINTER_MAP_ENTRY_LENGTH],
+            )[0]
 
-            if page_type in [POINTER_MAP_B_TREE_ROOT_PAGE_TYPE, POINTER_MAP_FREELIST_PAGE_TYPE] and parent_page_number:
-                log_message = "The page type: {} has a parent page number: {} which is invalid for " \
-                              "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
-                log_message = log_message.format(hexlify(page_type), parent_page_number, self.number,
-                                                 self.page_version_number, self.version_number, index, offset)
+            if (
+                page_type
+                in [POINTER_MAP_B_TREE_ROOT_PAGE_TYPE, POINTER_MAP_FREELIST_PAGE_TYPE]
+                and parent_page_number
+            ):
+                log_message = (
+                    "The page type: {} has a parent page number: {} which is invalid for "
+                    "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
+                )
+                log_message = log_message.format(
+                    hexlify(page_type),
+                    parent_page_number,
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    index,
+                    offset,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
-            elif page_type in [POINTER_MAP_OVERFLOW_FIRST_PAGE_TYPE, POINTER_MAP_OVERFLOW_FOLLOWING_PAGE_TYPE,
-                               POINTER_MAP_B_TREE_NON_ROOT_PAGE_TYPE] and not parent_page_number:
-                log_message = "The page type: {} does not have a parent page number which is invalid for " \
-                              "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
-                log_message = log_message.format(hexlify(page_type), self.number, self.page_version_number,
-                                                 self.version_number, index, offset)
+            elif (
+                page_type
+                in [
+                    POINTER_MAP_OVERFLOW_FIRST_PAGE_TYPE,
+                    POINTER_MAP_OVERFLOW_FOLLOWING_PAGE_TYPE,
+                    POINTER_MAP_B_TREE_NON_ROOT_PAGE_TYPE,
+                ]
+                and not parent_page_number
+            ):
+                log_message = (
+                    "The page type: {} does not have a parent page number which is invalid for "
+                    "pointer map page: {} for page version: {} and version: {} on index: {} and offset: {}."
+                )
+                log_message = log_message.format(
+                    hexlify(page_type),
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                    index,
+                    offset,
+                )
                 self._logger.error(log_message)
                 raise PageParsingError(log_message)
 
-            pointer_map_entry_md5_hex_digest = get_md5_hash(page[offset:offset + POINTER_MAP_ENTRY_LENGTH])
+            pointer_map_entry_md5_hex_digest = get_md5_hash(
+                page[offset : offset + POINTER_MAP_ENTRY_LENGTH]
+            )
 
             page_number = number + index + 1
-            pointer_map_entry = PointerMapEntry(index, offset, page_number, page_type, parent_page_number,
-                                                pointer_map_entry_md5_hex_digest)
+            pointer_map_entry = PointerMapEntry(
+                index,
+                offset,
+                page_number,
+                page_type,
+                parent_page_number,
+                pointer_map_entry_md5_hex_digest,
+            )
             self.pointer_map_entries.append(pointer_map_entry)
 
         if len(self.pointer_map_entries) != self.number_of_entries:
-            log_message = "In pointer map page: {} with page version: {} in version: {} found a different amount " \
-                          "of pointer map entries: {} than expected number of entries: {} found on the page."
-            log_message = log_message.format(self.number, self.page_version_number, self.version_number,
-                                             len(self.pointer_map_entries), self.number_of_entries)
+            log_message = (
+                "In pointer map page: {} with page version: {} in version: {} found a different amount "
+                "of pointer map entries: {} than expected number of entries: {} found on the page."
+            )
+            log_message = log_message.format(
+                self.number,
+                self.page_version_number,
+                self.version_number,
+                len(self.pointer_map_entries),
+                self.number_of_entries,
+            )
             self._logger.error(log_message)
             raise PageParsingError(log_message)
 
         remaining_space_offset = self.number_of_entries * POINTER_MAP_ENTRY_LENGTH
         if remaining_space_offset != self.unallocated_space_start_offset:
-            log_message = "The remaining space offset: {} is not equal to the unallocated space start offset: {} " \
-                          "for pointer map page: {} for page version: {} and version: {}."
-            log_message = log_message.format(remaining_space_offset, self.unallocated_space_start_offset, self.number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The remaining space offset: {} is not equal to the unallocated space start offset: {} "
+                "for pointer map page: {} for page version: {} and version: {}."
+            )
+            log_message = log_message.format(
+                remaining_space_offset,
+                self.unallocated_space_start_offset,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise PageParsingError(log_message)
 
@@ -529,19 +727,29 @@ class PointerMapPage(Page):
         """
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Number of Entries: {}\n" \
-                 + padding + "Pointer Map Entries Size: {}"
-        string = string.format(self.number_of_entries,
-                               len(self.pointer_map_entries))
+        string = (
+            "\n"
+            + padding
+            + "Number of Entries: {}\n"
+            + padding
+            + "Pointer Map Entries Size: {}"
+        )
+        string = string.format(self.number_of_entries, len(self.pointer_map_entries))
         for pointer_map_entry in self.pointer_map_entries:
-            string += "\n" + padding + "Pointer Map Entry:\n{}".format(pointer_map_entry.stringify(padding + "\t"))
-        return super(PointerMapPage, self).stringify(padding) + string
+            string += (
+                "\n"
+                + padding
+                + "Pointer Map Entry:\n{}".format(
+                    pointer_map_entry.stringify(padding + "\t")
+                )
+            )
+        return super().stringify(padding) + string
 
 
-class PointerMapEntry(object):
-
-    def __init__(self, index, offset, page_number, page_type, parent_page_number, md5_hex_digest):
+class PointerMapEntry:
+    def __init__(
+        self, index, offset, page_number, page_type, parent_page_number, md5_hex_digest
+    ):
         self.index = index
         self.offset = offset
         self.page_number = page_number
@@ -553,21 +761,31 @@ class PointerMapEntry(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Index: {}\n" \
-                 + padding + "Offset: {}\n" \
-                 + padding + "Page Number: {}\n" \
-                 + padding + "Page Type: {}\n" \
-                 + padding + "Parent Page Number: {}\n" \
-                 + padding + "MD5 Hex Digest: {}"
-        return string.format(self.index,
-                             self.offset,
-                             self.page_number,
-                             self.page_type,
-                             self.parent_page_number,
-                             self.md5_hex_digest)
+        string = (
+            padding
+            + "Index: {}\n"
+            + padding
+            + "Offset: {}\n"
+            + padding
+            + "Page Number: {}\n"
+            + padding
+            + "Page Type: {}\n"
+            + padding
+            + "Parent Page Number: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}"
+        )
+        return string.format(
+            self.index,
+            self.offset,
+            self.page_number,
+            self.page_type,
+            self.parent_page_number,
+            self.md5_hex_digest,
+        )
 
 
 class BTreePage(Page):
@@ -576,7 +794,7 @@ class BTreePage(Page):
 
     def __init__(self, version_interface, number, header_class_name, cell_class_name):
 
-        super(BTreePage, self).__init__(version_interface, number)
+        super().__init__(version_interface, number)
 
         page = self._version_interface.get_page_data(self.number)
 
@@ -590,10 +808,16 @@ class BTreePage(Page):
             elif master_page_hex_type == TABLE_LEAF_PAGE_HEX_ID:
                 self.page_type = PAGE_TYPE.B_TREE_TABLE_LEAF
             else:
-                log_message = "Page hex type for master page is: {} and not a table interior or table leaf page as " \
-                              "expected in b-tree page: {} in page version: {} for version: {}."
-                log_message = log_message.format(master_page_hex_type, self.number,
-                                                 self.page_version_number, self.version_number)
+                log_message = (
+                    "Page hex type for master page is: {} and not a table interior or table leaf page as "
+                    "expected in b-tree page: {} in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    master_page_hex_type,
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 self._logger.error(log_message)
                 raise BTreePageParsingError(log_message)
 
@@ -606,10 +830,16 @@ class BTreePage(Page):
         elif self.hex_type == INDEX_LEAF_PAGE_HEX_ID:
             self.page_type = PAGE_TYPE.B_TREE_INDEX_LEAF
         else:
-            log_message = "Page hex type: {} is not a valid b-tree page type for b-tree page: {} in page version: {} " \
-                          "for version: {}."
-            log_message = log_message.format(hex(self.hex_type), self.number, self.page_version_number,
-                                             self.version_number)
+            log_message = (
+                "Page hex type: {} is not a valid b-tree page type for b-tree page: {} in page version: {} "
+                "for version: {}."
+            )
+            log_message = log_message.format(
+                hex(self.hex_type),
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
@@ -623,14 +853,22 @@ class BTreePage(Page):
             cell_pointer_array_offset += SQLITE_DATABASE_HEADER_LENGTH
 
             if self.number != SQLITE_MASTER_SCHEMA_ROOT_PAGE:
-                log_message = "B-tree page found to contain the sqlite database header but is not the root page for " \
-                              "b-tree page: {} in page version: {} for version: {}."
-                log_message = log_message.format(self.number, self.page_version_number, self.version_number)
+                log_message = (
+                    "B-tree page found to contain the sqlite database header but is not the root page for "
+                    "b-tree page: {} in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.number, self.page_version_number, self.version_number
+                )
                 self._logger.error(log_message)
                 raise BTreePageParsingError(log_message)
 
-        cell_pointer_array_length = self.header.number_of_cells_on_page * CELL_POINTER_BYTE_LENGTH
-        self.unallocated_space_start_offset = cell_pointer_array_offset + cell_pointer_array_length
+        cell_pointer_array_length = (
+            self.header.number_of_cells_on_page * CELL_POINTER_BYTE_LENGTH
+        )
+        self.unallocated_space_start_offset = (
+            cell_pointer_array_offset + cell_pointer_array_length
+        )
         self.unallocated_space_end_offset = self.header.cell_content_offset
 
         adjusted_header_length = self.header.header_length
@@ -639,42 +877,74 @@ class BTreePage(Page):
         preface_size = adjusted_header_length + cell_pointer_array_length
 
         if preface_size != self.unallocated_space_start_offset:
-            log_message = "The calculated preface size: {} is not equal to the unallocated space start offset: {} " \
-                          "for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(preface_size, self.unallocated_space_start_offset, self.number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The calculated preface size: {} is not equal to the unallocated space start offset: {} "
+                "for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                preface_size,
+                self.unallocated_space_start_offset,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
         if self.header.cell_content_offset != self.unallocated_space_end_offset:
-            log_message = "The cell content offset in the header: {} is not equal to the unallocated space end " \
-                          "offset: {} for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.header.cell_content_offset, self.unallocated_space_end_offset,
-                                             self.number, self.page_version_number, self.version_number)
+            log_message = (
+                "The cell content offset in the header: {} is not equal to the unallocated space end "
+                "offset: {} for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.header.cell_content_offset,
+                self.unallocated_space_end_offset,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
         self.cells = []
         self.calculated_cell_total_byte_size = 0
         for cell_index in range(int(self.header.number_of_cells_on_page)):
-            cell_start_offset = cell_pointer_array_offset + cell_index * CELL_POINTER_BYTE_LENGTH
+            cell_start_offset = (
+                cell_pointer_array_offset + cell_index * CELL_POINTER_BYTE_LENGTH
+            )
             cell_end_offset = cell_start_offset + CELL_POINTER_BYTE_LENGTH
             cell_offset = unpack(b">H", page[cell_start_offset:cell_end_offset])[0]
             file_offset = self.offset + cell_offset
-            cell_instance = cell_class(self._version_interface, self.page_version_number, file_offset, self.number,
-                                       page, cell_index, cell_offset)
+            cell_instance = cell_class(
+                self._version_interface,
+                self.page_version_number,
+                file_offset,
+                self.number,
+                page,
+                cell_index,
+                cell_offset,
+            )
             self.cells.append(cell_instance)
             if type(cell_instance) != TableInteriorCell and cell_instance.has_overflow:
-                overflow_adjusted_page_size = cell_instance.end_offset - cell_instance.start_offset
+                overflow_adjusted_page_size = (
+                    cell_instance.end_offset - cell_instance.start_offset
+                )
                 self.calculated_cell_total_byte_size += overflow_adjusted_page_size
             else:
                 self.calculated_cell_total_byte_size += cell_instance.byte_size
 
         if len(self.cells) != self.header.number_of_cells_on_page:
-            log_message = "The number of cells parsed: {} does not equal the number of cells specified in the " \
-                          "header: {} for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(len(self.cells), self.header.number_of_cells_on_page,
-                                             self.number, self.page_version_number, self.version_number)
+            log_message = (
+                "The number of cells parsed: {} does not equal the number of cells specified in the "
+                "header: {} for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                len(self.cells),
+                self.header.number_of_cells_on_page,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
@@ -686,8 +956,15 @@ class BTreePage(Page):
             next_freeblock_offset = self.header.first_freeblock_offset
             file_offset = self.offset + next_freeblock_offset
             while next_freeblock_offset:
-                freeblock = Freeblock(self._version_interface, self.page_version_number, file_offset, self.number, page,
-                                      freeblock_index, next_freeblock_offset)
+                freeblock = Freeblock(
+                    self._version_interface,
+                    self.page_version_number,
+                    file_offset,
+                    self.number,
+                    page,
+                    freeblock_index,
+                    next_freeblock_offset,
+                )
                 self.freeblocks.append(freeblock)
                 next_freeblock_offset = freeblock.next_freeblock_offset
                 self.calculated_freeblock_total_byte_size += freeblock.byte_size
@@ -697,40 +974,74 @@ class BTreePage(Page):
         self.fragments = []
         self.calculated_fragment_total_byte_size = 0
         fragment_index = 0
-        aggregated_cells = sorted(self.cells + self.freeblocks, key=lambda b_tree_cell: b_tree_cell.start_offset)
+        aggregated_cells = sorted(
+            self.cells + self.freeblocks,
+            key=lambda b_tree_cell: b_tree_cell.start_offset,
+        )
         last_accounted_for_offset = self.unallocated_space_end_offset
         for cell in aggregated_cells:
             if last_accounted_for_offset >= self.size:
-                log_message = "The last accounted for offset: {} while determining fragments is greater than or " \
-                              "equal to the page size: {} for b-tree page: {} in page version: {} for version: {}."
-                log_message = log_message.format(last_accounted_for_offset, self.size, self.number,
-                                                 self.page_version_number, self.version_number)
+                log_message = (
+                    "The last accounted for offset: {} while determining fragments is greater than or "
+                    "equal to the page size: {} for b-tree page: {} in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    last_accounted_for_offset,
+                    self.size,
+                    self.number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 self._logger.error(log_message)
                 raise BTreePageParsingError(log_message)
 
             if cell.start_offset != last_accounted_for_offset:
                 file_offset = self.offset + last_accounted_for_offset
-                fragment = Fragment(self._version_interface, self.page_version_number, file_offset, self.number, page,
-                                    fragment_index, last_accounted_for_offset, cell.start_offset)
+                fragment = Fragment(
+                    self._version_interface,
+                    self.page_version_number,
+                    file_offset,
+                    self.number,
+                    page,
+                    fragment_index,
+                    last_accounted_for_offset,
+                    cell.start_offset,
+                )
                 self.fragments.append(fragment)
                 self.calculated_fragment_total_byte_size += fragment.byte_size
                 fragment_index += 1
             last_accounted_for_offset = cell.end_offset
 
         if self.header.number_of_fragmented_free_bytes > PAGE_FRAGMENT_LIMIT:
-            log_message = "The number of fragmented free bytes: {} is greater than the page fragment limit: {} " \
-                          "for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.header.number_of_fragmented_free_bytes, PAGE_FRAGMENT_LIMIT,
-                                             self.number, self.page_version_number, self.version_number)
+            log_message = (
+                "The number of fragmented free bytes: {} is greater than the page fragment limit: {} "
+                "for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.header.number_of_fragmented_free_bytes,
+                PAGE_FRAGMENT_LIMIT,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
-        if self.calculated_fragment_total_byte_size != self.header.number_of_fragmented_free_bytes:
-            log_message = "The calculated fragment total byte size: {} does not equal the number of fragmented free " \
-                          "bytes specified in the header: {} for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.calculated_fragment_total_byte_size,
-                                             self.header.number_of_fragmented_free_bytes,
-                                             self.number, self.page_version_number, self.version_number)
+        if (
+            self.calculated_fragment_total_byte_size
+            != self.header.number_of_fragmented_free_bytes
+        ):
+            log_message = (
+                "The calculated fragment total byte size: {} does not equal the number of fragmented free "
+                "bytes specified in the header: {} for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.calculated_fragment_total_byte_size,
+                self.header.number_of_fragmented_free_bytes,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             if version_interface.strict_format_checking:
                 raise BTreePageParsingError(log_message)
@@ -738,16 +1049,28 @@ class BTreePage(Page):
                 warn(log_message, RuntimeWarning)
 
         # Account for all space within the page
-        unallocated_space_size = self.unallocated_space_end_offset - self.unallocated_space_start_offset
+        unallocated_space_size = (
+            self.unallocated_space_end_offset - self.unallocated_space_start_offset
+        )
         body_size = self.calculated_cell_total_byte_size
-        body_size += self.calculated_freeblock_total_byte_size + self.calculated_fragment_total_byte_size
+        body_size += (
+            self.calculated_freeblock_total_byte_size
+            + self.calculated_fragment_total_byte_size
+        )
 
         accounted_for_space = preface_size + unallocated_space_size + body_size
         if accounted_for_space != self.size:
-            log_message = "The calculated accounted for space: {} does not equal the page size: {} " \
-                          "for b-tree page: {} in page version: {} for version: {}."
-            log_message = log_message.format(accounted_for_space, self.size, self.number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The calculated accounted for space: {} does not equal the page size: {} "
+                "for b-tree page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                accounted_for_space,
+                self.size,
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             if version_interface.strict_format_checking:
                 raise BTreePageParsingError(log_message)
@@ -757,38 +1080,59 @@ class BTreePage(Page):
         self.md5_hex_digest = get_md5_hash(page)
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Hex Type (Hex): {}\n" \
-                 + padding + "Header:\n{}\n"\
-                 + padding + "Cells Length: {}\n" \
-                 + padding + "Calculated Cell Total Byte Size: {}\n" \
-                 + padding + "Freeblocks Length: {}\n" \
-                 + padding + "Calculated Freeblock Total Byte Size: {}\n" \
-                 + padding + "Fragments Length: {}\n" \
-                 + padding + "Calculated Fragment Total Byte Size: {}"
-        string = string.format(hexlify(self.hex_type),
-                               self.header.stringify(padding + "\t"),
-                               len(self.cells),
-                               self.calculated_cell_total_byte_size,
-                               len(self.freeblocks),
-                               self.calculated_freeblock_total_byte_size,
-                               len(self.fragments),
-                               self.calculated_fragment_total_byte_size)
+        string = (
+            "\n"
+            + padding
+            + "Hex Type (Hex): {}\n"
+            + padding
+            + "Header:\n{}\n"
+            + padding
+            + "Cells Length: {}\n"
+            + padding
+            + "Calculated Cell Total Byte Size: {}\n"
+            + padding
+            + "Freeblocks Length: {}\n"
+            + padding
+            + "Calculated Freeblock Total Byte Size: {}\n"
+            + padding
+            + "Fragments Length: {}\n"
+            + padding
+            + "Calculated Fragment Total Byte Size: {}"
+        )
+        string = string.format(
+            hexlify(self.hex_type),
+            self.header.stringify(padding + "\t"),
+            len(self.cells),
+            self.calculated_cell_total_byte_size,
+            len(self.freeblocks),
+            self.calculated_freeblock_total_byte_size,
+            len(self.fragments),
+            self.calculated_fragment_total_byte_size,
+        )
         for cell in self.cells:
-            string += "\n" + padding + "Cell:\n{}".format(cell.stringify(padding + "\t"))
+            string += (
+                "\n" + padding + "Cell:\n{}".format(cell.stringify(padding + "\t"))
+            )
         for freeblock in self.freeblocks:
-            string += "\n" + padding + "Freeblock:\n{}".format(freeblock.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Freeblock:\n{}".format(freeblock.stringify(padding + "\t"))
+            )
         for fragment in self.fragments:
-            string += "\n" + padding + "Fragment:\n{}".format(fragment.stringify(padding + "\t"))
-        return super(BTreePage, self).stringify(padding) + string
+            string += (
+                "\n"
+                + padding
+                + "Fragment:\n{}".format(fragment.stringify(padding + "\t"))
+            )
+        return super().stringify(padding) + string
 
 
 class TableInteriorPage(BTreePage):
-
     def __init__(self, version_interface, number):
-        header_class_name = "{}.{}".format(PAGE_HEADER_MODULE, INTERIOR_PAGE_HEADER_CLASS)
-        cell_class_name = "{}.{}".format(CELL_MODULE, TABLE_INTERIOR_CELL_CLASS)
-        super(TableInteriorPage, self).__init__(version_interface, number, header_class_name, cell_class_name)
+        header_class_name = f"{PAGE_HEADER_MODULE}.{INTERIOR_PAGE_HEADER_CLASS}"
+        cell_class_name = f"{CELL_MODULE}.{TABLE_INTERIOR_CELL_CLASS}"
+        super().__init__(version_interface, number, header_class_name, cell_class_name)
 
         """
 
@@ -797,48 +1141,65 @@ class TableInteriorPage(BTreePage):
         """
 
         if not self.header.right_most_pointer:
-            log_message = "The right most pointer is not set for b-tree table interior page: {} " \
-                          "in page version: {} for version: {}."
-            log_message = log_message.format(self.number, self.page_version_number, self.version_number)
+            log_message = (
+                "The right most pointer is not set for b-tree table interior page: {} "
+                "in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.number, self.page_version_number, self.version_number
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
-        right_most_pointer_page_hex_type = self._version_interface.get_page_data(self.header.right_most_pointer,
-                                                                                 0, PAGE_TYPE_LENGTH)
+        right_most_pointer_page_hex_type = self._version_interface.get_page_data(
+            self.header.right_most_pointer, 0, PAGE_TYPE_LENGTH
+        )
 
         if right_most_pointer_page_hex_type == TABLE_INTERIOR_PAGE_HEX_ID:
-            self.right_most_page = TableInteriorPage(self._version_interface, self.header.right_most_pointer)
+            self.right_most_page = TableInteriorPage(
+                self._version_interface, self.header.right_most_pointer
+            )
         elif right_most_pointer_page_hex_type == TABLE_LEAF_PAGE_HEX_ID:
-            self.right_most_page = TableLeafPage(self._version_interface, self.header.right_most_pointer)
+            self.right_most_page = TableLeafPage(
+                self._version_interface, self.header.right_most_pointer
+            )
         else:
-            log_message = "The right most pointer does not point to a table interior or leaf page but instead has " \
-                          "a hex type of: {} for b-tree table interior page: {} in page version: {} for version: {}."
-            log_message = log_message.format(hexlify(right_most_pointer_page_hex_type), self.number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The right most pointer does not point to a table interior or leaf page but instead has "
+                "a hex type of: {} for b-tree table interior page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                hexlify(right_most_pointer_page_hex_type),
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
     def stringify(self, padding=""):
         string = "\n" + padding + "Right Most Page:\n{}"
-        string = string.format(self.right_most_page.stringify(padding + "\t") if self.right_most_page else None)
-        return super(TableInteriorPage, self).stringify(padding) + string
+        string = string.format(
+            self.right_most_page.stringify(padding + "\t")
+            if self.right_most_page
+            else None
+        )
+        return super().stringify(padding) + string
 
 
 class TableLeafPage(BTreePage):
-
     def __init__(self, version, number):
-        header_class_name = "{}.{}".format(PAGE_HEADER_MODULE, LEAF_PAGE_HEADER_CLASS)
-        cell_class_name = "{}.{}".format(CELL_MODULE, TABLE_LEAF_CELL_CLASS)
-        super(TableLeafPage, self).__init__(version, number, header_class_name, cell_class_name)
+        header_class_name = f"{PAGE_HEADER_MODULE}.{LEAF_PAGE_HEADER_CLASS}"
+        cell_class_name = f"{CELL_MODULE}.{TABLE_LEAF_CELL_CLASS}"
+        super().__init__(version, number, header_class_name, cell_class_name)
 
 
 class IndexInteriorPage(BTreePage):
-
     def __init__(self, version, number):
 
-        header_class_name = "{}.{}".format(PAGE_HEADER_MODULE, INTERIOR_PAGE_HEADER_CLASS)
-        cell_class_name = "{}.{}".format(CELL_MODULE, INDEX_INTERIOR_CELL_CLASS)
-        super(IndexInteriorPage, self).__init__(version, number, header_class_name, cell_class_name)
+        header_class_name = f"{PAGE_HEADER_MODULE}.{INTERIOR_PAGE_HEADER_CLASS}"
+        cell_class_name = f"{CELL_MODULE}.{INDEX_INTERIOR_CELL_CLASS}"
+        super().__init__(version, number, header_class_name, cell_class_name)
 
         """
 
@@ -847,47 +1208,74 @@ class IndexInteriorPage(BTreePage):
         """
 
         if not self.header.right_most_pointer:
-            log_message = "The right most pointer is not set for b-tree index interior page: {} " \
-                          "in page version: {} for version: {}."
-            log_message = log_message.format(self.number, self.page_version_number, self.version_number)
+            log_message = (
+                "The right most pointer is not set for b-tree index interior page: {} "
+                "in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.number, self.page_version_number, self.version_number
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
-        right_most_pointer_page_hex_type = self._version_interface.get_page_data(self.header.right_most_pointer,
-                                                                                 0, PAGE_TYPE_LENGTH)
+        right_most_pointer_page_hex_type = self._version_interface.get_page_data(
+            self.header.right_most_pointer, 0, PAGE_TYPE_LENGTH
+        )
 
         if right_most_pointer_page_hex_type == INDEX_INTERIOR_PAGE_HEX_ID:
-            self.right_most_page = IndexInteriorPage(self._version_interface, self.header.right_most_pointer)
+            self.right_most_page = IndexInteriorPage(
+                self._version_interface, self.header.right_most_pointer
+            )
         elif right_most_pointer_page_hex_type == INDEX_LEAF_PAGE_HEX_ID:
-            self.right_most_page = IndexLeafPage(self._version_interface, self.header.right_most_pointer)
+            self.right_most_page = IndexLeafPage(
+                self._version_interface, self.header.right_most_pointer
+            )
         else:
-            log_message = "The right most pointer does not point to a index interior or leaf page but instead has " \
-                          "a hex type of: {} for b-tree index interior page: {} in page version: {} for version: {}."
-            log_message = log_message.format(hexlify(right_most_pointer_page_hex_type), self.number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The right most pointer does not point to a index interior or leaf page but instead has "
+                "a hex type of: {} for b-tree index interior page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                hexlify(right_most_pointer_page_hex_type),
+                self.number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise BTreePageParsingError(log_message)
 
     def stringify(self, padding=""):
         string = "\n" + padding + "Right Most Page:\n{}"
-        string = string.format(self.right_most_page.stringify(padding + "\t") if self.right_most_page else None)
-        return super(IndexInteriorPage, self).stringify(padding) + string
+        string = string.format(
+            self.right_most_page.stringify(padding + "\t")
+            if self.right_most_page
+            else None
+        )
+        return super().stringify(padding) + string
 
 
 class IndexLeafPage(BTreePage):
-
     def __init__(self, version, number):
-        header_class_name = "{}.{}".format(PAGE_HEADER_MODULE, LEAF_PAGE_HEADER_CLASS)
-        cell_class_name = "{}.{}".format(CELL_MODULE, INDEX_LEAF_CELL_CLASS)
-        super(IndexLeafPage, self).__init__(version, number, header_class_name, cell_class_name)
+        header_class_name = f"{PAGE_HEADER_MODULE}.{LEAF_PAGE_HEADER_CLASS}"
+        cell_class_name = f"{CELL_MODULE}.{INDEX_LEAF_CELL_CLASS}"
+        super().__init__(version, number, header_class_name, cell_class_name)
 
 
-class BTreeCell(object):
+class BTreeCell:
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, index, offset,
-                 source=CELL_SOURCE.B_TREE, location=None):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        index,
+        offset,
+        source=CELL_SOURCE.B_TREE,
+        location=None,
+    ):
 
         self._logger = getLogger(LOGGER_NAME)
 
@@ -909,35 +1297,49 @@ class BTreeCell(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Version Number: {}\n" \
-                 + padding + "Page Version Number: {}\n" \
-                 + padding + "File Offset: {}\n" \
-                 + padding + "Page Number: {}\n" \
-                 + padding + "Source: {}\n" \
-                 + padding + "Location: {}\n" \
-                 + padding + "Index: {}\n" \
-                 + padding + "Start Offset: {}\n" \
-                 + padding + "End Offset: {}\n" \
-                 + padding + "Byte Size: {}\n" \
-                 + padding + "MD5 Hex Digest: {}"
-        return string.format(self.version_number,
-                             self.page_version_number,
-                             self.file_offset,
-                             self.page_number,
-                             self.source,
-                             self.location,
-                             self.index,
-                             self.start_offset,
-                             self.end_offset,
-                             self.byte_size,
-                             self.md5_hex_digest)
+        string = (
+            padding
+            + "Version Number: {}\n"
+            + padding
+            + "Page Version Number: {}\n"
+            + padding
+            + "File Offset: {}\n"
+            + padding
+            + "Page Number: {}\n"
+            + padding
+            + "Source: {}\n"
+            + padding
+            + "Location: {}\n"
+            + padding
+            + "Index: {}\n"
+            + padding
+            + "Start Offset: {}\n"
+            + padding
+            + "End Offset: {}\n"
+            + padding
+            + "Byte Size: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}"
+        )
+        return string.format(
+            self.version_number,
+            self.page_version_number,
+            self.file_offset,
+            self.page_number,
+            self.source,
+            self.location,
+            self.index,
+            self.start_offset,
+            self.end_offset,
+            self.byte_size,
+            self.md5_hex_digest,
+        )
 
 
 class TableInteriorCell(BTreeCell):
-
     """
 
 
@@ -947,18 +1349,39 @@ class TableInteriorCell(BTreeCell):
 
     """
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, page, index, offset):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        offset,
+    ):
 
-        super(TableInteriorCell, self).__init__(version_interface, page_version_number, file_offset,
-                                                page_number, index, offset)
-        left_child_pointer_end_offset = self.start_offset + LEFT_CHILD_POINTER_BYTE_LENGTH
-        self.left_child_pointer = unpack(b">I", page[self.start_offset:left_child_pointer_end_offset])[0]
-        self.row_id, self.row_id_varint_length = decode_varint(page, left_child_pointer_end_offset)
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            offset,
+        )
+        left_child_pointer_end_offset = (
+            self.start_offset + LEFT_CHILD_POINTER_BYTE_LENGTH
+        )
+        self.left_child_pointer = unpack(
+            b">I", page[self.start_offset : left_child_pointer_end_offset]
+        )[0]
+        self.row_id, self.row_id_varint_length = decode_varint(
+            page, left_child_pointer_end_offset
+        )
 
         self.byte_size = LEFT_CHILD_POINTER_BYTE_LENGTH + self.row_id_varint_length
         self.end_offset = self.start_offset + self.byte_size
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[self.start_offset : self.end_offset])
 
         """
 
@@ -967,54 +1390,103 @@ class TableInteriorCell(BTreeCell):
         """
 
         if not self.left_child_pointer:
-            log_message = "The left child pointer is not set for b-tree table interior cell index: {} " \
-                          "at offset: {} for page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.index, self.start_offset, self.page_number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The left child pointer is not set for b-tree table interior cell index: {} "
+                "at offset: {} for page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
-        left_child_pointer_page_hex_type = self._version_interface.get_page_data(self.left_child_pointer,
-                                                                                 0, PAGE_TYPE_LENGTH)
+        left_child_pointer_page_hex_type = self._version_interface.get_page_data(
+            self.left_child_pointer, 0, PAGE_TYPE_LENGTH
+        )
 
         if left_child_pointer_page_hex_type == TABLE_INTERIOR_PAGE_HEX_ID:
-            self.left_child_page = TableInteriorPage(self._version_interface, self.left_child_pointer)
+            self.left_child_page = TableInteriorPage(
+                self._version_interface, self.left_child_pointer
+            )
         elif left_child_pointer_page_hex_type == TABLE_LEAF_PAGE_HEX_ID:
-            self.left_child_page = TableLeafPage(self._version_interface, self.left_child_pointer)
+            self.left_child_page = TableLeafPage(
+                self._version_interface, self.left_child_pointer
+            )
         else:
-            log_message = "The left child pointer: {} does not point to a table interior or leaf page but instead " \
-                          "has a hex type of: {} for b-tree table interior cell index: {} at offset: {} for page: {} " \
-                          "in page version: {} for version: {}."
-            log_message = log_message.format(self.left_child_pointer, hexlify(left_child_pointer_page_hex_type),
-                                             self.index, self.start_offset, self.page_number, self.page_version_number,
-                                             self.version_number)
+            log_message = (
+                "The left child pointer: {} does not point to a table interior or leaf page but instead "
+                "has a hex type of: {} for b-tree table interior cell index: {} at offset: {} for page: {} "
+                "in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.left_child_pointer,
+                hexlify(left_child_pointer_page_hex_type),
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Left Child Pointer: {}\n" \
-                 + padding + "Row ID: {}\n" \
-                 + padding + "Row ID VARINT Length: {}"
-        string = string.format(self.left_child_pointer,
-                               self.row_id,
-                               self.row_id_varint_length)
+        string = (
+            "\n"
+            + padding
+            + "Left Child Pointer: {}\n"
+            + padding
+            + "Row ID: {}\n"
+            + padding
+            + "Row ID VARINT Length: {}"
+        )
+        string = string.format(
+            self.left_child_pointer, self.row_id, self.row_id_varint_length
+        )
         string += "\n" + padding + "Left Child Page:\n{}"
-        string = string.format(self.left_child_page.stringify(padding + "\t") if self.left_child_page else None)
-        return super(TableInteriorCell, self).stringify(padding) + string
+        string = string.format(
+            self.left_child_page.stringify(padding + "\t")
+            if self.left_child_page
+            else None
+        )
+        return super().stringify(padding) + string
 
 
 class TableLeafCell(BTreeCell):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        offset,
+    ):
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, page, index, offset):
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            offset,
+        )
 
-        super(TableLeafCell, self).__init__(version_interface, page_version_number, file_offset,
-                                            page_number, index, offset)
-
-        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(page, self.start_offset)
+        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(
+            page, self.start_offset
+        )
         row_id_offset = self.start_offset + self.payload_byte_size_varint_length
         self.row_id, self.row_id_varint_length = decode_varint(page, row_id_offset)
-        self.payload_offset = self.start_offset + self.payload_byte_size_varint_length + self.row_id_varint_length
+        self.payload_offset = (
+            self.start_offset
+            + self.payload_byte_size_varint_length
+            + self.row_id_varint_length
+        )
 
         self.has_overflow = False
         self.overflow_pages = None
@@ -1062,28 +1534,60 @@ class TableLeafCell(BTreeCell):
             if self.bytes_on_first_page > u - 35:
                 self.bytes_on_first_page = m
             self.has_overflow = True
-            self.overflow_page_number_offset = self.payload_offset + self.bytes_on_first_page
-            overflow_page_number_end_offset = self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
-            self.overflow_page_number = unpack(b">I", page[int(self.overflow_page_number_offset):
-                                                           int(overflow_page_number_end_offset)])[0]
+            self.overflow_page_number_offset = (
+                self.payload_offset + self.bytes_on_first_page
+            )
+            overflow_page_number_end_offset = (
+                self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
+            )
+            self.overflow_page_number = unpack(
+                b">I",
+                page[
+                    int(self.overflow_page_number_offset) : int(
+                        overflow_page_number_end_offset
+                    )
+                ],
+            )[0]
             if self.bytes_on_first_page < m:
-                log_message = "When calculating overflow, the bytes on the first page: {} calculated are less than " \
-                              "m: {} for b-tree table leaf cell index: {} at offset: {} for page: {} in " \
-                              "page version: {} for version: {}."
-                log_message = log_message.format(self.bytes_on_first_page, m, self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "When calculating overflow, the bytes on the first page: {} calculated are less than "
+                    "m: {} for b-tree table leaf cell index: {} at offset: {} for page: {} in "
+                    "page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.bytes_on_first_page,
+                    m,
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 self._logger.error(log_message)
                 raise CellParsingError(log_message)
 
-        self.byte_size = self.payload_byte_size_varint_length + self.row_id_varint_length + self.payload_byte_size
+        self.byte_size = (
+            self.payload_byte_size_varint_length
+            + self.row_id_varint_length
+            + self.payload_byte_size
+        )
         self.byte_size += FIRST_OVERFLOW_PAGE_NUMBER_LENGTH if self.has_overflow else 0
-        self.end_offset = self.start_offset + self.byte_size - self.payload_byte_size + self.bytes_on_first_page
+        self.end_offset = (
+            self.start_offset
+            + self.byte_size
+            - self.payload_byte_size
+            + self.bytes_on_first_page
+        )
 
         self.overflow_byte_size = int(self.payload_byte_size - self.bytes_on_first_page)
-        self.expected_number_of_overflow_pages, \
-            self.expected_last_overflow_page_content_size = calculate_expected_overflow(self.overflow_byte_size, u)
+        (
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+        ) = calculate_expected_overflow(self.overflow_byte_size, u)
 
-        self.md5_hex_digest = get_md5_hash(page[int(self.start_offset):int(self.end_offset)])
+        self.md5_hex_digest = get_md5_hash(
+            page[int(self.start_offset) : int(self.end_offset)]
+        )
 
         if self.has_overflow:
 
@@ -1107,83 +1611,156 @@ class TableLeafCell(BTreeCell):
             self.overflow_pages = {}
             payload_remaining = self.overflow_byte_size
 
-            overflow_page = OverflowPage(self._version_interface, self.overflow_page_number, self.page_number,
-                                         FIRST_OVERFLOW_PARENT_PAGE_NUMBER, FIRST_OVERFLOW_PAGE_INDEX,
-                                         payload_remaining)
+            overflow_page = OverflowPage(
+                self._version_interface,
+                self.overflow_page_number,
+                self.page_number,
+                FIRST_OVERFLOW_PARENT_PAGE_NUMBER,
+                FIRST_OVERFLOW_PAGE_INDEX,
+                payload_remaining,
+            )
 
             self.overflow_pages[overflow_page.number] = overflow_page
             self.last_overflow_page_content_size = overflow_page.content_length
 
             while overflow_page.next_overflow_page_number:
-                payload_remaining = payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
-                overflow_page = OverflowPage(self._version_interface, overflow_page.next_overflow_page_number,
-                                             self.page_number, overflow_page.number, overflow_page.index + 1,
-                                             payload_remaining)
+                payload_remaining = (
+                    payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
+                )
+                overflow_page = OverflowPage(
+                    self._version_interface,
+                    overflow_page.next_overflow_page_number,
+                    self.page_number,
+                    overflow_page.number,
+                    overflow_page.index + 1,
+                    payload_remaining,
+                )
                 self.overflow_pages[overflow_page.number] = overflow_page
                 self.last_overflow_page_content_size = overflow_page.content_length
 
         if self.expected_number_of_overflow_pages != self.number_of_overflow_pages:
-            log_message = "The number of expected overflow pages: {} was not the actual number of overflow pages " \
-                          "parsed: {} for b-tree table leaf cell index: {} at offset: {} for page: {} in " \
-                          "page version: {} for version: {}."
-            log_message = log_message.format(self.expected_number_of_overflow_pages, self.number_of_overflow_pages,
-                                             self.index, self.start_offset, self.page_number, self.page_version_number,
-                                             self.version_number)
+            log_message = (
+                "The number of expected overflow pages: {} was not the actual number of overflow pages "
+                "parsed: {} for b-tree table leaf cell index: {} at offset: {} for page: {} in "
+                "page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_number_of_overflow_pages,
+                self.number_of_overflow_pages,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
-        if self.expected_last_overflow_page_content_size != self.last_overflow_page_content_size:
-            log_message = "The expected last overflow page content size: {} was not the actual last overflow page " \
-                          "content size parsed: {} for b-tree table leaf cell index: {} at offset: {} for page: {} " \
-                          "in page version: {} for version: {}."
-            log_message = log_message.format(self.expected_last_overflow_page_content_size,
-                                             self.last_overflow_page_content_size, self.index, self.start_offset,
-                                             self.page_number, self.page_version_number, self.version_number)
+        if (
+            self.expected_last_overflow_page_content_size
+            != self.last_overflow_page_content_size
+        ):
+            log_message = (
+                "The expected last overflow page content size: {} was not the actual last overflow page "
+                "content size parsed: {} for b-tree table leaf cell index: {} at offset: {} for page: {} "
+                "in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_last_overflow_page_content_size,
+                self.last_overflow_page_content_size,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             raise CellParsingError(log_message)
 
-        self.payload = Record(page, int(self.payload_offset), int(self.payload_byte_size),
-                              int(self.bytes_on_first_page), self.overflow)
+        self.payload = Record(
+            page,
+            int(self.payload_offset),
+            int(self.payload_byte_size),
+            int(self.bytes_on_first_page),
+            self.overflow,
+        )
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Payload Byte Size: {}\n" \
-                 + padding + "Payload Byte Size VARINT Length: {}\n" \
-                 + padding + "Row ID: {}\n" \
-                 + padding + "Row ID VARINT Length: {}\n" \
-                 + padding + "Payload Offset: {}\n" \
-                 + padding + "Bytes on First Page: {}\n" \
-                 + padding + "Has Overflow: {}\n" \
-                 + padding + "Overflow Byte Size: {}\n" \
-                 + padding + "Expected Number of Overflow Pages: {}\n" \
-                 + padding + "Expected Last Overflow Page Content Size: {}\n" \
-                 + padding + "Number of Overflow Pages: {}\n" \
-                 + padding + "Overflow Page Number Offset: {}\n" \
-                 + padding + "Overflow Page Number: {}\n" \
-                 + padding + "Last Overflow Page Content Size: {}\n" \
-                 + padding + "Overflow (Hex): {}"
-        string = string.format(self.payload_byte_size,
-                               self.payload_byte_size_varint_length,
-                               self.row_id,
-                               self.row_id_varint_length,
-                               self.payload_offset,
-                               self.bytes_on_first_page,
-                               self.has_overflow,
-                               self.overflow_byte_size,
-                               self.expected_number_of_overflow_pages,
-                               self.expected_last_overflow_page_content_size,
-                               self.number_of_overflow_pages,
-                               self.overflow_page_number_offset,
-                               self.overflow_page_number,
-                               self.last_overflow_page_content_size,
-                               hexlify(self.overflow))
-        string += "\n" + padding + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        string = (
+            "\n"
+            + padding
+            + "Payload Byte Size: {}\n"
+            + padding
+            + "Payload Byte Size VARINT Length: {}\n"
+            + padding
+            + "Row ID: {}\n"
+            + padding
+            + "Row ID VARINT Length: {}\n"
+            + padding
+            + "Payload Offset: {}\n"
+            + padding
+            + "Bytes on First Page: {}\n"
+            + padding
+            + "Has Overflow: {}\n"
+            + padding
+            + "Overflow Byte Size: {}\n"
+            + padding
+            + "Expected Number of Overflow Pages: {}\n"
+            + padding
+            + "Expected Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Number of Overflow Pages: {}\n"
+            + padding
+            + "Overflow Page Number Offset: {}\n"
+            + padding
+            + "Overflow Page Number: {}\n"
+            + padding
+            + "Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Overflow (Hex): {}"
+        )
+        string = string.format(
+            self.payload_byte_size,
+            self.payload_byte_size_varint_length,
+            self.row_id,
+            self.row_id_varint_length,
+            self.payload_offset,
+            self.bytes_on_first_page,
+            self.has_overflow,
+            self.overflow_byte_size,
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+            self.number_of_overflow_pages,
+            self.overflow_page_number_offset,
+            self.overflow_page_number,
+            self.last_overflow_page_content_size,
+            hexlify(self.overflow),
+        )
+        string += (
+            "\n"
+            + padding
+            + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        )
         if self.has_overflow:
             overflow_page = self.overflow_pages[self.overflow_page_number]
-            string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Overflow Page:\n{}".format(
+                    self.overflow_page.stringify(padding + "\t")
+                )
+            )
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
-                string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
-        return super(TableLeafCell, self).stringify(padding) + string
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
+                string += (
+                    "\n"
+                    + padding
+                    + "Overflow Page:\n{}".format(
+                        self.overflow_page.stringify(padding + "\t")
+                    )
+                )
+        return super().stringify(padding) + string
 
     @property
     def number_of_overflow_pages(self):
@@ -1203,32 +1780,64 @@ class TableLeafCell(BTreeCell):
             overflow_page = self.overflow_pages[self.overflow_page_number]
             overflow += overflow_page.content
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
                 overflow += overflow_page.content
 
             if len(overflow) != self.overflow_byte_size:
-                log_message = "The expected overflow size: {} did not match the overflow size parsed: {} " \
-                              "for b-tree table leaf cell index: {} at offset: {} for page: {} " \
-                              "in page version: {} for version: {}."
-                log_message = log_message.format(self.overflow_byte_size, len(overflow), self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "The expected overflow size: {} did not match the overflow size parsed: {} "
+                    "for b-tree table leaf cell index: {} at offset: {} for page: {} "
+                    "in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.overflow_byte_size,
+                    len(overflow),
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 raise CellParsingError(log_message)
 
             return overflow
 
 
 class IndexInteriorCell(BTreeCell):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        offset,
+    ):
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, page, index, offset):
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            offset,
+        )
 
-        super(IndexInteriorCell, self).__init__(version_interface, page_version_number, file_offset,
-                                                page_number, index, offset)
-
-        left_child_pointer_end_offset = self.start_offset + LEFT_CHILD_POINTER_BYTE_LENGTH
-        self.left_child_pointer = unpack(b">I", page[self.start_offset:left_child_pointer_end_offset])[0]
-        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(page,
-                                                                                     left_child_pointer_end_offset)
-        self.payload_offset = left_child_pointer_end_offset + self.payload_byte_size_varint_length
+        left_child_pointer_end_offset = (
+            self.start_offset + LEFT_CHILD_POINTER_BYTE_LENGTH
+        )
+        self.left_child_pointer = unpack(
+            b">I", page[self.start_offset : left_child_pointer_end_offset]
+        )[0]
+        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(
+            page, left_child_pointer_end_offset
+        )
+        self.payload_offset = (
+            left_child_pointer_end_offset + self.payload_byte_size_varint_length
+        )
 
         self.has_overflow = False
         self.overflow_pages = None
@@ -1278,29 +1887,53 @@ class IndexInteriorCell(BTreeCell):
             if self.bytes_on_first_page > x:
                 self.bytes_on_first_page = m
             self.has_overflow = True
-            self.overflow_page_number_offset = self.payload_offset + self.bytes_on_first_page
-            overflow_page_number_end_offset = self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
-            self.overflow_page_number = unpack(b">I", page[self.overflow_page_number_offset:
-                                                           overflow_page_number_end_offset])[0]
+            self.overflow_page_number_offset = (
+                self.payload_offset + self.bytes_on_first_page
+            )
+            overflow_page_number_end_offset = (
+                self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
+            )
+            self.overflow_page_number = unpack(
+                b">I",
+                page[
+                    self.overflow_page_number_offset : overflow_page_number_end_offset
+                ],
+            )[0]
             if self.bytes_on_first_page < m:
-                log_message = "When calculating overflow, the bytes on the first page: {} calculated are less than " \
-                              "m: {} for b-tree index interior cell index: {} at offset: {} for page: {} in " \
-                              "page version: {} for version: {}."
-                log_message = log_message.format(self.bytes_on_first_page, m, self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "When calculating overflow, the bytes on the first page: {} calculated are less than "
+                    "m: {} for b-tree index interior cell index: {} at offset: {} for page: {} in "
+                    "page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.bytes_on_first_page,
+                    m,
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 self._logger.error(log_message)
                 raise CellParsingError(log_message)
 
         self.byte_size = LEFT_CHILD_POINTER_BYTE_LENGTH
         self.byte_size += self.payload_byte_size_varint_length + self.payload_byte_size
         self.byte_size += FIRST_OVERFLOW_PAGE_NUMBER_LENGTH if self.has_overflow else 0
-        self.end_offset = self.start_offset + self.byte_size - self.payload_byte_size + self.bytes_on_first_page
+        self.end_offset = (
+            self.start_offset
+            + self.byte_size
+            - self.payload_byte_size
+            + self.bytes_on_first_page
+        )
 
         self.overflow_byte_size = self.payload_byte_size - self.bytes_on_first_page
-        self.expected_number_of_overflow_pages, \
-            self.expected_last_overflow_page_content_size = calculate_expected_overflow(self.overflow_byte_size, u)
+        (
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+        ) = calculate_expected_overflow(self.overflow_byte_size, u)
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[self.start_offset : self.end_offset])
 
         if self.has_overflow:
 
@@ -1324,42 +1957,78 @@ class IndexInteriorCell(BTreeCell):
             self.overflow_pages = {}
             payload_remaining = self.overflow_byte_size
 
-            overflow_page = OverflowPage(self._version_interface, self.overflow_page_number, self.page_number,
-                                         FIRST_OVERFLOW_PARENT_PAGE_NUMBER, FIRST_OVERFLOW_PAGE_INDEX,
-                                         payload_remaining)
+            overflow_page = OverflowPage(
+                self._version_interface,
+                self.overflow_page_number,
+                self.page_number,
+                FIRST_OVERFLOW_PARENT_PAGE_NUMBER,
+                FIRST_OVERFLOW_PAGE_INDEX,
+                payload_remaining,
+            )
 
             self.overflow_pages[overflow_page.number] = overflow_page
             self.last_overflow_page_content_size = overflow_page.content_length
 
             while overflow_page.next_overflow_page_number:
-                payload_remaining = payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
-                overflow_page = OverflowPage(self._version_interface, overflow_page.next_overflow_page_number,
-                                             self.page_number, overflow_page.number, overflow_page.index + 1,
-                                             payload_remaining)
+                payload_remaining = (
+                    payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
+                )
+                overflow_page = OverflowPage(
+                    self._version_interface,
+                    overflow_page.next_overflow_page_number,
+                    self.page_number,
+                    overflow_page.number,
+                    overflow_page.index + 1,
+                    payload_remaining,
+                )
                 self.overflow_pages[overflow_page.number] = overflow_page
                 self.last_overflow_page_content_size = overflow_page.content_length
 
         if self.expected_number_of_overflow_pages != self.number_of_overflow_pages:
-            log_message = "The number of expected overflow pages: {} was not the actual number of overflow pages " \
-                          "parsed: {} for b-tree index interior cell index: {} at offset: {} for page: {} in " \
-                          "page version: {} for version: {}."
-            log_message = log_message.format(self.expected_number_of_overflow_pages, self.number_of_overflow_pages,
-                                             self.index, self.start_offset, self.page_number, self.page_version_number,
-                                             self.version_number)
+            log_message = (
+                "The number of expected overflow pages: {} was not the actual number of overflow pages "
+                "parsed: {} for b-tree index interior cell index: {} at offset: {} for page: {} in "
+                "page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_number_of_overflow_pages,
+                self.number_of_overflow_pages,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
-        if self.expected_last_overflow_page_content_size != self.last_overflow_page_content_size:
-            log_message = "The expected last overflow page content size: {} was not the actual last overflow page " \
-                          "content size parsed: {} for b-tree index interior cell index: {} at offset: {} for " \
-                          "page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.expected_last_overflow_page_content_size,
-                                             self.last_overflow_page_content_size, self.index, self.start_offset,
-                                             self.page_number, self.page_version_number, self.version_number)
+        if (
+            self.expected_last_overflow_page_content_size
+            != self.last_overflow_page_content_size
+        ):
+            log_message = (
+                "The expected last overflow page content size: {} was not the actual last overflow page "
+                "content size parsed: {} for b-tree index interior cell index: {} at offset: {} for "
+                "page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_last_overflow_page_content_size,
+                self.last_overflow_page_content_size,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             raise CellParsingError(log_message)
 
-        self.payload = Record(page, self.payload_offset, self.payload_byte_size,
-                              self.bytes_on_first_page, self.overflow)
+        self.payload = Record(
+            page,
+            self.payload_offset,
+            self.payload_byte_size,
+            self.bytes_on_first_page,
+            self.overflow,
+        )
 
         """
 
@@ -1368,69 +2037,129 @@ class IndexInteriorCell(BTreeCell):
         """
 
         if not self.left_child_pointer:
-            log_message = "The left child pointer is not set for b-tree index interior cell index: {} " \
-                          "at offset: {} for page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.index, self.start_offset, self.page_number,
-                                             self.page_version_number, self.version_number)
+            log_message = (
+                "The left child pointer is not set for b-tree index interior cell index: {} "
+                "at offset: {} for page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
-        left_child_pointer_page_hex_type = self._version_interface.get_page_data(self.left_child_pointer,
-                                                                                 0, PAGE_TYPE_LENGTH)
+        left_child_pointer_page_hex_type = self._version_interface.get_page_data(
+            self.left_child_pointer, 0, PAGE_TYPE_LENGTH
+        )
 
         if left_child_pointer_page_hex_type == INDEX_INTERIOR_PAGE_HEX_ID:
-            self.left_child_page = IndexInteriorPage(self._version_interface, self.left_child_pointer)
+            self.left_child_page = IndexInteriorPage(
+                self._version_interface, self.left_child_pointer
+            )
         elif left_child_pointer_page_hex_type == INDEX_LEAF_PAGE_HEX_ID:
-            self.left_child_page = IndexLeafPage(self._version_interface, self.left_child_pointer)
+            self.left_child_page = IndexLeafPage(
+                self._version_interface, self.left_child_pointer
+            )
         else:
-            log_message = "The left child pointer does not point to a index interior or index page but instead has " \
-                          "a hex type of: {} for b-tree index interior cell index: {} at offset: {} for page: {} " \
-                          "in page version: {} for version: {}."
-            log_message = log_message.format(hexlify(left_child_pointer_page_hex_type), self.index, self.start_offset,
-                                             self.page_number, self.page_version_number, self.version_number)
+            log_message = (
+                "The left child pointer does not point to a index interior or index page but instead has "
+                "a hex type of: {} for b-tree index interior cell index: {} at offset: {} for page: {} "
+                "in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                hexlify(left_child_pointer_page_hex_type),
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Left Child Pointer: {}\n" \
-                 + padding + "Payload Byte Size: {}\n" \
-                 + padding + "Payload Byte Size VARINT Length: {}\n" \
-                 + padding + "Payload Offset: {}\n" \
-                 + padding + "Bytes on First Page: {}\n" \
-                 + padding + "Has Overflow: {}\n" \
-                 + padding + "Overflow Byte Size: {}\n" \
-                 + padding + "Expected Number of Overflow Pages: {}\n" \
-                 + padding + "Expected Last Overflow Page Content Size: {}\n" \
-                 + padding + "Number of Overflow Pages: {}\n" \
-                 + padding + "Overflow Page Number Offset: {}\n" \
-                 + padding + "Overflow Page Number: {}\n" \
-                 + padding + "Last Overflow Page Content Size: {}\n" \
-                 + padding + "Overflow (Hex): {}"
-        string = string.format(self.left_child_pointer,
-                               self.payload_byte_size,
-                               self.payload_byte_size_varint_length,
-                               self.payload_offset,
-                               self.bytes_on_first_page,
-                               self.has_overflow,
-                               self.overflow_byte_size,
-                               self.expected_number_of_overflow_pages,
-                               self.expected_last_overflow_page_content_size,
-                               self.number_of_overflow_pages,
-                               self.overflow_page_number_offset,
-                               self.overflow_page_number,
-                               self.last_overflow_page_content_size,
-                               hexlify(self.overflow))
-        string += "\n" + padding + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        string = (
+            "\n"
+            + padding
+            + "Left Child Pointer: {}\n"
+            + padding
+            + "Payload Byte Size: {}\n"
+            + padding
+            + "Payload Byte Size VARINT Length: {}\n"
+            + padding
+            + "Payload Offset: {}\n"
+            + padding
+            + "Bytes on First Page: {}\n"
+            + padding
+            + "Has Overflow: {}\n"
+            + padding
+            + "Overflow Byte Size: {}\n"
+            + padding
+            + "Expected Number of Overflow Pages: {}\n"
+            + padding
+            + "Expected Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Number of Overflow Pages: {}\n"
+            + padding
+            + "Overflow Page Number Offset: {}\n"
+            + padding
+            + "Overflow Page Number: {}\n"
+            + padding
+            + "Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Overflow (Hex): {}"
+        )
+        string = string.format(
+            self.left_child_pointer,
+            self.payload_byte_size,
+            self.payload_byte_size_varint_length,
+            self.payload_offset,
+            self.bytes_on_first_page,
+            self.has_overflow,
+            self.overflow_byte_size,
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+            self.number_of_overflow_pages,
+            self.overflow_page_number_offset,
+            self.overflow_page_number,
+            self.last_overflow_page_content_size,
+            hexlify(self.overflow),
+        )
+        string += (
+            "\n"
+            + padding
+            + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        )
         if self.has_overflow:
             overflow_page = self.overflow_pages[self.overflow_page_number]
-            string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Overflow Page:\n{}".format(
+                    self.overflow_page.stringify(padding + "\t")
+                )
+            )
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
-                string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
+                string += (
+                    "\n"
+                    + padding
+                    + "Overflow Page:\n{}".format(
+                        self.overflow_page.stringify(padding + "\t")
+                    )
+                )
         string += "\n" + padding + "Left Child Page:\n{}"
-        string = string.format(self.left_child_page.stringify(padding + "\t") if self.left_child_page else None)
-        return super(IndexInteriorCell, self).stringify(padding) + string
+        string = string.format(
+            self.left_child_page.stringify(padding + "\t")
+            if self.left_child_page
+            else None
+        )
+        return super().stringify(padding) + string
 
     @property
     def number_of_overflow_pages(self):
@@ -1449,28 +2178,55 @@ class IndexInteriorCell(BTreeCell):
             overflow_page = self.overflow_pages[self.overflow_page_number]
             overflow += overflow_page.content
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
                 overflow += overflow_page.content
 
             if len(overflow) != self.overflow_byte_size:
-                log_message = "The expected overflow size: {} did not match the overflow size parsed: {} " \
-                              "for b-tree table leaf cell index: {} at offset: {} for page: {} " \
-                              "in page version: {} for version: {}."
-                log_message = log_message.format(self.overflow_byte_size, len(overflow), self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "The expected overflow size: {} did not match the overflow size parsed: {} "
+                    "for b-tree table leaf cell index: {} at offset: {} for page: {} "
+                    "in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.overflow_byte_size,
+                    len(overflow),
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 raise CellParsingError(log_message)
 
             return overflow
 
 
 class IndexLeafCell(BTreeCell):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        offset,
+    ):
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, page, index, offset):
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            offset,
+        )
 
-        super(IndexLeafCell, self).__init__(version_interface, page_version_number, file_offset,
-                                            page_number, index, offset)
-
-        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(page, self.start_offset)
+        self.payload_byte_size, self.payload_byte_size_varint_length = decode_varint(
+            page, self.start_offset
+        )
         self.payload_offset = self.start_offset + self.payload_byte_size_varint_length
 
         self.has_overflow = False
@@ -1521,28 +2277,52 @@ class IndexLeafCell(BTreeCell):
             if self.bytes_on_first_page > x:
                 self.bytes_on_first_page = m
             self.has_overflow = True
-            self.overflow_page_number_offset = self.payload_offset + self.bytes_on_first_page
-            overflow_page_number_end_offset = self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
-            self.overflow_page_number = unpack(b">I", page[self.overflow_page_number_offset:
-                                                           overflow_page_number_end_offset])[0]
+            self.overflow_page_number_offset = (
+                self.payload_offset + self.bytes_on_first_page
+            )
+            overflow_page_number_end_offset = (
+                self.overflow_page_number_offset + FIRST_OVERFLOW_PAGE_NUMBER_LENGTH
+            )
+            self.overflow_page_number = unpack(
+                b">I",
+                page[
+                    self.overflow_page_number_offset : overflow_page_number_end_offset
+                ],
+            )[0]
             if self.bytes_on_first_page < m:
-                log_message = "When calculating overflow, the bytes on the first page: {} calculated are less than " \
-                              "m: {} for b-tree leaf interior cell index: {} at offset: {} for page: {} in " \
-                              "page version: {} for version: {}."
-                log_message = log_message.format(self.bytes_on_first_page, m, self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "When calculating overflow, the bytes on the first page: {} calculated are less than "
+                    "m: {} for b-tree leaf interior cell index: {} at offset: {} for page: {} in "
+                    "page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.bytes_on_first_page,
+                    m,
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 self._logger.error(log_message)
                 raise CellParsingError(log_message)
 
         self.byte_size = self.payload_byte_size_varint_length + self.payload_byte_size
         self.byte_size += FIRST_OVERFLOW_PAGE_NUMBER_LENGTH if self.has_overflow else 0
-        self.end_offset = self.start_offset + self.byte_size - self.payload_byte_size + self.bytes_on_first_page
+        self.end_offset = (
+            self.start_offset
+            + self.byte_size
+            - self.payload_byte_size
+            + self.bytes_on_first_page
+        )
 
         self.overflow_byte_size = self.payload_byte_size - self.bytes_on_first_page
-        self.expected_number_of_overflow_pages, \
-            self.expected_last_overflow_page_content_size = calculate_expected_overflow(self.overflow_byte_size, u)
+        (
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+        ) = calculate_expected_overflow(self.overflow_byte_size, u)
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[self.start_offset : self.end_offset])
 
         if self.has_overflow:
 
@@ -1566,79 +2346,150 @@ class IndexLeafCell(BTreeCell):
             self.overflow_pages = {}
             payload_remaining = self.overflow_byte_size
 
-            overflow_page = OverflowPage(self._version_interface, self.overflow_page_number, self.page_number,
-                                         FIRST_OVERFLOW_PARENT_PAGE_NUMBER, FIRST_OVERFLOW_PAGE_INDEX,
-                                         payload_remaining)
+            overflow_page = OverflowPage(
+                self._version_interface,
+                self.overflow_page_number,
+                self.page_number,
+                FIRST_OVERFLOW_PARENT_PAGE_NUMBER,
+                FIRST_OVERFLOW_PAGE_INDEX,
+                payload_remaining,
+            )
 
             self.overflow_pages[overflow_page.number] = overflow_page
             self.last_overflow_page_content_size = overflow_page.content_length
 
             while overflow_page.next_overflow_page_number:
-                payload_remaining = payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
-                overflow_page = OverflowPage(self._version_interface, overflow_page.next_overflow_page_number,
-                                             self.page_number, overflow_page.number, overflow_page.index + 1,
-                                             payload_remaining)
+                payload_remaining = (
+                    payload_remaining - overflow_page.size + OVERFLOW_HEADER_LENGTH
+                )
+                overflow_page = OverflowPage(
+                    self._version_interface,
+                    overflow_page.next_overflow_page_number,
+                    self.page_number,
+                    overflow_page.number,
+                    overflow_page.index + 1,
+                    payload_remaining,
+                )
                 self.overflow_pages[overflow_page.number] = overflow_page
                 self.last_overflow_page_content_size = overflow_page.content_length
 
         if self.expected_number_of_overflow_pages != self.number_of_overflow_pages:
-            log_message = "The number of expected overflow pages: {} was not the actual number of overflow pages " \
-                          "parsed: {} for b-tree index leaf cell index: {} at offset: {} for page: {} in " \
-                          "page version: {} for version: {}."
-            log_message = log_message.format(self.expected_number_of_overflow_pages, self.number_of_overflow_pages,
-                                             self.index, self.start_offset, self.page_number, self.page_version_number,
-                                             self.version_number)
+            log_message = (
+                "The number of expected overflow pages: {} was not the actual number of overflow pages "
+                "parsed: {} for b-tree index leaf cell index: {} at offset: {} for page: {} in "
+                "page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_number_of_overflow_pages,
+                self.number_of_overflow_pages,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise CellParsingError(log_message)
 
-        if self.expected_last_overflow_page_content_size != self.last_overflow_page_content_size:
-            log_message = "The expected last overflow page content size: {} was not the actual last overflow page " \
-                          "content size parsed: {} for b-tree index leaf cell index: {} at offset: {} for " \
-                          "page: {} in page version: {} for version: {}."
-            log_message = log_message.format(self.expected_last_overflow_page_content_size,
-                                             self.last_overflow_page_content_size, self.index, self.start_offset,
-                                             self.page_number, self.page_version_number, self.version_number)
+        if (
+            self.expected_last_overflow_page_content_size
+            != self.last_overflow_page_content_size
+        ):
+            log_message = (
+                "The expected last overflow page content size: {} was not the actual last overflow page "
+                "content size parsed: {} for b-tree index leaf cell index: {} at offset: {} for "
+                "page: {} in page version: {} for version: {}."
+            )
+            log_message = log_message.format(
+                self.expected_last_overflow_page_content_size,
+                self.last_overflow_page_content_size,
+                self.index,
+                self.start_offset,
+                self.page_number,
+                self.page_version_number,
+                self.version_number,
+            )
             raise CellParsingError(log_message)
 
-        self.payload = Record(page, self.payload_offset, self.payload_byte_size,
-                              self.bytes_on_first_page, self.overflow)
+        self.payload = Record(
+            page,
+            self.payload_offset,
+            self.payload_byte_size,
+            self.bytes_on_first_page,
+            self.overflow,
+        )
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Payload Byte Size: {}\n" \
-                 + padding + "Payload Byte Size VARINT Length: {}\n" \
-                 + padding + "Payload Offset: {}\n" \
-                 + padding + "Bytes on First Page: {}\n" \
-                 + padding + "Has Overflow: {}\n" \
-                 + padding + "Overflow Byte Size: {}\n" \
-                 + padding + "Expected Number of Overflow Pages: {}\n" \
-                 + padding + "Expected Last Overflow Page Content Size: {}\n" \
-                 + padding + "Number of Overflow Pages: {}\n" \
-                 + padding + "Overflow Page Number Offset: {}\n" \
-                 + padding + "Overflow Page Number: {}\n" \
-                 + padding + "Last Overflow Page Content Size: {}\n" \
-                 + padding + "Overflow (Hex): {}"
-        string = string.format(self.payload_byte_size,
-                               self.payload_byte_size_varint_length,
-                               self.payload_offset,
-                               self.bytes_on_first_page,
-                               self.has_overflow,
-                               self.overflow_byte_size,
-                               self.expected_number_of_overflow_pages,
-                               self.expected_last_overflow_page_content_size,
-                               self.number_of_overflow_pages,
-                               self.overflow_page_number_offset,
-                               self.overflow_page_number,
-                               self.last_overflow_page_content_size,
-                               hexlify(self.overflow))
-        string += "\n" + padding + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        string = (
+            "\n"
+            + padding
+            + "Payload Byte Size: {}\n"
+            + padding
+            + "Payload Byte Size VARINT Length: {}\n"
+            + padding
+            + "Payload Offset: {}\n"
+            + padding
+            + "Bytes on First Page: {}\n"
+            + padding
+            + "Has Overflow: {}\n"
+            + padding
+            + "Overflow Byte Size: {}\n"
+            + padding
+            + "Expected Number of Overflow Pages: {}\n"
+            + padding
+            + "Expected Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Number of Overflow Pages: {}\n"
+            + padding
+            + "Overflow Page Number Offset: {}\n"
+            + padding
+            + "Overflow Page Number: {}\n"
+            + padding
+            + "Last Overflow Page Content Size: {}\n"
+            + padding
+            + "Overflow (Hex): {}"
+        )
+        string = string.format(
+            self.payload_byte_size,
+            self.payload_byte_size_varint_length,
+            self.payload_offset,
+            self.bytes_on_first_page,
+            self.has_overflow,
+            self.overflow_byte_size,
+            self.expected_number_of_overflow_pages,
+            self.expected_last_overflow_page_content_size,
+            self.number_of_overflow_pages,
+            self.overflow_page_number_offset,
+            self.overflow_page_number,
+            self.last_overflow_page_content_size,
+            hexlify(self.overflow),
+        )
+        string += (
+            "\n"
+            + padding
+            + "Payload:\n{}".format(self.payload.stringify(padding + "\t"))
+        )
         if self.has_overflow:
             overflow_page = self.overflow_pages[self.overflow_page_number]
-            string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
+            string += (
+                "\n"
+                + padding
+                + "Overflow Page:\n{}".format(
+                    self.overflow_page.stringify(padding + "\t")
+                )
+            )
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
-                string += "\n" + padding + "Overflow Page:\n{}".format(self.overflow_page.stringify(padding + "\t"))
-        return super(IndexLeafCell, self).stringify(padding) + string
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
+                string += (
+                    "\n"
+                    + padding
+                    + "Overflow Page:\n{}".format(
+                        self.overflow_page.stringify(padding + "\t")
+                    )
+                )
+        return super().stringify(padding) + string
 
     @property
     def number_of_overflow_pages(self):
@@ -1657,54 +2508,92 @@ class IndexLeafCell(BTreeCell):
             overflow_page = self.overflow_pages[self.overflow_page_number]
             overflow += overflow_page.content
             while overflow_page.next_overflow_page_number:
-                overflow_page = self.overflow_pages[overflow_page.next_overflow_page_number]
+                overflow_page = self.overflow_pages[
+                    overflow_page.next_overflow_page_number
+                ]
                 overflow += overflow_page.content
 
             if len(overflow) != self.overflow_byte_size:
-                log_message = "The expected overflow size: {} did not match the overflow size parsed: {} " \
-                              "for b-tree table leaf cell index: {} at offset: {} for page: {} " \
-                              "in page version: {} for version: {}."
-                log_message = log_message.format(self.overflow_byte_size, len(overflow), self.index, self.start_offset,
-                                                 self.page_number, self.page_version_number, self.version_number)
+                log_message = (
+                    "The expected overflow size: {} did not match the overflow size parsed: {} "
+                    "for b-tree table leaf cell index: {} at offset: {} for page: {} "
+                    "in page version: {} for version: {}."
+                )
+                log_message = log_message.format(
+                    self.overflow_byte_size,
+                    len(overflow),
+                    self.index,
+                    self.start_offset,
+                    self.page_number,
+                    self.page_version_number,
+                    self.version_number,
+                )
                 raise CellParsingError(log_message)
 
             return overflow
 
 
 class Freeblock(BTreeCell):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        offset,
+    ):
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number, page, index, offset):
-
-        super(Freeblock, self).__init__(version_interface, page_version_number, file_offset, page_number, index, offset)
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            offset,
+        )
 
         next_freeblock_end_offset = self.start_offset + NEXT_FREEBLOCK_OFFSET_LENGTH
-        self.next_freeblock_offset = unpack(b">H", page[self.start_offset:next_freeblock_end_offset])[0]
+        self.next_freeblock_offset = unpack(
+            b">H", page[self.start_offset : next_freeblock_end_offset]
+        )[0]
         self.content_start_offset = next_freeblock_end_offset + FREEBLOCK_BYTE_LENGTH
-        self.byte_size = unpack(b">H", page[next_freeblock_end_offset:self.content_start_offset])[0]
+        self.byte_size = unpack(
+            b">H", page[next_freeblock_end_offset : self.content_start_offset]
+        )[0]
         self.content_end_offset = self.start_offset + self.byte_size
         self.end_offset = self.content_end_offset
 
         self.content_length = self.end_offset - self.content_start_offset
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[self.start_offset : self.end_offset])
 
     def stringify(self, padding=""):
-        string = "\n" \
-                 + padding + "Next Freeblock Offset: {}\n" \
-                 + padding + "Content Start Offset: {}\n" \
-                 + padding + "Content End Offset: {}\n" \
-                 + padding + "Content Length: {}\n" \
-                 + padding + "Content (Hex): {}"
-        string = string.format(self.next_freeblock_offset,
-                               self.content_start_offset,
-                               self.content_end_offset,
-                               self.content_length,
-                               hexlify(self.content))
-        return super(Freeblock, self).stringify(padding) + string
+        string = (
+            "\n"
+            + padding
+            + "Next Freeblock Offset: {}\n"
+            + padding
+            + "Content Start Offset: {}\n"
+            + padding
+            + "Content End Offset: {}\n"
+            + padding
+            + "Content Length: {}\n"
+            + padding
+            + "Content (Hex): {}"
+        )
+        string = string.format(
+            self.next_freeblock_offset,
+            self.content_start_offset,
+            self.content_end_offset,
+            self.content_length,
+            hexlify(self.content),
+        )
+        return super().stringify(padding) + string
 
     @property
     def content(self):
-
         """
 
         This property returns the content inside this freeblock.  This is only the body of the freeblock, unallocated
@@ -1717,12 +2606,12 @@ class Freeblock(BTreeCell):
         if self.content_length == 0:
             return bytearray()
         else:
-            return self._version_interface.get_page_data(self.page_number, self.content_start_offset,
-                                                         self.content_length)
+            return self._version_interface.get_page_data(
+                self.page_number, self.content_start_offset, self.content_length
+            )
 
 
 class Fragment(BTreeCell):
-
     """
 
 
@@ -1745,25 +2634,39 @@ class Fragment(BTreeCell):
 
     """
 
-    def __init__(self, version_interface, page_version_number, file_offset, page_number,
-                 page, index, start_offset, end_offset):
+    def __init__(
+        self,
+        version_interface,
+        page_version_number,
+        file_offset,
+        page_number,
+        page,
+        index,
+        start_offset,
+        end_offset,
+    ):
 
-        super(Fragment, self).__init__(version_interface, page_version_number, file_offset,
-                                       page_number, index, start_offset)
+        super().__init__(
+            version_interface,
+            page_version_number,
+            file_offset,
+            page_number,
+            index,
+            start_offset,
+        )
 
         self.end_offset = end_offset
         self.byte_size = self.end_offset - self.start_offset
 
-        self.md5_hex_digest = get_md5_hash(page[self.start_offset:self.end_offset])
+        self.md5_hex_digest = get_md5_hash(page[self.start_offset : self.end_offset])
 
     def stringify(self, padding=""):
         string = "\n" + padding + "Content (Hex): {}"
         string = string.format(hexlify(self.content))
-        return super(Fragment, self).stringify(padding) + string
+        return super().stringify(padding) + string
 
     @property
     def content(self):
-
         """
 
         This property returns the content inside this fragment.
@@ -1772,4 +2675,6 @@ class Fragment(BTreeCell):
 
         """
 
-        return self._version_interface.get_page_data(self.page_number, self.start_offset, self.end_offset)
+        return self._version_interface.get_page_data(
+            self.page_number, self.start_offset, self.end_offset
+        )

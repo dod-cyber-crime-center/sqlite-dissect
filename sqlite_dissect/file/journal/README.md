@@ -19,7 +19,7 @@ This script holds the following object(s):
 - RollbackJournalHeader(SQLiteHeader)
 - RollbackJournalPageRecordHeader(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -46,11 +46,10 @@ TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
 - [ ] Finish try/except exception handling for struct.error in classes.
-- [ ] Investigate if rollback journals can store data from multiple transactions.  
+- [ ] Investigate if rollback journals can store data from multiple transactions.
     ##### RollbackJournal Class:
     - [ ] Account for the database text encoding in the file handle.
     - [ ] This class needs to be fully implemented.
     - [ ] Should this be incorporated with the version/version history somehow?
     - [ ] The file_size arg may not be needed since it is in the file handle and may be removed
     - [ ] Implement the stringify method correctly.
-  

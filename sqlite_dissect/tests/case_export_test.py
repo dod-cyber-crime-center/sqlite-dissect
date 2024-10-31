@@ -1,11 +1,11 @@
 import os
 import unittest
+from os import mkdir
+from os.path import abspath, dirname, isdir, join
 
 from sqlite_dissect.entrypoint import main
-from sqlite_dissect.utilities import DotDict
-from os.path import abspath, join, dirname, isdir
-from os import mkdir
 from sqlite_dissect.tests.constants import DB_FILES
+from sqlite_dissect.utilities import DotDict
 
 
 class TestCASEExport(unittest.TestCase):
@@ -15,18 +15,18 @@ class TestCASEExport(unittest.TestCase):
 
     def test_case_output(self):
         # Get the full path to avoid any nested issues
-        base_path = join(dirname(abspath(__file__)), '..', '..')
-        input_path = join(DB_FILES, 'chinook.sqlite')
-        output_path = join(base_path, 'output')
-        case_path = join(output_path, 'case.json')
+        base_path = join(dirname(abspath(__file__)), "..", "..")
+        input_path = join(DB_FILES, "chinook.sqlite")
+        output_path = join(base_path, "output")
+        case_path = join(output_path, "case.json")
 
         # Build the arguments for the testing
         args = {
-            'log_level': 'debug',
-            'export': ['case', 'text'],
-            'directory': output_path,
-            'sqlite_file': input_path,
-            'no_journal': True
+            "log_level": "debug",
+            "export": ["case", "text"],
+            "directory": output_path,
+            "sqlite_file": input_path,
+            "no_journal": True,
         }
 
         # Convert the dictionary to a dot-accessible object for the main parsing

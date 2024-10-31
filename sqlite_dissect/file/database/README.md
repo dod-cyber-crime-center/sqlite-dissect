@@ -21,7 +21,7 @@ This script holds the objects used for parsing the database file.
 This script holds the following object(s):
 - Database(Version)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -43,7 +43,7 @@ This script holds the header objects used for parsing the header of the database
 This script holds the following object(s):
 - DatabaseHeader(SQLiteHeader)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -55,7 +55,7 @@ TODO:
     ##### BTreePageHeader Class:
     - [ ] The contains_sqlite_database_header attribute should apply to table b-trees, not all b-trees.
     - [ ] The root_page_only_md5_hex_digest attribute should apply to table b-trees, not all b-trees.
-  
+
 <br>
 
 ### page.py
@@ -91,7 +91,7 @@ Assumptions:
                   modified, that even if the content of the overflow portion does not change, the whole cell including
                   overflow need to be replaced due to the way the cells are stored in SQLite.
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -130,7 +130,7 @@ Payload(object)
 Record(Payload)
 RecordColumn(object)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
@@ -151,7 +151,7 @@ get_maximum_pointer_map_entries_per_page(page_size)
 get_page_numbers_and_types_from_b_tree_page(b_tree_page)
 get_pages_from_b_tree_page(b_tree_page)
 <br><br>
-  
+
 TODO:
 - [ ] Documentation improvements.
 - [ ] aggregate_leaf_cells: Investigate ways of making this faster like with intersections of sets.

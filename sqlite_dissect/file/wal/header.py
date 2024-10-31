@@ -1,12 +1,15 @@
 from logging import getLogger
 from struct import unpack
 from warnings import warn
-from sqlite_dissect.constants import LOGGER_NAME
-from sqlite_dissect.constants import WAL_FILE_FORMAT_VERSION
-from sqlite_dissect.constants import WAL_FRAME_HEADER_LENGTH
-from sqlite_dissect.constants import WAL_HEADER_LENGTH
-from sqlite_dissect.constants import WAL_MAGIC_NUMBER_BIG_ENDIAN
-from sqlite_dissect.constants import WAL_MAGIC_NUMBER_LITTLE_ENDIAN
+
+from sqlite_dissect.constants import (
+    LOGGER_NAME,
+    WAL_FILE_FORMAT_VERSION,
+    WAL_FRAME_HEADER_LENGTH,
+    WAL_HEADER_LENGTH,
+    WAL_MAGIC_NUMBER_BIG_ENDIAN,
+    WAL_MAGIC_NUMBER_LITTLE_ENDIAN,
+)
 from sqlite_dissect.exception import HeaderParsingError
 from sqlite_dissect.file.header import SQLiteHeader
 from sqlite_dissect.utilities import get_md5_hash
@@ -25,16 +28,19 @@ WriteAheadLogFrameHeader(object)
 
 
 class WriteAheadLogHeader(SQLiteHeader):
-
     def __init__(self, wal_header_byte_array):
 
-        super(WriteAheadLogHeader, self).__init__()
+        super().__init__()
 
         logger = getLogger(LOGGER_NAME)
 
         if len(wal_header_byte_array) != WAL_HEADER_LENGTH:
-            log_message = "The wal header byte array of size: {} is not the expected size of: {}."
-            log_message = log_message.format(len(wal_header_byte_array), WAL_HEADER_LENGTH)
+            log_message = (
+                "The wal header byte array of size: {} is not the expected size of: {}."
+            )
+            log_message = log_message.format(
+                len(wal_header_byte_array), WAL_HEADER_LENGTH
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -46,8 +52,11 @@ class WriteAheadLogHeader(SQLiteHeader):
 
         """
 
-        if self.magic_number not in [WAL_MAGIC_NUMBER_BIG_ENDIAN, WAL_MAGIC_NUMBER_LITTLE_ENDIAN]:
-            log_message = "The magic number: {} is valid.".format(self.magic_number)
+        if self.magic_number not in [
+            WAL_MAGIC_NUMBER_BIG_ENDIAN,
+            WAL_MAGIC_NUMBER_LITTLE_ENDIAN,
+        ]:
+            log_message = f"The magic number: {self.magic_number} is valid."
             logger.error(log_message)
             raise HeaderParsingError(log_message)
 
@@ -55,7 +64,9 @@ class WriteAheadLogHeader(SQLiteHeader):
 
         if self.file_format_version != WAL_FILE_FORMAT_VERSION:
             log_message = "An unsupported file format version was found: {} instead of the expected value: {}."
-            log_message = log_message.format(self.file_format_version, WAL_FILE_FORMAT_VERSION)
+            log_message = log_message.format(
+                self.file_format_version, WAL_FILE_FORMAT_VERSION
+            )
             logger.error(log_message)
             raise HeaderParsingError(log_message)
 
@@ -76,35 +87,49 @@ class WriteAheadLogHeader(SQLiteHeader):
         self.md5_hex_digest = get_md5_hash(wal_header_byte_array)
 
     def stringify(self, padding=""):
-        string = padding + "Magic Number: {}\n" \
-                 + padding + "File Format Version: {}\n" \
-                 + padding + "Page Size: {}\n" \
-                 + padding + "Checkpoint Sequence Number: {}\n" \
-                 + padding + "Salt 1: {}\n" \
-                 + padding + "Salt 2: {}\n" \
-                 + padding + "Checksum 1: {}\n" \
-                 + padding + "Checksum 2: {}\n" \
-                 + padding + "MD5 Hex Digest: {}"
-        return string.format(self.magic_number,
-                             self.file_format_version,
-                             self.page_size,
-                             self.checkpoint_sequence_number,
-                             self.salt_1,
-                             self.salt_2,
-                             self.checksum_1,
-                             self.checksum_2,
-                             self.md5_hex_digest)
+        string = (
+            padding
+            + "Magic Number: {}\n"
+            + padding
+            + "File Format Version: {}\n"
+            + padding
+            + "Page Size: {}\n"
+            + padding
+            + "Checkpoint Sequence Number: {}\n"
+            + padding
+            + "Salt 1: {}\n"
+            + padding
+            + "Salt 2: {}\n"
+            + padding
+            + "Checksum 1: {}\n"
+            + padding
+            + "Checksum 2: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}"
+        )
+        return string.format(
+            self.magic_number,
+            self.file_format_version,
+            self.page_size,
+            self.checkpoint_sequence_number,
+            self.salt_1,
+            self.salt_2,
+            self.checksum_1,
+            self.checksum_2,
+            self.md5_hex_digest,
+        )
 
 
-class WriteAheadLogFrameHeader(object):
-
+class WriteAheadLogFrameHeader:
     def __init__(self, wal_frame_header_byte_array):
 
         logger = getLogger(LOGGER_NAME)
 
         if len(wal_frame_header_byte_array) != WAL_FRAME_HEADER_LENGTH:
             log_message = "The wal frame header byte array of size: {} is not the expected size of: {}."
-            log_message = log_message.format(len(wal_frame_header_byte_array), WAL_FRAME_HEADER_LENGTH)
+            log_message = log_message.format(
+                len(wal_frame_header_byte_array), WAL_FRAME_HEADER_LENGTH
+            )
             logger.error(log_message)
             raise ValueError(log_message)
 
@@ -121,20 +146,31 @@ class WriteAheadLogFrameHeader(object):
         return self.__str__()
 
     def __str__(self):
-        return self.stringify().replace('\t', '').replace('\n', ' ')
+        return self.stringify().replace("\t", "").replace("\n", " ")
 
     def stringify(self, padding=""):
-        string = padding + "Page Number: {}\n" \
-                 + padding + "Page Size After Commit: {}\n" \
-                 + padding + "Salt 1: {}\n" \
-                 + padding + "Salt 2: {}\n" \
-                 + padding + "Checksum 1: {}\n" \
-                 + padding + "Checksum 2: {}\n" \
-                 + padding + "MD5 Hex Digest: {}"
-        return string.format(self.page_number,
-                             self.page_size_after_commit,
-                             self.salt_1,
-                             self.salt_2,
-                             self.checksum_1,
-                             self.checksum_2,
-                             self.md5_hex_digest)
+        string = (
+            padding
+            + "Page Number: {}\n"
+            + padding
+            + "Page Size After Commit: {}\n"
+            + padding
+            + "Salt 1: {}\n"
+            + padding
+            + "Salt 2: {}\n"
+            + padding
+            + "Checksum 1: {}\n"
+            + padding
+            + "Checksum 2: {}\n"
+            + padding
+            + "MD5 Hex Digest: {}"
+        )
+        return string.format(
+            self.page_number,
+            self.page_size_after_commit,
+            self.salt_1,
+            self.salt_2,
+            self.checksum_1,
+            self.checksum_2,
+            self.md5_hex_digest,
+        )

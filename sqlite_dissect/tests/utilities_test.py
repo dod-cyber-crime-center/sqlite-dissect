@@ -1,11 +1,23 @@
 import struct
 import unittest
+
 import pytest
 
-from sqlite_dissect.utilities import calculate_expected_overflow, get_serial_type_signature, has_content, \
-    get_record_content, decode_varint, encode_varint, get_md5_hash, get_class_instance
-from sqlite_dissect.constants import BLOB_SIGNATURE_IDENTIFIER, TEXT_SIGNATURE_IDENTIFIER
+from sqlite_dissect.constants import (
+    BLOB_SIGNATURE_IDENTIFIER,
+    TEXT_SIGNATURE_IDENTIFIER,
+)
 from sqlite_dissect.exception import InvalidVarIntError
+from sqlite_dissect.utilities import (
+    calculate_expected_overflow,
+    decode_varint,
+    encode_varint,
+    get_class_instance,
+    get_md5_hash,
+    get_record_content,
+    get_serial_type_signature,
+    has_content,
+)
 
 
 class TestRootUtilities(unittest.TestCase):
@@ -30,8 +42,8 @@ class TestRootUtilities(unittest.TestCase):
         self.assertEqual(3, result[1])  # last_overflow_page_content_size
 
     def test_get_record_content(self):
-        test_string_array = 'this is a string'.encode('utf-8')
-        test_byte_array = struct.pack('=BHBL', 1, 2, 3, 4)
+        test_string_array = b"this is a string"
+        test_byte_array = struct.pack("=BHBL", 1, 2, 3, 4)
 
         # Test when serial_type is 0
         result = get_record_content(0, test_byte_array, 0)
@@ -86,20 +98,20 @@ class TestRootUtilities(unittest.TestCase):
         # Test when serial_type is >= 12 and even
         result = get_record_content(12, test_string_array, 0)
         self.assertEqual(0, result[0])
-        self.assertEqual(b'', result[1])
+        self.assertEqual(b"", result[1])
 
         result = get_record_content(24, test_string_array, 0)
         self.assertEqual(6, result[0])
-        self.assertEqual(b'this i', result[1])
+        self.assertEqual(b"this i", result[1])
 
         # Test when serial_type is >= 13 and odd
         result = get_record_content(13, test_string_array, 0)
         self.assertEqual(0, result[0])
-        self.assertEqual(b'', result[1])
+        self.assertEqual(b"", result[1])
 
         result = get_record_content(25, test_string_array, 0)
         self.assertEqual(6, result[0])
-        self.assertEqual(b'this i', result[1])
+        self.assertEqual(b"this i", result[1])
 
         # Test that the proper exception is thrown when the input is invalid
         cases = [10, 11]
@@ -136,7 +148,7 @@ class TestRootUtilities(unittest.TestCase):
         cases = [
             bytearray([0x0]),
             bytearray([0x0, 0x0, 0x0]),
-            bytearray([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])
+            bytearray([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]),
         ]
         for case in cases:
             result = has_content(case)
@@ -146,7 +158,7 @@ class TestRootUtilities(unittest.TestCase):
         cases = [
             bytearray([0x1]),
             bytearray([0x0, 0x1, 0x0]),
-            bytearray([0x0, 0x0, 0x0, 0x0, 0x9, 0x0, 0x0, 0x0, 0x2])
+            bytearray([0x0, 0x0, 0x0, 0x0, 0x9, 0x0, 0x0, 0x0, 0x2]),
         ]
         for case in cases:
             result = has_content(case)
@@ -157,26 +169,34 @@ class TestRootUtilities(unittest.TestCase):
 def test_decode_varint():
     # only reads first 9 elements after provided offset, ignores others
     # doesn't verify that offset is in the array
-    max_allowed = 0x7fffffffffffffff
+    max_allowed = 0x7FFFFFFFFFFFFFFF
     min_allowed = (max_allowed + 1) - 0x10000000000000000
 
-    assert decode_varint(bytearray([0xbf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), 0) == (max_allowed, 9)
-    assert decode_varint(bytearray([0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00]), 0) == (min_allowed, 9)
+    assert decode_varint(
+        bytearray([0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), 0
+    ) == (max_allowed, 9)
+    assert decode_varint(
+        bytearray([0xC0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00]), 0
+    ) == (min_allowed, 9)
     assert decode_varint(bytearray([0x0]), 0) == (0, 1)
 
 
 def test_encode_varint():
-    max_allowed = 0x7fffffffffffffff
+    max_allowed = 0x7FFFFFFFFFFFFFFF
     min_allowed = (max_allowed + 1) - 0x10000000000000000
 
     # max value
-    assert encode_varint(max_allowed) == bytearray([0xbf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+    assert encode_varint(max_allowed) == bytearray(
+        [0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    )
     # max value + 1
     with pytest.raises(InvalidVarIntError):
         encode_varint(max_allowed + 1)
 
     # min value
-    assert encode_varint(min_allowed) == bytearray([0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00])
+    assert encode_varint(min_allowed) == bytearray(
+        [0xC0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00]
+    )
     # min value - 1
     with pytest.raises(InvalidVarIntError):
         encode_varint(min_allowed - 1)
@@ -186,7 +206,9 @@ def test_encode_varint():
     # one
     assert encode_varint(1) == bytearray([0x1])
     # negative one
-    assert encode_varint(-1) == bytearray([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+    assert encode_varint(-1) == bytearray(
+        [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    )
 
 
 def test_get_md5_hash():
@@ -196,16 +218,16 @@ def test_get_md5_hash():
 
 class TestClassInstance:
     def __init__(self):
-        self.sampleData = 'this is a test class.'
+        self.sampleData = "this is a test class."
 
 
 get_class_instance_params = [
-    ('sqlite_dissect.tests.utilities_test.TestClassInstance', TestClassInstance),
-    ('classWihoutModules', -1)
+    ("sqlite_dissect.tests.utilities_test.TestClassInstance", TestClassInstance),
+    ("classWihoutModules", -1),
 ]
 
 
-@pytest.mark.parametrize('class_name, expected_module', get_class_instance_params)
+@pytest.mark.parametrize("class_name, expected_module", get_class_instance_params)
 def test_get_class_instance(class_name, expected_module):
     if expected_module == -1:
         with pytest.raises(ValueError):
