@@ -7,7 +7,7 @@ on:
 env:
   # The Python version for the build jobs as well as the primary one for the test and artifact generation. This MUST be
   # in the python-version matrix in the `test` job.
-  PYTHON_VERSION: "3.13"  
+  PYTHON_VERSION: "3.13"
 jobs:
   test:
     runs-on: ubuntu-latest
