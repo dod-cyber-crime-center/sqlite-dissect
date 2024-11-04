@@ -11,5 +11,5 @@ EOF_ERROR = "End of File Error"
 RECORD_ERROR = "Record Parsing Error"
 VERSION_ERROR = "Version Parsing Error"
 KEY_ERROR = "Key Error"
-DB_FILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_files')
-LOG_FILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log_files')
+DB_FILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_files")
+LOG_FILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log_files")

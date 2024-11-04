@@ -43,7 +43,7 @@ This script holds the following object(s):
 TODO:
 - [ ] Documentation improvements.
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
-  
+
 <br>
 
 ### exception.py
@@ -75,7 +75,7 @@ This script holds the following object(s):
 
 TODO:
 - [ ] Documentation improvements.
-  
+
 <br>
 
 ### interface.py
@@ -106,7 +106,7 @@ TODO:
 - [ ] Implement index signatures.
 - [ ] Update documentation on the BASE_VERSION_NUMBER where it is used.
 - [ ] create_table_signature: Note on how the version history is recommended if possible.
-  
+
 <br>
 
 ### output.py
@@ -136,7 +136,7 @@ TODO:
 - [ ] Make sure different encodings are handled in every function in this script where applicable.
 - [ ] get_pointer_map_entries_breakdown: Handle the pointer map page breakdown tuple better.
 - [ ] stringify_unallocated_space: Implement a whitespace threshold for trimming, etc.
-  
+
 <br>
 
 ### utilities.py
@@ -159,7 +159,7 @@ TODO:
 - [ ] Check variables against None and Type constraints, possibly by using descriptors and/or decorators.
 - [ ] Implement try/except exception handling for struct.error and ord.
 - [ ] The varint related functions only work in big endian.  Are there use cases for little endian?
-  
+
 <br>
 
 ### version_history.py

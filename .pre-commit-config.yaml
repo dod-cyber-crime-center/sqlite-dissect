@@ -1,0 +1,45 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+        exclude_types:
+          - svg
+    -   id: trailing-whitespace
+        exclude_types:
+          - svg
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.18.0
+    hooks:
+    -   id: pyupgrade
+        exclude: migrations/
+        args:
+          - --py37-plus
+-   repo: https://github.com/myint/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+        exclude: ^migrations/
+        args:
+          - --remove-all-unused-imports
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: ["--profile", "black", "--filter-files"]
+      - id: isort
+        name: isort (cython)
+        types: [cython]
+        args: ["--profile", "black", "--filter-files"]
+      - id: isort
+        name: isort (pyi)
+        types: [pyi]
+        args: ["--profile", "black", "--filter-files"]
+-   repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+    -   id: black
+
+exclude: ^.+.(min|pack).(js|css)|vendor/.+$

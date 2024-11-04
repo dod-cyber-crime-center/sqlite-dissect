@@ -1,11 +1,14 @@
 from copy import copy
 from warnings import warn
-from sqlite_dissect.constants import BASE_VERSION_NUMBER
-from sqlite_dissect.constants import FILE_TYPE
-from sqlite_dissect.constants import FIRST_FREELIST_TRUNK_PAGE_INDEX
-from sqlite_dissect.constants import FIRST_FREELIST_TRUNK_PARENT_PAGE_NUMBER
-from sqlite_dissect.constants import SQLITE_3_7_0_VERSION_NUMBER
-from sqlite_dissect.constants import SQLITE_MASTER_SCHEMA_ROOT_PAGE
+
+from sqlite_dissect.constants import (
+    BASE_VERSION_NUMBER,
+    FILE_TYPE,
+    FIRST_FREELIST_TRUNK_PAGE_INDEX,
+    FIRST_FREELIST_TRUNK_PARENT_PAGE_NUMBER,
+    SQLITE_3_7_0_VERSION_NUMBER,
+    SQLITE_MASTER_SCHEMA_ROOT_PAGE,
+)
 from sqlite_dissect.exception import DatabaseParsingError
 from sqlite_dissect.file.database.page import FreelistTrunkPage
 from sqlite_dissect.file.database.utilities import create_pointer_map_pages
@@ -26,9 +29,13 @@ Database(Version)
 
 
 class Database(Version):
-
-    def __init__(self, file_identifier, store_in_memory=False, file_size=None, strict_format_checking=True):
-
+    def __init__(
+        self,
+        file_identifier,
+        store_in_memory=False,
+        file_size=None,
+        strict_format_checking=True,
+    ):
         """
 
         Constructor.  This constructor initializes this object.
@@ -47,9 +54,15 @@ class Database(Version):
 
         """
 
-        database_file_handle = FileHandle(FILE_TYPE.DATABASE, file_identifier, file_size=file_size)
-        super(Database, self).__init__(database_file_handle, BASE_VERSION_NUMBER,
-                                       store_in_memory, strict_format_checking)
+        database_file_handle = FileHandle(
+            FILE_TYPE.DATABASE, file_identifier, file_size=file_size
+        )
+        super().__init__(
+            database_file_handle,
+            BASE_VERSION_NUMBER,
+            store_in_memory,
+            strict_format_checking,
+        )
 
         """
 
@@ -85,15 +98,26 @@ class Database(Version):
         # The database header size in pages is not set
         if self.database_header.database_size_in_pages == 0:
 
-            log_message = "Database header for version: {} specifies a database size in pages of 0 for " \
-                          "sqlite version: {}."
-            log_message = log_message.format(self.version_number, self.database_header.sqlite_version_number)
+            log_message = (
+                "Database header for version: {} specifies a database size in pages of 0 for "
+                "sqlite version: {}."
+            )
+            log_message = log_message.format(
+                self.version_number, self.database_header.sqlite_version_number
+            )
             self._logger.info(log_message)
 
-            if self.database_header.sqlite_version_number >= SQLITE_3_7_0_VERSION_NUMBER:
-                log_message = "The database header database size in pages is 0 when the sqlite version: {} is " \
-                              "greater or equal than 3.7.0 in version: {} and should be set."
-                log_message = log_message.format(self.database_header.sqlite_version_number, self.version_number)
+            if (
+                self.database_header.sqlite_version_number
+                >= SQLITE_3_7_0_VERSION_NUMBER
+            ):
+                log_message = (
+                    "The database header database size in pages is 0 when the sqlite version: {} is "
+                    "greater or equal than 3.7.0 in version: {} and should be set."
+                )
+                log_message = log_message.format(
+                    self.database_header.sqlite_version_number, self.version_number
+                )
                 self._logger.error(log_message)
                 raise DatabaseParsingError(log_message)
 
@@ -101,7 +125,10 @@ class Database(Version):
             self.database_size_in_pages = self.file_handle.file_size / self.page_size
 
         # The database header size in pages is set and the version valid for number does not equal the change counter
-        elif self.database_header.version_valid_for_number != self.database_header.file_change_counter:
+        elif (
+            self.database_header.version_valid_for_number
+            != self.database_header.file_change_counter
+        ):
 
             """
 
@@ -113,14 +140,19 @@ class Database(Version):
             # Calculate the number of pages from the file size and page size
             self.database_size_in_pages = self.file_handle.file_size / self.page_size
 
-            log_message = "Database header for version: {} specifies a database size in pages of {} but version " \
-                          "valid for number: {} does not equal the file change counter: {} for sqlite " \
-                          "version: {}.  Setting the database size in pages to the calculated page size of: {}."
-            log_message = log_message.format(self.version_number, self.database_header.database_size_in_pages,
-                                             self.database_header.version_valid_for_number,
-                                             self.database_header.file_change_counter,
-                                             self.database_header.sqlite_version_number,
-                                             self.database_size_in_pages)
+            log_message = (
+                "Database header for version: {} specifies a database size in pages of {} but version "
+                "valid for number: {} does not equal the file change counter: {} for sqlite "
+                "version: {}.  Setting the database size in pages to the calculated page size of: {}."
+            )
+            log_message = log_message.format(
+                self.version_number,
+                self.database_header.database_size_in_pages,
+                self.database_header.version_valid_for_number,
+                self.database_header.file_change_counter,
+                self.database_header.sqlite_version_number,
+                self.database_size_in_pages,
+            )
             self._logger.warning(log_message)
             warn(log_message, RuntimeWarning)
 
@@ -150,19 +182,29 @@ class Database(Version):
             if self.database_header.database_size_in_pages != calculated_size_in_pages:
 
                 # Set the database size in pages to the database header size in pages
-                self.database_size_in_pages = self.database_header.database_size_in_pages
+                self.database_size_in_pages = (
+                    self.database_header.database_size_in_pages
+                )
 
-                log_message = "Database header for version: {} specifies a database size in pages of {} but the " \
-                              "calculated size in pages is {} instead for sqlite version: {}.  The database size in " \
-                              "pages will remain unchanged but possibly erroneous use cases may occur when parsing."
-                log_message = log_message.format(self.version_number, self.database_header.database_size_in_pages,
-                                                 calculated_size_in_pages, self.database_header.sqlite_version_number)
+                log_message = (
+                    "Database header for version: {} specifies a database size in pages of {} but the "
+                    "calculated size in pages is {} instead for sqlite version: {}.  The database size in "
+                    "pages will remain unchanged but possibly erroneous use cases may occur when parsing."
+                )
+                log_message = log_message.format(
+                    self.version_number,
+                    self.database_header.database_size_in_pages,
+                    calculated_size_in_pages,
+                    self.database_header.sqlite_version_number,
+                )
                 self._logger.warning(log_message)
                 warn(log_message, RuntimeWarning)
 
             else:
 
-                self.database_size_in_pages = self.database_header.database_size_in_pages
+                self.database_size_in_pages = (
+                    self.database_header.database_size_in_pages
+                )
 
         """
 
@@ -174,13 +216,23 @@ class Database(Version):
 
         """
 
-        self.updated_page_numbers = [page_index + 1 for page_index in range(int(self.database_size_in_pages))]
-        self.page_version_index = dict(map(lambda x: [x, self.version_number], self.updated_page_numbers))
+        self.updated_page_numbers = [
+            page_index + 1 for page_index in range(int(self.database_size_in_pages))
+        ]
+        self.page_version_index = dict(
+            map(lambda x: [x, self.version_number], self.updated_page_numbers)
+        )
 
-        self._logger.debug("Updated page numbers initialized as: {} in version: {}.".format(self.updated_page_numbers,
-                                                                                            self.version_number))
-        self._logger.debug("Page version index initialized as: {} in version: {}.".format(self.page_version_index,
-                                                                                          self.version_number))
+        self._logger.debug(
+            "Updated page numbers initialized as: {} in version: {}.".format(
+                self.updated_page_numbers, self.version_number
+            )
+        )
+        self._logger.debug(
+            "Page version index initialized as: {} in version: {}.".format(
+                self.page_version_index, self.version_number
+            )
+        )
 
         """
 
@@ -201,10 +253,12 @@ class Database(Version):
         """
 
         if self.database_header.first_freelist_trunk_page_number:
-            self.first_freelist_trunk_page = FreelistTrunkPage(self,
-                                                               self.database_header.first_freelist_trunk_page_number,
-                                                               FIRST_FREELIST_TRUNK_PARENT_PAGE_NUMBER,
-                                                               FIRST_FREELIST_TRUNK_PAGE_INDEX)
+            self.first_freelist_trunk_page = FreelistTrunkPage(
+                self,
+                self.database_header.first_freelist_trunk_page_number,
+                FIRST_FREELIST_TRUNK_PARENT_PAGE_NUMBER,
+                FIRST_FREELIST_TRUNK_PAGE_INDEX,
+            )
 
         self.freelist_page_numbers = []
         observed_freelist_pages = 0
@@ -222,10 +276,15 @@ class Database(Version):
             freelist_trunk_page = freelist_trunk_page.next_freelist_trunk_page
 
         if observed_freelist_pages != self.database_header.number_of_freelist_pages:
-            log_message = "The number of observed freelist pages: {} does not match the number of freelist pages " \
-                          "specified in the header: {} for version: {}."
-            log_message = log_message.format(observed_freelist_pages, self.database_header.number_of_freelist_pages,
-                                             self.version_number)
+            log_message = (
+                "The number of observed freelist pages: {} does not match the number of freelist pages "
+                "specified in the header: {} for version: {}."
+            )
+            log_message = log_message.format(
+                observed_freelist_pages,
+                self.database_header.number_of_freelist_pages,
+                self.version_number,
+            )
             self._logger.error(log_message)
             raise DatabaseParsingError(log_message)
 
@@ -239,7 +298,9 @@ class Database(Version):
         """
 
         if self.database_header.largest_root_b_tree_page_number:
-            self.pointer_map_pages = create_pointer_map_pages(self, self.database_size_in_pages, self.page_size)
+            self.pointer_map_pages = create_pointer_map_pages(
+                self, self.database_size_in_pages, self.page_size
+            )
         else:
             self.pointer_map_pages = []
 
@@ -288,12 +349,20 @@ class Database(Version):
         """
 
         if len(self.master_schema.master_schema_entries) == 0:
-            if self.database_header.schema_format_number != 0 or self.database_header.database_text_encoding != 0:
-                log_message = "No master schema entries found in master schema for version: {} when the database " \
-                              "schema format number was: {} and the database text encoding was: {} when both should " \
-                              "be 0."
-                log_message = log_message.format(self.version_number, self.database_header.schema_format_number,
-                                                 self.database_header.database_text_encoding)
+            if (
+                self.database_header.schema_format_number != 0
+                or self.database_header.database_text_encoding != 0
+            ):
+                log_message = (
+                    "No master schema entries found in master schema for version: {} when the database "
+                    "schema format number was: {} and the database text encoding was: {} when both should "
+                    "be 0."
+                )
+                log_message = log_message.format(
+                    self.version_number,
+                    self.database_header.schema_format_number,
+                    self.database_header.database_text_encoding,
+                )
                 self._logger.error(log_message)
                 raise DatabaseParsingError(log_message)
 
@@ -327,8 +396,10 @@ class Database(Version):
 
     @Version.database_text_encoding.setter
     def database_text_encoding(self, database_text_encoding):
-        log_message = "Database text encoding {} requested to be set on database.  Operation not permitted.  " \
-                      "Should be set during object construction."
+        log_message = (
+            "Database text encoding {} requested to be set on database.  Operation not permitted.  "
+            "Should be set during object construction."
+        )
         log_message = log_message.format(database_text_encoding)
         self._logger.error(log_message)
         raise TypeError(log_message)
@@ -336,7 +407,9 @@ class Database(Version):
     def get_page_data(self, page_number, offset=0, number_of_bytes=None):
 
         # Set the number of bytes to the rest of the page if it was not set
-        number_of_bytes = self.page_size - offset if not number_of_bytes else number_of_bytes
+        number_of_bytes = (
+            self.page_size - offset if not number_of_bytes else number_of_bytes
+        )
 
         if offset >= self.page_size:
             log_message = "Requested offset: {} is >= the page size: {} for page: {}."
@@ -345,10 +418,17 @@ class Database(Version):
             raise ValueError(log_message)
 
         if offset + number_of_bytes > self.page_size:
-            log_message = "Requested length of data: {} at offset {} to {} is greater than the page " \
-                          "size: {} for page: {}."
-            log_message = log_message.format(number_of_bytes, offset, number_of_bytes + offset,
-                                             self.page_size, page_number)
+            log_message = (
+                "Requested length of data: {} at offset {} to {} is greater than the page "
+                "size: {} for page: {}."
+            )
+            log_message = log_message.format(
+                number_of_bytes,
+                offset,
+                number_of_bytes + offset,
+                self.page_size,
+                page_number,
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
@@ -360,7 +440,9 @@ class Database(Version):
 
         if page_number < 1 or page_number > self.database_size_in_pages:
             log_message = "Invalid page number: {} for version: {} with database size in pages: {}."
-            log_message = log_message.format(page_number, self.version_number, self.database_size_in_pages)
+            log_message = log_message.format(
+                page_number, self.version_number, self.database_size_in_pages
+            )
             self._logger.error(log_message)
             raise ValueError(log_message)
 
